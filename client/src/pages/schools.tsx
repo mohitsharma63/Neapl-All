@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Home as HomeIcon, Phone, Mail, MapPin, Star, Users, GraduationCap, Globe } from "lucide-react";
 import { Link } from "wouter";
@@ -9,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import type { SearchFilters as SearchFiltersType } from "@/lib/types";
-import schoolsData from "@/data/schools.json";
+import { useQuery } from "@tanstack/react-query";
 
 // School interface
 interface School {
@@ -33,8 +32,17 @@ export default function Schools() {
     priceType: "rent",
   });
 
-  // Static data instead of API call
-  const schools: School[] = schoolsData;
+  // Fetch schools data from API
+  const { data: schools = [], isLoading, error } = useQuery({
+    queryKey: ['schools'],
+    queryFn: async () => {
+      const response = await fetch('/api/schools');
+      if (!response.ok) {
+        throw new Error('Failed to fetch schools');
+      }
+      return response.json();
+    }
+  });
 
   const handleSaveSearch = () => {
     console.log("Save search:", filters);
@@ -84,7 +92,30 @@ export default function Schools() {
 
       {/* Schools Listings */}
       <section className="container mx-auto px-4 py-8" data-testid="schools-listings">
-        {schools.length === 0 ? (
+        {isLoading ? (
+          <div className="text-center py-16">
+            <div className="max-w-md mx-auto">
+              <div className="w-24 h-24 mx-auto mb-6 bg-gray-100 rounded-full flex items-center justify-center">
+                <GraduationCap className="w-12 h-12 text-gray-400 animate-pulse" />
+              </div>
+              <h3 className="text-xl font-semibold text-gray-900 mb-2">Loading schools...</h3>
+              <p className="text-gray-600">कृपया प्रतीक्षा गर्नुहोस्।</p>
+            </div>
+          </div>
+        ) : error ? (
+          <div className="text-center py-16">
+            <div className="max-w-md mx-auto">
+              <div className="w-24 h-24 mx-auto mb-6 bg-red-100 rounded-full flex items-center justify-center">
+                <GraduationCap className="w-12 h-12 text-red-400" />
+              </div>
+              <h3 className="text-xl font-semibold text-gray-900 mb-2">Error loading schools</h3>
+              <p className="text-gray-600 mb-6">विद्यालयहरू लोड गर्न समस्या भयो।</p>
+              <Button onClick={() => window.location.reload()} className="bg-primary hover:bg-primary/90">
+                Try Again
+              </Button>
+            </div>
+          </div>
+        ) : schools.length === 0 ? (
           <div className="text-center py-16">
             <div className="max-w-md mx-auto">
               <div className="w-24 h-24 mx-auto mb-6 bg-gray-100 rounded-full flex items-center justify-center">

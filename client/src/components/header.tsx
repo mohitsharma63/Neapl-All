@@ -66,9 +66,9 @@ export default function Header() {
                 <Heart className="w-4 h-4 md:w-5 md:h-5" />
               </button>
 
-              <button className="p-2 hover:bg-primary/80 rounded-lg transition-colors hidden sm:block" data-testid="button-profile">
+              <Link href="/login" className="p-2 hover:bg-primary/80 rounded-lg transition-colors hidden sm:block" data-testid="button-profile">
                 <User className="w-4 h-4 md:w-5 md:h-5" />
-              </button>
+              </Link>
 
               {/* Mobile Menu Button */}
               <button
@@ -135,7 +135,7 @@ export default function Header() {
                   Favorites
                 </Link>
                 <Link
-                  href="#"
+                  href="/login"
                   className="block py-2 px-4 rounded-lg text-gray-700 hover:bg-gray-100 transition-colors"
                   onClick={() => setIsMobileMenuOpen(false)}
                   data-testid="mobile-link-profile"
