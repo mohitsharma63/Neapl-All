@@ -67,13 +67,88 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Agencies
-  app.get("/api/agencies", async (req, res) => {
-    try {
-      const agencies = await storage.getAgencies();
-      res.json(agencies);
-    } catch (error) {
-      res.status(500).json({ message: "Failed to fetch agencies" });
-    }
+  app.get("/api/agencies", async (req, reply) => {
+    const agencies = await storage.getAgencies();
+    return agencies;
+  });
+
+  // Get schools
+  app.get("/api/schools", async (req, reply) => {
+    // Mock data for now - replace with real database query when schools table is added
+    const schools = [
+      {
+        id: "1",
+        name: "Kathmandu Model High School",
+        type: "Private",
+        level: "Secondary",
+        address: "Bagbazar, Kathmandu",
+        phone: "+977-1-4567890",
+        email: "info@kmhs.edu.np",
+        website: "www.kmhs.edu.np",
+        established: "1985",
+        students: 1200,
+        rating: 4.8,
+        description: "A premier educational institution providing quality education since 1985.",
+        facilities: ["Library", "Computer Lab", "Sports Ground", "Science Lab"]
+      },
+      {
+        id: "2",
+        name: "Budhanilkantha School",
+        type: "Public",
+        level: "Secondary",
+        address: "Budhanilkantha, Kathmandu",
+        phone: "+977-1-4567891",
+        email: "admin@bns.edu.np",
+        established: "1972",
+        students: 2000,
+        rating: 4.6,
+        description: "One of Nepal's most prestigious schools with excellent academic record.",
+        facilities: ["Hostel", "Swimming Pool", "Library", "Labs", "Sports Complex"]
+      },
+      {
+        id: "3",
+        name: "St. Mary's High School",
+        type: "Private",
+        level: "Secondary",
+        address: "Jawalakhel, Lalitpur",
+        phone: "+977-1-4567892",
+        email: "contact@stmarys.edu.np",
+        established: "1990",
+        students: 800,
+        rating: 4.7,
+        description: "English medium school focused on holistic development of students.",
+        facilities: ["Chapel", "Art Room", "Music Room", "Computer Lab"]
+      },
+      {
+        id: "4",
+        name: "Sunshine Secondary School",
+        type: "Private",
+        level: "Secondary",
+        address: "Thamel, Kathmandu",
+        phone: "+977-1-4567893",
+        email: "info@sunshine.edu.np",
+        established: "1995",
+        students: 600,
+        rating: 4.5,
+        description: "Modern educational institution with focus on technology integration.",
+        facilities: ["Smart Classrooms", "Computer Lab", "Science Lab", "Library"]
+      },
+      {
+        id: "5",
+        name: "Himalayan International School",
+        type: "Private",
+        level: "Secondary",
+        address: "Dhulikhel, Kavre",
+        phone: "+977-1-4567894",
+        email: "admissions@his.edu.np",
+        established: "2000",
+        students: 900,
+        rating: 4.9,
+        description: "International curriculum school with world-class facilities.",
+        facilities: ["Boarding", "International Curriculum", "Sports Complex", "Arts Center"]
+      }
+    ];
+    return schools;
   });
 
   app.get("/api/agencies/:id", async (req, res) => {
@@ -224,7 +299,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!email) {
         return res.status(400).json({ message: "Email is required" });
       }
-      
+
       // In a real app, you would integrate with a newsletter service like Mailchimp
       // For now, just return success
       res.json({ message: "Successfully subscribed to newsletter" });

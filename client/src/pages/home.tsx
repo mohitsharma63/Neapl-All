@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Home as HomeIcon, Building, Globe, Bus, Users, GraduationCap, List, Map } from "lucide-react";
 import { Link } from "wouter";
@@ -10,9 +11,9 @@ import GlobalPropertiesSection from "@/components/global-properties";
 import FAQSection from "@/components/faq-section";
 import Footer from "@/components/footer";
 import { Button } from "@/components/ui/button";
-import { useQuery } from "@tanstack/react-query";
 import type { Property } from "@shared/schema";
 import type { SearchFilters as SearchFiltersType } from "@/lib/types";
+import propertiesData from "@/data/properties.json";
 
 const PROPERTY_CATEGORIES = [
   { id: "residential", icon: HomeIcon, label: "आवासीय | Residential", href: "/properties?category=residential" },
@@ -29,9 +30,8 @@ export default function Home() {
   });
   const [activeCategory, setActiveCategory] = useState<string>("residential");
 
-  const { data: featuredProperties = [], isLoading } = useQuery<Property[]>({
-    queryKey: ["/api/properties/featured"],
-  });
+  // Static data instead of API call
+  const featuredProperties: Property[] = propertiesData.filter(p => p.isFeatured);
 
   const handleSaveSearch = () => {
     console.log("Save search:", filters);
@@ -45,7 +45,7 @@ export default function Home() {
     <div className="min-h-screen bg-background" data-testid="page-home">
       <Header />
 
-      {/* Property Categories */}
+      {/* Property Categories - Only show on exact home page */}
       <section className="bg-white border-b shadow-sm" data-testid="property-categories">
         <div className="container mx-auto px-4">
           {/* Mobile: Horizontal scroll */}
@@ -68,14 +68,14 @@ export default function Home() {
                       <span className="text-xs font-medium leading-tight text-center">
                         {category.label.split(' | ')[0]}
                       </span>
-                    </button>
-                  </Link>
-                );
-              })}
-            </div>
+                  </button>
+                </Link>
+              );
+            })}
           </div>
+        </div>
 
-          {/* Desktop: Grid layout */}
+        {/* Desktop: Grid layout */}
           <div className="hidden md:flex items-center justify-center space-x-8 py-6">
             {PROPERTY_CATEGORIES.map((category) => {
               const Icon = category.icon;
@@ -165,24 +165,7 @@ export default function Home() {
           {/* Main Property Listings */}
           <div className="lg:col-span-2">
             <div className="space-y-6">
-              {isLoading ? (
-                <div className="space-y-6">
-                  {[1, 2, 3].map((i) => (
-                    <div key={i} className="bg-white rounded-xl border border-border overflow-hidden shadow-sm animate-pulse">
-                      <div className="h-64 bg-gray-200"></div>
-                      <div className="p-6 space-y-4">
-                        <div className="h-4 bg-gray-200 rounded w-3/4"></div>
-                        <div className="h-4 bg-gray-200 rounded w-1/2"></div>
-                        <div className="flex space-x-4">
-                          <div className="h-4 bg-gray-200 rounded w-16"></div>
-                          <div className="h-4 bg-gray-200 rounded w-16"></div>
-                          <div className="h-4 bg-gray-200 rounded w-16"></div>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : featuredProperties.length === 0 ? (
+              {featuredProperties.length === 0 ? (
                 <div className="text-center py-16 bg-white rounded-xl border border-border">
                   <div className="max-w-md mx-auto">
                     <div className="w-24 h-24 mx-auto mb-6 bg-gray-100 rounded-full flex items-center justify-center">
