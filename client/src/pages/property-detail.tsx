@@ -26,9 +26,36 @@ export default function PropertyDetail() {
     return (
       <div className="min-h-screen bg-background" data-testid="page-property-detail-loading">
         <Header />
-        <div className="container mx-auto px-4 py-16">
-          <div className="text-center">
-            <div className="animate-pulse text-lg">Loading property details...</div>
+        <div className="container mx-auto px-4 py-8">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <div className="lg:col-span-2 space-y-6">
+              {/* Image skeleton */}
+              <div className="h-96 bg-gray-200 rounded-xl animate-pulse"></div>
+              {/* Content skeleton */}
+              <div className="bg-white rounded-xl border p-6 space-y-4">
+                <div className="h-8 bg-gray-200 rounded animate-pulse w-3/4"></div>
+                <div className="h-4 bg-gray-200 rounded animate-pulse w-1/2"></div>
+                <div className="grid grid-cols-3 gap-4">
+                  {[1, 2, 3].map(i => (
+                    <div key={i} className="h-20 bg-gray-100 rounded-lg animate-pulse"></div>
+                  ))}
+                </div>
+                <div className="space-y-2">
+                  <div className="h-4 bg-gray-200 rounded animate-pulse"></div>
+                  <div className="h-4 bg-gray-200 rounded animate-pulse w-4/5"></div>
+                  <div className="h-4 bg-gray-200 rounded animate-pulse w-3/5"></div>
+                </div>
+              </div>
+            </div>
+            <div className="lg:col-span-1 space-y-6">
+              <div className="bg-white rounded-xl border p-6">
+                <div className="h-6 bg-gray-200 rounded animate-pulse mb-4"></div>
+                <div className="space-y-3">
+                  <div className="h-10 bg-gray-200 rounded animate-pulse"></div>
+                  <div className="h-10 bg-gray-200 rounded animate-pulse"></div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
         <Footer />

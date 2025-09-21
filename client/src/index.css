@@ -3,51 +3,195 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Custom animations and transitions */
+@layer components {
+  .smooth-transition {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  
+  .hover-lift {
+    transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+  }
+  
+  .hover-lift:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+  }
+  
+  @media (max-width: 768px) {
+    .hover-lift:active {
+      transform: translateY(-1px);
+      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+    }
+  }
+  
+  .fade-in {
+    animation: fadeIn 0.5s ease-in-out;
+  }
+  
+  .slide-up {
+    animation: slideUp 0.6s ease-out;
+  }
+
+  /* Touch-friendly targets */
+  .touch-target {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  /* Loading skeleton */
+  .skeleton {
+    background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+    background-size: 200% 100%;
+    animation: loading 1.5s infinite;
+  }
+
+  /* Better mobile scrolling */
+  .mobile-scroll {
+    -webkit-overflow-scrolling: touch;
+    scroll-behavior: smooth;
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Smooth scrolling */
+html {
+  scroll-behavior: smooth;
+  /* Prevent zoom on iOS */
+  -webkit-text-size-adjust: 100%;
+}
+
+/* Better focus styles */
+button:focus,
+input:focus,
+select:focus,
+textarea:focus {
+  outline: 2px solid hsl(var(--primary));
+  outline-offset: 2px;
+}
+
+/* Mobile-specific improvements */
+@media (max-width: 768px) {
+  /* Prevent horizontal scroll */
+  body {
+    overflow-x: hidden;
+  }
+
+  /* Better button spacing on mobile */
+  button {
+    min-height: 44px;
+  }
+
+  /* Improve text readability */
+  body {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* Better input styling on mobile */
+  input, select, textarea {
+    font-size: 16px; /* Prevents zoom on iOS */
+    border-radius: 8px;
+  }
+}
+
+/* Accessibility improvements */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  .hover-lift:hover {
+    box-shadow: 0 0 0 2px currentColor;
+  }
+}
+
+/* Loading spinner */
+.loading-spinner {
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  border: 3px solid rgba(255, 255, 255, 0.3);
+  border-radius: 50%;
+  border-top-color: #fff;
+  animation: spin 1s ease-in-out infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
 :root {
-  --background: hsl(210, 40%, 98%);
-  --foreground: hsl(222.2, 84%, 4.9%);
+  --background: hsl(210, 15%, 98%);
+  --foreground: hsl(225, 25%, 15%);
   --card: hsl(0, 0%, 100%);
-  --card-foreground: hsl(222.2, 84%, 4.9%);
+  --card-foreground: hsl(225, 25%, 15%);
   --popover: hsl(0, 0%, 100%);
-  --popover-foreground: hsl(222.2, 84%, 4.9%);
-  --primary: hsl(221.2, 83.2%, 53.3%);
-  --primary-foreground: hsl(210, 40%, 98%);
-  --secondary: hsl(210, 40%, 96%);
-  --secondary-foreground: hsl(222.2, 84%, 4.9%);
-  --muted: hsl(210, 40%, 96%);
-  --muted-foreground: hsl(215.4, 16.3%, 46.9%);
-  --accent: hsl(24.6, 95%, 53.1%);
-  --accent-foreground: hsl(60, 9.1%, 97.8%);
-  --destructive: hsl(0, 84.2%, 60.2%);
-  --destructive-foreground: hsl(60, 9.1%, 97.8%);
-  --border: hsl(214.3, 31.8%, 91.4%);
-  --input: hsl(214.3, 31.8%, 91.4%);
-  --ring: hsl(221.2, 83.2%, 53.3%);
-  --chart-1: hsl(221.2, 83.2%, 53.3%);
-  --chart-2: hsl(159.7826, 100%, 36.0784%);
-  --chart-3: hsl(42.0290, 92.8251%, 56.2745%);
-  --chart-4: hsl(147.1429, 78.5047%, 41.9608%);
-  --chart-5: hsl(341.4894, 75.2000%, 50.9804%);
-  --sidebar: hsl(210, 40%, 96%);
-  --sidebar-foreground: hsl(222.2, 84%, 4.9%);
-  --sidebar-primary: hsl(221.2, 83.2%, 53.3%);
-  --sidebar-primary-foreground: hsl(210, 40%, 98%);
-  --sidebar-accent: hsl(210, 40%, 96%);
-  --sidebar-accent-foreground: hsl(221.2, 83.2%, 53.3%);
-  --sidebar-border: hsl(214.3, 31.8%, 91.4%);
-  --sidebar-ring: hsl(221.2, 83.2%, 53.3%);
+  --popover-foreground: hsl(225, 25%, 15%);
+  --primary: hsl(215, 85%, 35%);
+  --primary-foreground: hsl(0, 0%, 100%);
+  --secondary: hsl(210, 25%, 94%);
+  --secondary-foreground: hsl(225, 25%, 15%);
+  --muted: hsl(210, 25%, 94%);
+  --muted-foreground: hsl(215, 15%, 55%);
+  --accent: hsl(165, 75%, 40%);
+  --accent-foreground: hsl(0, 0%, 100%);
+  --destructive: hsl(0, 75%, 55%);
+  --destructive-foreground: hsl(0, 0%, 100%);
+  --border: hsl(215, 25%, 88%);
+  --input: hsl(215, 25%, 88%);
+  --ring: hsl(215, 85%, 35%);
+  --chart-1: hsl(215, 85%, 35%);
+  --chart-2: hsl(165, 75%, 40%);
+  --chart-3: hsl(35, 85%, 55%);
+  --chart-4: hsl(285, 75%, 50%);
+  --chart-5: hsl(15, 85%, 60%);
+  --sidebar: hsl(210, 25%, 94%);
+  --sidebar-foreground: hsl(225, 25%, 15%);
+  --sidebar-primary: hsl(215, 85%, 35%);
+  --sidebar-primary-foreground: hsl(0, 0%, 100%);
+  --sidebar-accent: hsl(210, 25%, 94%);
+  --sidebar-accent-foreground: hsl(215, 85%, 35%);
+  --sidebar-border: hsl(215, 25%, 88%);
+  --sidebar-ring: hsl(215, 85%, 35%);
   --font-sans: 'Inter', sans-serif;
   --font-serif: Georgia, serif;
   --font-mono: Menlo, monospace;
   --radius: 0.5rem;
-  --shadow-2xs: 0px 2px 0px 0px hsl(221.2, 83.2%, 53.3%, 0.00);
-  --shadow-xs: 0px 2px 0px 0px hsl(221.2, 83.2%, 53.3%, 0.00);
-  --shadow-sm: 0px 2px 0px 0px hsl(221.2, 83.2%, 53.3%, 0.00), 0px 1px 2px -1px hsl(221.2, 83.2%, 53.3%, 0.00);
-  --shadow: 0px 2px 0px 0px hsl(221.2, 83.2%, 53.3%, 0.00), 0px 1px 2px -1px hsl(221.2, 83.2%, 53.3%, 0.00);
-  --shadow-md: 0px 2px 0px 0px hsl(221.2, 83.2%, 53.3%, 0.00), 0px 2px 4px -1px hsl(221.2, 83.2%, 53.3%, 0.00);
-  --shadow-lg: 0px 2px 0px 0px hsl(221.2, 83.2%, 53.3%, 0.00), 0px 4px 6px -1px hsl(221.2, 83.2%, 53.3%, 0.00);
-  --shadow-xl: 0px 2px 0px 0px hsl(221.2, 83.2%, 53.3%, 0.00), 0px 8px 10px -1px hsl(221.2, 83.2%, 53.3%, 0.00);
-  --shadow-2xl: 0px 2px 0px 0px hsl(221.2, 83.2%, 53.3%, 0.00);
+  --shadow-2xs: 0px 2px 0px 0px hsl(220, 70%, 50%, 0.00);
+  --shadow-xs: 0px 2px 0px 0px hsl(220, 70%, 50%, 0.00);
+  --shadow-sm: 0px 2px 0px 0px hsl(220, 70%, 50%, 0.00), 0px 1px 2px -1px hsl(220, 70%, 50%, 0.00);
+  --shadow: 0px 2px 0px 0px hsl(220, 70%, 50%, 0.00), 0px 1px 2px -1px hsl(220, 70%, 50%, 0.00);
+  --shadow-md: 0px 2px 0px 0px hsl(220, 70%, 50%, 0.00), 0px 2px 4px -1px hsl(220, 70%, 50%, 0.00);
+  --shadow-lg: 0px 2px 0px 0px hsl(220, 70%, 50%, 0.00), 0px 4px 6px -1px hsl(220, 70%, 50%, 0.00);
+  --shadow-xl: 0px 2px 0px 0px hsl(220, 70%, 50%, 0.00), 0px 8px 10px -1px hsl(220, 70%, 50%, 0.00);
+  --shadow-2xl: 0px 2px 0px 0px hsl(220, 70%, 50%, 0.00);
   --tracking-normal: 0em;
   --spacing: 0.25rem;
 }
@@ -59,32 +203,32 @@
   --card-foreground: hsl(0, 0%, 85.0980%);
   --popover: hsl(0, 0%, 0%);
   --popover-foreground: hsl(200, 6.6667%, 91.1765%);
-  --primary: hsl(221.2, 83.2%, 53.3%);
+  --primary: hsl(220, 70%, 50%);
   --primary-foreground: hsl(210, 40%, 98%);
   --secondary: hsl(195.0000, 15.3846%, 94.9020%);
   --secondary-foreground: hsl(222.2, 84%, 4.9%);
   --muted: hsl(0, 0%, 9.4118%);
   --muted-foreground: hsl(210, 3.3898%, 46.2745%);
-  --accent: hsl(24.6, 95%, 53.1%);
+  --accent: hsl(140, 70%, 45%);
   --accent-foreground: hsl(60, 9.1%, 97.8%);
   --destructive: hsl(0, 84.2%, 60.2%);
   --destructive-foreground: hsl(60, 9.1%, 97.8%);
   --border: hsl(210, 5.2632%, 14.9020%);
   --input: hsl(207.6923, 27.6596%, 18.4314%);
-  --ring: hsl(221.2, 83.2%, 53.3%);
-  --chart-1: hsl(221.2, 83.2%, 53.3%);
+  --ring: hsl(220, 70%, 50%);
+  --chart-1: hsl(220, 70%, 50%);
   --chart-2: hsl(159.7826, 100%, 36.0784%);
   --chart-3: hsl(42.0290, 92.8251%, 56.2745%);
   --chart-4: hsl(147.1429, 78.5047%, 41.9608%);
   --chart-5: hsl(341.4894, 75.2000%, 50.9804%);
   --sidebar: hsl(228, 9.8039%, 10%);
   --sidebar-foreground: hsl(0, 0%, 85.0980%);
-  --sidebar-primary: hsl(221.2, 83.2%, 53.3%);
+  --sidebar-primary: hsl(220, 70%, 50%);
   --sidebar-primary-foreground: hsl(210, 40%, 98%);
   --sidebar-accent: hsl(205.7143, 70%, 7.8431%);
-  --sidebar-accent-foreground: hsl(221.2, 83.2%, 53.3%);
+  --sidebar-accent-foreground: hsl(220, 70%, 50%);
   --sidebar-border: hsl(205.7143, 15.7895%, 26.0784%);
-  --sidebar-ring: hsl(221.2, 83.2%, 53.3%);
+  --sidebar-ring: hsl(220, 70%, 50%);
 }
 
 @layer base {
@@ -115,4 +259,98 @@
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
+}
+
+/* Navigation improvements */
+.nav-tab {
+  position: relative;
+  overflow: hidden;
+}
+
+.nav-tab::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(135deg, rgba(30, 64, 175, 0.05) 0%, rgba(5, 150, 105, 0.05) 100%);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.nav-tab:hover::before {
+  opacity: 1;
+}
+
+.nav-tab.active::before {
+  opacity: 1;
+  background: linear-gradient(135deg, rgba(5, 150, 105, 0.1) 0%, rgba(30, 64, 175, 0.1) 100%);
+}
+
+/* Mobile navigation scroll indicators */
+.mobile-nav-container {
+  position: relative;
+}
+
+.mobile-nav-container::after {
+  content: '';
+  position: absolute;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: 20px;
+  background: linear-gradient(to left, rgba(255, 255, 255, 1) 0%, rgba(255, 255, 255, 0) 100%);
+  pointer-events: none;
+}
+
+/* Better touch targets for mobile */
+@media (max-width: 768px) {
+  .nav-tab {
+    min-height: 60px;
+    min-width: 80px;
+  }
+}
+
+/* Nepal-inspired design elements */
+.nepal-gradient {
+  background: linear-gradient(135deg, #1e40af 0%, #059669 50%, #dc2626 100%);
+}
+
+.mountain-shadow {
+  box-shadow: 0 10px 30px -3px rgba(30, 64, 175, 0.1), 0 4px 8px -2px rgba(5, 150, 105, 0.05);
+}
+
+.prayer-flag-animation {
+  animation: flutter 3s ease-in-out infinite;
+}
+
+@keyframes flutter {
+  0%, 100% { transform: rotate(0deg) scale(1); }
+  25% { transform: rotate(1deg) scale(1.02); }
+  75% { transform: rotate(-1deg) scale(0.98); }
+}
+
+.himalayan-text {
+  background: linear-gradient(135deg, #1e40af 0%, #059669 30%, #dc2626 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  font-weight: 700;
+}
+
+.nepali-card {
+  background: linear-gradient(145deg, #ffffff 0%, #f8fafc 100%);
+  border: 1px solid rgba(30, 64, 175, 0.1);
+  box-shadow: 0 4px 20px rgba(30, 64, 175, 0.08);
+}
+
+.nepali-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 35px rgba(30, 64, 175, 0.15);
+  transition: all 0.3s ease;
+}
+
+.cultural-pattern {
+  background-image: url("data:image/svg+xml,%3Csvg width='40' height='40' viewBox='0 0 40 40' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%231e40af' fill-opacity='0.03'%3E%3Cpath d='M20 20c0-5.5-4.5-10-10-10s-10 4.5-10 10 4.5 10 10 10 10-4.5 10-10zm10 0c0-5.5-4.5-10-10-10s-10 4.5-10 10 4.5 10 10 10 10-4.5 10-10z'/%3E%3C/g%3E%3C/svg%3E");
 }

@@ -41,13 +41,13 @@ export default function Footer() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
             <div>
               <h3 className="text-2xl font-bold mb-2" data-testid="text-advertise-title">
-                Want to advertise on Qatar Living?
+                Want to advertise on Jeevika Services?
               </h3>
               <p className="text-primary-foreground/80 mb-4" data-testid="text-advertise-description">
-                Take a look at our{" "}
-                <span className="text-accent underline cursor-pointer">Advertise page</span>
+                Connecting Nepal with quality services.{" "}
+                <span className="text-accent underline cursor-pointer">Advertise with us</span>
               </p>
-              
+
               <div className="mt-6">
                 <h4 className="text-lg font-semibold mb-2" data-testid="text-newsletter-title">
                   Subscribe to our newsletter to get the latest updates
@@ -72,7 +72,7 @@ export default function Footer() {
                 </form>
               </div>
             </div>
-            
+
             <div className="text-center lg:text-right">
               <div className="mb-4">
                 <h4 className="text-lg font-semibold mb-4" data-testid="text-mobile-app-title">
@@ -210,12 +210,18 @@ export default function Footer() {
           {/* Social & Brand */}
           <div data-testid="footer-brand">
             <div className="mb-6">
-              <div className="text-2xl font-bold" data-testid="text-footer-logo">
-                <span className="text-white">Qatar</span>
-                <span className="text-accent">LIVING</span>
+              <div className="text-2xl font-bold flex items-center space-x-3" data-testid="text-footer-logo">
+                <div className="w-10 h-10 bg-accent rounded-lg flex items-center justify-center text-white font-black text-xl">
+                  j
+                </div>
+                <div>
+                  <span className="text-white text-xl tracking-wide">JEEVIKA</span>
+                  <div className="text-xs text-accent/90 -mt-1 font-medium">सेवा प्रा. लि. | Services Pvt. Ltd.</div>
+                </div>
               </div>
+              <p className="text-sm text-primary-foreground/80 mt-2">नेपाललाई सेवासँग जोड्दै | Connecting Nepal with Services</p>
             </div>
-            
+
             <div>
               <h4 className="text-lg font-semibold mb-4" data-testid="text-social-title">
                 Let's stay connected
@@ -247,7 +253,7 @@ export default function Footer() {
         {/* Copyright */}
         <div className="border-t border-primary-foreground/20 pt-8">
           <p className="text-center text-primary-foreground/60" data-testid="text-copyright">
-            Copyright © 2025 Qatar Living. All rights reserved.
+            Copyright © 2025 Jeevika Services Pvt. Ltd. All rights reserved.
           </p>
         </div>
       </div>
