@@ -16,7 +16,7 @@ export default function FAQSection() {
   const [showMore, setShowMore] = useState(false);
 
   const { data: faqs = [], isLoading } = useQuery<Faq[]>({
-    queryKey: ["/api/faqs", { category: activeTab }],
+    queryKey: [`/api/faqs?category=${activeTab}`],
   });
 
   const toggleFAQ = (faqId: string) => {

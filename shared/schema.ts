@@ -7,7 +7,16 @@ import { z } from "zod";
 export const users = pgTable("users", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   username: text("username").notNull().unique(),
+  email: text("email").notNull().unique(),
   password: text("password").notNull(),
+  firstName: text("first_name"),
+  lastName: text("last_name"),
+  phone: text("phone"),
+  role: text("role").default("user"), // "admin", "agent", "user"
+  isActive: boolean("is_active").default(true),
+  avatar: text("avatar"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
 });
 
 export const agencies = pgTable("agencies", {
@@ -55,12 +64,12 @@ export const properties = pgTable("properties", {
   amenities: jsonb("amenities").$type<string[]>().default([]),
   isFeatured: boolean("is_featured").default(false),
   isNegotiable: boolean("is_negotiable").default(false),
-  
+
   // Relations
   locationId: varchar("location_id").references(() => locations.id),
   categoryId: varchar("category_id").references(() => propertyCategories.id),
   agencyId: varchar("agency_id").references(() => agencies.id),
-  
+
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -72,6 +81,33 @@ export const faqs = pgTable("faqs", {
   category: text("category").notNull(), // "agent", "listing", "looking"
   order: integer("order").default(0),
   isActive: boolean("is_active").default(true),
+});
+
+export const adminCategories = pgTable("admin_categories", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: text("name").notNull(),
+  slug: text("slug").notNull().unique(),
+  description: text("description"),
+  icon: text("icon"),
+  color: text("color").default("#1e40af"),
+  isActive: boolean("is_active").default(true),
+  sortOrder: integer("sort_order").default(0),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const adminSubcategories = pgTable("admin_subcategories", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: text("name").notNull(),
+  slug: text("slug").notNull().unique(),
+  description: text("description"),
+  icon: text("icon"),
+  color: text("color"),
+  isActive: boolean("is_active").default(true),
+  sortOrder: integer("sort_order").default(0),
+  parentCategoryId: varchar("parent_category_id").notNull().references(() => adminCategories.id, { onDelete: "cascade" }),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
 });
 
 // Relations
@@ -99,6 +135,17 @@ export const propertiesRelations = relations(properties, ({ one }) => ({
   agency: one(agencies, {
     fields: [properties.agencyId],
     references: [agencies.id],
+  }),
+}));
+
+export const adminCategoriesRelations = relations(adminCategories, ({ many }) => ({
+  subcategories: many(adminSubcategories),
+}));
+
+export const adminSubcategoriesRelations = relations(adminSubcategories, ({ one }) => ({
+  parentCategory: one(adminCategories, {
+    fields: [adminSubcategories.parentCategoryId],
+    references: [adminCategories.id],
   }),
 }));
 
@@ -132,6 +179,18 @@ export const insertFaqSchema = createInsertSchema(faqs).omit({
   id: true,
 });
 
+export const insertAdminCategorySchema = createInsertSchema(adminCategories).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertAdminSubcategorySchema = createInsertSchema(adminSubcategories).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 // Types
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
@@ -150,3 +209,9 @@ export type Property = typeof properties.$inferSelect;
 
 export type InsertFaq = z.infer<typeof insertFaqSchema>;
 export type Faq = typeof faqs.$inferSelect;
+
+export type InsertAdminCategory = z.infer<typeof insertAdminCategorySchema>;
+export type AdminCategory = typeof adminCategories.$inferSelect;
+
+export type InsertAdminSubcategory = z.infer<typeof insertAdminSubcategorySchema>;
+export type AdminSubcategory = typeof adminSubcategories.$inferSelect;
