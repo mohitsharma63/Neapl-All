@@ -1,9 +1,13 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { setupVite, serveStatic, log } from "./vite";
-
+import { router } from "./routes";
+import http from "http";
 const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
+
+// API Routes
+app.use(router);
 
 app.use((req, res, next) => {
   const start = Date.now();
@@ -36,7 +40,7 @@ app.use((req, res, next) => {
 });
 
 (async () => {
-  const server
+  const server =http.createServer(app);
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
     const status = err.status || err.statusCode || 500;

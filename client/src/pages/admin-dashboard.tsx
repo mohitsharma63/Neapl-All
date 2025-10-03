@@ -1,5 +1,4 @@
-
-import React, { useState, useEffect } from 'react';
+import React, {  useState,useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -45,6 +44,9 @@ import {
   SidebarTrigger,
   SidebarInset
 } from '@/components/ui/sidebar';
+import { CategoryDialog } from "@/components/category-dialog";
+import { SubcategoryDialog } from "@/components/subcategory-dialog";
+import { useQuery } from "@tanstack/react-query";
 
 interface AdminCategory {
   id: string;
@@ -370,152 +372,44 @@ function CategoriesSection() {
     return name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
   };
 
+  // State for dialog visibility
+  const [categoryDialogOpen, setCategoryDialogOpen] = useState(false);
+  const [subcategoryDialogOpen, setSubcategoryDialogOpen] = useState(false);
+
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex justify-between items-start">
         <div>
-          <h2 className="text-2xl font-bold">Categories Management</h2>
-          <p className="text-muted-foreground">Manage your system categories and subcategories</p>
+          <h3 className="text-lg font-semibold text-foreground mb-1">Categories Management</h3>
+          <p className="text-sm text-muted-foreground">Manage your system categories and subcategories</p>
         </div>
         <div className="flex gap-2">
-          <Dialog open={isCreateCategoryOpen} onOpenChange={setIsCreateCategoryOpen}>
-            <DialogTrigger asChild>
-              <Button>
-                <Plus className="w-4 h-4 mr-2" />
-                Add Category
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Create New Category</DialogTitle>
-                <DialogDescription>Add a new main category</DialogDescription>
-              </DialogHeader>
-              <form onSubmit={handleCreateCategory} className="space-y-4">
-                <div>
-                  <label className="text-sm font-medium">Name</label>
-                  <Input
-                    value={categoryForm.name}
-                    onChange={(e) => {
-                      setCategoryForm(prev => ({
-                        ...prev,
-                        name: e.target.value,
-                        slug: generateSlug(e.target.value)
-                      }));
-                    }}
-                    placeholder="Category name"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="text-sm font-medium">Slug</label>
-                  <Input
-                    value={categoryForm.slug}
-                    onChange={(e) => setCategoryForm(prev => ({ ...prev, slug: e.target.value }))}
-                    placeholder="category-slug"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="text-sm font-medium">Description</label>
-                  <Textarea
-                    value={categoryForm.description}
-                    onChange={(e) => setCategoryForm(prev => ({ ...prev, description: e.target.value }))}
-                    placeholder="Category description"
-                  />
-                </div>
-                <div>
-                  <label className="text-sm font-medium">Icon</label>
-                  <Select value={categoryForm.icon} onValueChange={(value) => setCategoryForm(prev => ({ ...prev, icon: value }))}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select an icon" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="building">Building</SelectItem>
-                      <SelectItem value="map-pin">Map Pin</SelectItem>
-                      <SelectItem value="users">Users</SelectItem>
-                      <SelectItem value="file-text">File Text</SelectItem>
-                      <SelectItem value="bar-chart">Bar Chart</SelectItem>
-                      <SelectItem value="settings">Settings</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <label className="text-sm font-medium">Color</label>
-                  <Input
-                    type="color"
-                    value={categoryForm.color}
-                    onChange={(e) => setCategoryForm(prev => ({ ...prev, color: e.target.value }))}
-                  />
-                </div>
-                <Button type="submit" className="w-full">Create Category</Button>
-              </form>
-            </DialogContent>
-          </Dialog>
-
-          <Dialog open={isCreateSubcategoryOpen} onOpenChange={setIsCreateSubcategoryOpen}>
-            <DialogTrigger asChild>
-              <Button variant="outline">
-                <Plus className="w-4 h-4 mr-2" />
-                Add Subcategory
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Create New Subcategory</DialogTitle>
-                <DialogDescription>Add a new subcategory under an existing category</DialogDescription>
-              </DialogHeader>
-              <form onSubmit={handleCreateSubcategory} className="space-y-4">
-                <div>
-                  <label className="text-sm font-medium">Parent Category</label>
-                  <Select value={subcategoryForm.parentCategoryId} onValueChange={(value) => setSubcategoryForm(prev => ({ ...prev, parentCategoryId: value }))}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select parent category" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {Array.isArray(categories) && categories.map((category) => (
-                        <SelectItem key={category.id} value={category.id}>{category.name}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <label className="text-sm font-medium">Name</label>
-                  <Input
-                    value={subcategoryForm.name}
-                    onChange={(e) => {
-                      setSubcategoryForm(prev => ({
-                        ...prev,
-                        name: e.target.value,
-                        slug: generateSlug(e.target.value)
-                      }));
-                    }}
-                    placeholder="Subcategory name"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="text-sm font-medium">Slug</label>
-                  <Input
-                    value={subcategoryForm.slug}
-                    onChange={(e) => setSubcategoryForm(prev => ({ ...prev, slug: e.target.value }))}
-                    placeholder="subcategory-slug"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="text-sm font-medium">Description</label>
-                  <Textarea
-                    value={subcategoryForm.description}
-                    onChange={(e) => setSubcategoryForm(prev => ({ ...prev, description: e.target.value }))}
-                    placeholder="Subcategory description"
-                  />
-                </div>
-                <Button type="submit" className="w-full">Create Subcategory</Button>
-              </form>
-            </DialogContent>
-          </Dialog>
+          <Button size="sm" onClick={() => setCategoryDialogOpen(true)}>
+            <Plus className="w-4 h-4 mr-2" />
+            Add Category
+          </Button>
+          <Button size="sm" variant="outline" onClick={() => setSubcategoryDialogOpen(true)}>
+            <Plus className="w-4 h-4 mr-2" />
+            Add Subcategory
+          </Button>
         </div>
       </div>
+
+      <CategoryDialog 
+        open={categoryDialogOpen} 
+        onOpenChange={setCategoryDialogOpen}
+        onCreateCategory={handleCreateCategory} // Pass the handler
+        categoryForm={categoryForm} // Pass the form state
+        setCategoryForm={setCategoryForm} // Pass the setter
+      />
+      <SubcategoryDialog 
+        open={subcategoryDialogOpen} 
+        onOpenChange={setSubcategoryDialogOpen}
+        categories={categories}
+        onCreateSubcategory={handleCreateSubcategory} // Pass the handler
+        subcategoryForm={subcategoryForm} // Pass the form state
+        setSubcategoryForm={setSubcategoryForm} // Pass the setter
+      />
 
       <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
         {Array.isArray(categories) && categories.map((category) => {
