@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -146,6 +145,13 @@ function AppSidebar({ activeSection, setActiveSection }: { activeSection: string
     { title: "Dashboard", icon: Home, key: "dashboard" },
     { title: "Categories", icon: FileText, key: "categories", badge: "12" },
     { title: "Property Pages", icon: MapPin, key: "property-pages" },
+    { title: "Rental Listings", icon: Building, key: "rental-listings" },
+    { title: "Hostels & PG", icon: Building, key: "hostel-pg" },
+    { title: "Construction Materials", icon: Building, key: "construction-materials" },
+    { title: "Property Deals", icon: Building, key: "property-deals" },
+    { title: "Commercial Properties", icon: Building, key: "commercial-properties" },
+    { title: "Industrial Land", icon: Building, key: "industrial-land" },
+    { title: "Office Spaces", icon: Building, key: "office-spaces" },
     { title: "Users", icon: Users, key: "users" },
     { title: "Agencies", icon: Bookmark, key: "agencies" },
     { title: "Analytics", icon: BarChart3, key: "analytics" },
@@ -206,7 +212,7 @@ function AppSidebar({ activeSection, setActiveSection }: { activeSection: string
                   <span>Add Category</span>
                 </SidebarMenuButton>
               </SidebarMenuItem>
-              
+
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
@@ -529,7 +535,7 @@ function CategoriesSection() {
               <CardContent>
                 {category.subcategories && category.subcategories.length > 0 && (
                   <div className="space-y-3">
-                    <div 
+                    <div
                       className="flex items-center justify-between cursor-pointer hover:bg-muted/50 -mx-2 px-2 py-1 rounded"
                       onClick={() => toggleCategoryExpand(category.id)}
                     >
@@ -1111,6 +1117,279 @@ function PropertyPageForm({ page, onSave, onCancel }: { page?: PropertyPage; onS
   );
 }
 
+// Rental Listings Section
+function RentalListingsSection() {
+  const [listings, setListings] = useState([]);
+
+  useEffect(() => {
+    fetchListings();
+  }, []);
+
+  const fetchListings = async () => {
+    try {
+      const response = await fetch('/api/admin/rental-listings');
+      const data = await response.json();
+      setListings(data);
+    } catch (error) {
+      console.error('Error fetching rental listings:', error);
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-2xl font-bold">Rental Listings</h2>
+          <p className="text-muted-foreground">Manage rental properties</p>
+        </div>
+        <Button>
+          <Plus className="w-4 h-4 mr-2" />
+          Add Rental Listing
+        </Button>
+      </div>
+      <Card>
+        <CardContent className="p-6">
+          <p className="text-muted-foreground">Total Listings: {listings.length}</p>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+// Hostel PG Section
+function HostelPGSection() {
+  const [listings, setListings] = useState([]);
+
+  useEffect(() => {
+    fetchListings();
+  }, []);
+
+  const fetchListings = async () => {
+    try {
+      const response = await fetch('/api/admin/hostel-pg');
+      const data = await response.json();
+      setListings(data);
+    } catch (error) {
+      console.error('Error fetching hostel listings:', error);
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-2xl font-bold">Hostels & PG</h2>
+          <p className="text-muted-foreground">Manage hostel and PG accommodations</p>
+        </div>
+        <Button>
+          <Plus className="w-4 h-4 mr-2" />
+          Add Hostel/PG
+        </Button>
+      </div>
+      <Card>
+        <CardContent className="p-6">
+          <p className="text-muted-foreground">Total Listings: {listings.length}</p>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+// Construction Materials Section
+function ConstructionMaterialsSection() {
+  const [materials, setMaterials] = useState([]);
+
+  useEffect(() => {
+    fetchMaterials();
+  }, []);
+
+  const fetchMaterials = async () => {
+    try {
+      const response = await fetch('/api/admin/construction-materials');
+      const data = await response.json();
+      setMaterials(data);
+    } catch (error) {
+      console.error('Error fetching materials:', error);
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-2xl font-bold">Construction Materials</h2>
+          <p className="text-muted-foreground">Manage construction materials and supplies</p>
+        </div>
+        <Button>
+          <Plus className="w-4 h-4 mr-2" />
+          Add Material
+        </Button>
+      </div>
+      <Card>
+        <CardContent className="p-6">
+          <p className="text-muted-foreground">Total Materials: {materials.length}</p>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+// Property Deals Section
+function PropertyDealsSection() {
+  const [deals, setDeals] = useState([]);
+
+  useEffect(() => {
+    fetchDeals();
+  }, []);
+
+  const fetchDeals = async () => {
+    try {
+      const response = await fetch('/api/admin/property-deals');
+      const data = await response.json();
+      setDeals(data);
+    } catch (error) {
+      console.error('Error fetching deals:', error);
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-2xl font-bold">Property Deals</h2>
+          <p className="text-muted-foreground">Manage property buy/sell deals</p>
+        </div>
+        <Button>
+          <Plus className="w-4 h-4 mr-2" />
+          Add Deal
+        </Button>
+      </div>
+      <Card>
+        <CardContent className="p-6">
+          <p className="text-muted-foreground">Total Deals: {deals.length}</p>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+// Commercial Properties Section
+function CommercialPropertiesSection() {
+  const [properties, setProperties] = useState([]);
+
+  useEffect(() => {
+    fetchProperties();
+  }, []);
+
+  const fetchProperties = async () => {
+    try {
+      const response = await fetch('/api/admin/commercial-properties');
+      const data = await response.json();
+      setProperties(data);
+    } catch (error) {
+      console.error('Error fetching properties:', error);
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-2xl font-bold">Commercial Properties</h2>
+          <p className="text-muted-foreground">Manage commercial spaces</p>
+        </div>
+        <Button>
+          <Plus className="w-4 h-4 mr-2" />
+          Add Property
+        </Button>
+      </div>
+      <Card>
+        <CardContent className="p-6">
+          <p className="text-muted-foreground">Total Properties: {properties.length}</p>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+// Industrial Land Section
+function IndustrialLandSection() {
+  const [lands, setLands] = useState([]);
+
+  useEffect(() => {
+    fetchLands();
+  }, []);
+
+  const fetchLands = async () => {
+    try {
+      const response = await fetch('/api/admin/industrial-land');
+      const data = await response.json();
+      setLands(data);
+    } catch (error) {
+      console.error('Error fetching lands:', error);
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-2xl font-bold">Industrial Land</h2>
+          <p className="text-muted-foreground">Manage industrial land listings</p>
+        </div>
+        <Button>
+          <Plus className="w-4 h-4 mr-2" />
+          Add Land
+        </Button>
+      </div>
+      <Card>
+        <CardContent className="p-6">
+          <p className="text-muted-foreground">Total Listings: {lands.length}</p>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+// Office Spaces Section
+function OfficeSpacesSection() {
+  const [offices, setOffices] = useState([]);
+
+  useEffect(() => {
+    fetchOffices();
+  }, []);
+
+  const fetchOffices = async () => {
+    try {
+      const response = await fetch('/api/admin/office-spaces');
+      const data = await response.json();
+      setOffices(data);
+    } catch (error) {
+      console.error('Error fetching offices:', error);
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-2xl font-bold">Office Spaces</h2>
+          <p className="text-muted-foreground">Manage office space listings</p>
+        </div>
+        <Button>
+          <Plus className="w-4 h-4 mr-2" />
+          Add Office Space
+        </Button>
+      </div>
+      <Card>
+        <CardContent className="p-6">
+          <p className="text-muted-foreground">Total Offices: {offices.length}</p>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
 // Agencies Section Component
 function AgenciesSection() {
   const [agencies, setAgencies] = useState<Agency[]>([]);
@@ -1320,9 +1599,22 @@ export default function AdminDashboard() {
         return <CategoriesSection />;
       case "property-pages":
         return <PropertyPagesSection />;
+      case "rental-listings":
+        return <RentalListingsSection />;
+      case "hostel-pg":
+        return <HostelPGSection />;
+      case "construction-materials":
+        return <ConstructionMaterialsSection />;
+      case "property-deals":
+        return <PropertyDealsSection />;
+      case "commercial-properties":
+        return <CommercialPropertiesSection />;
+      case "industrial-land":
+        return <IndustrialLandSection />;
+      case "office-spaces":
+        return <OfficeSpacesSection />;
       case "users":
         return <UsersSection />;
-      
       case "agencies":
         return <AgenciesSection />;
       case "analytics":

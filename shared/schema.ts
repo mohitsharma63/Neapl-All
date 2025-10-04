@@ -3,6 +3,7 @@ import { pgTable, text, varchar, integer, decimal, boolean, timestamp, jsonb } f
 import { relations } from "drizzle-orm";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
+import * as crypto from 'crypto';
 
 export const users = pgTable("users", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -211,7 +212,194 @@ export const insertAdminSubcategorySchema = createInsertSchema(adminSubcategorie
   updatedAt: true,
 });
 
-// Types
+// Rental Listings
+export const rentalListings = pgTable("rental_listings", {
+  id: varchar("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  title: text("title").notNull(),
+  description: text("description"),
+  price: decimal("price", { precision: 10, scale: 2 }).notNull(),
+  rentalType: text("rental_type").notNull(),
+  bedrooms: integer("bedrooms"),
+  bathrooms: integer("bathrooms"),
+  area: decimal("area", { precision: 8, scale: 2 }),
+  furnishingStatus: text("furnishing_status"),
+  images: jsonb("images").$type<string[]>().default([]),
+  amenities: jsonb("amenities").$type<string[]>().default([]),
+  availableFrom: timestamp("available_from"),
+  depositAmount: decimal("deposit_amount", { precision: 10, scale: 2 }),
+  locationId: varchar("location_id").references(() => locations.id),
+  agencyId: varchar("agency_id").references(() => agencies.id),
+  isActive: boolean("is_active").default(true),
+  isFeatured: boolean("is_featured").default(false),
+  viewCount: integer("view_count").default(0),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Hostel PG Listings
+export const hostelPgListings = pgTable("hostel_pg_listings", {
+  id: varchar("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  name: text("name").notNull(),
+  description: text("description"),
+  pricePerMonth: decimal("price_per_month", { precision: 10, scale: 2 }).notNull(),
+  hostelType: text("hostel_type").notNull(),
+  roomType: text("room_type").notNull(),
+  totalBeds: integer("total_beds"),
+  availableBeds: integer("available_beds"),
+  facilities: jsonb("facilities").$type<string[]>().default([]),
+  foodIncluded: boolean("food_included").default(false),
+  images: jsonb("images").$type<string[]>().default([]),
+  rules: text("rules"),
+  locationId: varchar("location_id").references(() => locations.id),
+  contactPerson: text("contact_person"),
+  contactPhone: text("contact_phone"),
+  isActive: boolean("is_active").default(true),
+  isFeatured: boolean("is_featured").default(false),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Construction Materials
+export const constructionMaterials = pgTable("construction_materials", {
+  id: varchar("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  name: text("name").notNull(),
+  category: text("category").notNull(),
+  description: text("description"),
+  price: decimal("price", { precision: 10, scale: 2 }).notNull(),
+  unit: text("unit").notNull(),
+  brand: text("brand"),
+  specifications: jsonb("specifications"),
+  images: jsonb("images").$type<string[]>().default([]),
+  supplierId: varchar("supplier_id"),
+  supplierName: text("supplier_name"),
+  supplierContact: text("supplier_contact"),
+  locationId: varchar("location_id").references(() => locations.id),
+  stockStatus: text("stock_status").default("in_stock"),
+  minimumOrder: integer("minimum_order"),
+  isActive: boolean("is_active").default(true),
+  isFeatured: boolean("is_featured").default(false),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Property Deals
+export const propertyDeals = pgTable("property_deals", {
+  id: varchar("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  title: text("title").notNull(),
+  description: text("description"),
+  dealType: text("deal_type").notNull(),
+  propertyType: text("property_type").notNull(),
+  price: decimal("price", { precision: 12, scale: 2 }).notNull(),
+  area: decimal("area", { precision: 10, scale: 2 }),
+  areaUnit: text("area_unit").default("sq.ft"),
+  bedrooms: integer("bedrooms"),
+  bathrooms: integer("bathrooms"),
+  floors: integer("floors"),
+  roadAccess: text("road_access"),
+  facingDirection: text("facing_direction"),
+  images: jsonb("images").$type<string[]>().default([]),
+  documents: jsonb("documents").$type<string[]>().default([]),
+  features: jsonb("features").$type<string[]>().default([]),
+  isNegotiable: boolean("is_negotiable").default(false),
+  ownershipType: text("ownership_type"),
+  locationId: varchar("location_id").references(() => locations.id),
+  agencyId: varchar("agency_id").references(() => agencies.id),
+  isActive: boolean("is_active").default(true),
+  isFeatured: boolean("is_featured").default(false),
+  viewCount: integer("view_count").default(0),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Commercial Properties
+export const commercialProperties = pgTable("commercial_properties", {
+  id: varchar("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  title: text("title").notNull(),
+  description: text("description"),
+  commercialType: text("commercial_type").notNull(),
+  listingType: text("listing_type").notNull(),
+  price: decimal("price", { precision: 12, scale: 2 }).notNull(),
+  priceType: text("price_type"),
+  area: decimal("area", { precision: 10, scale: 2 }),
+  floors: integer("floors"),
+  parkingSpaces: integer("parking_spaces"),
+  footfall: text("footfall"),
+  images: jsonb("images").$type<string[]>().default([]),
+  amenities: jsonb("amenities").$type<string[]>().default([]),
+  suitableFor: jsonb("suitable_for").$type<string[]>().default([]),
+  locationId: varchar("location_id").references(() => locations.id),
+  agencyId: varchar("agency_id").references(() => agencies.id),
+  isActive: boolean("is_active").default(true),
+  isFeatured: boolean("is_featured").default(false),
+  viewCount: integer("view_count").default(0),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Industrial Land
+export const industrialLand = pgTable("industrial_land", {
+  id: varchar("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  title: text("title").notNull(),
+  description: text("description"),
+  listingType: text("listing_type").notNull(),
+  price: decimal("price", { precision: 12, scale: 2 }).notNull(),
+  area: decimal("area", { precision: 10, scale: 2 }).notNull(),
+  areaUnit: text("area_unit").default("ropani"),
+  landType: text("land_type"),
+  zoning: text("zoning"),
+  roadAccess: text("road_access"),
+  electricityAvailable: boolean("electricity_available").default(false),
+  waterSupply: boolean("water_supply").default(false),
+  sewerageAvailable: boolean("sewerage_available").default(false),
+  images: jsonb("images").$type<string[]>().default([]),
+  documents: jsonb("documents").$type<string[]>().default([]),
+  suitableFor: jsonb("suitable_for").$type<string[]>().default([]),
+  locationId: varchar("location_id").references(() => locations.id),
+  agencyId: varchar("agency_id").references(() => agencies.id),
+  isActive: boolean("is_active").default(true),
+  isFeatured: boolean("is_featured").default(false),
+  viewCount: integer("view_count").default(0),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Office Spaces
+export const officeSpaces = pgTable("office_spaces", {
+  id: varchar("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  title: text("title").notNull(),
+  description: text("description"),
+  listingType: text("listing_type").notNull(),
+  price: decimal("price", { precision: 12, scale: 2 }).notNull(),
+  priceType: text("price_type").default("monthly"),
+  area: decimal("area", { precision: 10, scale: 2 }),
+  officeType: text("office_type"),
+  capacity: integer("capacity"),
+  cabins: integer("cabins"),
+  workstations: integer("workstations"),
+  meetingRooms: integer("meeting_rooms"),
+  furnishingStatus: text("furnishing_status"),
+  images: jsonb("images").$type<string[]>().default([]),
+  amenities: jsonb("amenities").$type<string[]>().default([]),
+  parkingSpaces: integer("parking_spaces"),
+  floor: integer("floor"),
+  totalFloors: integer("total_floors"),
+  availableFrom: timestamp("available_from"),
+  locationId: varchar("location_id").references(() => locations.id),
+  agencyId: varchar("agency_id").references(() => agencies.id),
+  isActive: boolean("is_active").default(true),
+  isFeatured: boolean("is_featured").default(false),
+  viewCount: integer("view_count").default(0),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Insert schemas
+export const insertPropertyPageSchema = createInsertSchema(propertyPages).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
 
@@ -236,11 +424,33 @@ export type AdminCategory = typeof adminCategories.$inferSelect;
 export type InsertAdminSubcategory = z.infer<typeof insertAdminSubcategorySchema>;
 export type AdminSubcategory = typeof adminSubcategories.$inferSelect;
 
-export const insertPropertyPageSchema = createInsertSchema(propertyPages).omit({
-  id: true,
-  createdAt: true,
-  updatedAt: true,
-});
+export const insertRentalListingSchema = createInsertSchema(rentalListings).omit({ id: true, createdAt: true, updatedAt: true });
+export type InsertRentalListing = z.infer<typeof insertRentalListingSchema>;
+export type RentalListing = typeof rentalListings.$inferSelect;
+
+export const insertHostelPgListingSchema = createInsertSchema(hostelPgListings).omit({ id: true, createdAt: true, updatedAt: true });
+export type InsertHostelPgListing = z.infer<typeof insertHostelPgListingSchema>;
+export type HostelPgListing = typeof hostelPgListings.$inferSelect;
+
+export const insertConstructionMaterialSchema = createInsertSchema(constructionMaterials).omit({ id: true, createdAt: true, updatedAt: true });
+export type InsertConstructionMaterial = z.infer<typeof insertConstructionMaterialSchema>;
+export type ConstructionMaterial = typeof constructionMaterials.$inferSelect;
+
+export const insertPropertyDealSchema = createInsertSchema(propertyDeals).omit({ id: true, createdAt: true, updatedAt: true });
+export type InsertPropertyDeal = z.infer<typeof insertPropertyDealSchema>;
+export type PropertyDeal = typeof propertyDeals.$inferSelect;
+
+export const insertCommercialPropertySchema = createInsertSchema(commercialProperties).omit({ id: true, createdAt: true, updatedAt: true });
+export type InsertCommercialProperty = z.infer<typeof insertCommercialPropertySchema>;
+export type CommercialProperty = typeof commercialProperties.$inferSelect;
+
+export const insertIndustrialLandSchema = createInsertSchema(industrialLand).omit({ id: true, createdAt: true, updatedAt: true });
+export type InsertIndustrialLand = z.infer<typeof insertIndustrialLandSchema>;
+export type IndustrialLand = typeof industrialLand.$inferSelect;
+
+export const insertOfficeSpaceSchema = createInsertSchema(officeSpaces).omit({ id: true, createdAt: true, updatedAt: true });
+export type InsertOfficeSpace = z.infer<typeof insertOfficeSpaceSchema>;
+export type OfficeSpace = typeof officeSpaces.$inferSelect;
 
 export type InsertPropertyPage = z.infer<typeof insertPropertyPageSchema>;
 export type PropertyPage = typeof propertyPages.$inferSelect;

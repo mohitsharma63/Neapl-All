@@ -9,6 +9,13 @@ import {
   adminCategories,
   adminSubcategories,
   users,
+  rentalListings,
+  hostelPgListings,
+  constructionMaterials,
+  propertyDeals,
+  commercialProperties,
+  industrialLand,
+  officeSpaces,
   insertAdminCategorySchema,
   insertAdminSubcategorySchema,
 } from "../shared/schema";
@@ -278,6 +285,90 @@ export function registerRoutes(app: Express) {
       res.json(userWithoutPassword);
     } catch (error: any) {
       res.status(400).json({ message: error.message });
+    }
+  });
+
+  // Rental Listings Routes
+  app.get("/api/admin/rental-listings", async (_req, res) => {
+    try {
+      const listings = await db.query.rentalListings.findMany({
+        orderBy: desc(rentalListings.createdAt),
+      });
+      res.json(listings);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Hostel PG Routes
+  app.get("/api/admin/hostel-pg", async (_req, res) => {
+    try {
+      const listings = await db.query.hostelPgListings.findMany({
+        orderBy: desc(hostelPgListings.createdAt),
+      });
+      res.json(listings);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Construction Materials Routes
+  app.get("/api/admin/construction-materials", async (_req, res) => {
+    try {
+      const materials = await db.query.constructionMaterials.findMany({
+        orderBy: desc(constructionMaterials.createdAt),
+      });
+      res.json(materials);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Property Deals Routes
+  app.get("/api/admin/property-deals", async (_req, res) => {
+    try {
+      const deals = await db.query.propertyDeals.findMany({
+        orderBy: desc(propertyDeals.createdAt),
+      });
+      res.json(deals);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Commercial Properties Routes
+  app.get("/api/admin/commercial-properties", async (_req, res) => {
+    try {
+      const properties = await db.query.commercialProperties.findMany({
+        orderBy: desc(commercialProperties.createdAt),
+      });
+      res.json(properties);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Industrial Land Routes
+  app.get("/api/admin/industrial-land", async (_req, res) => {
+    try {
+      const lands = await db.query.industrialLand.findMany({
+        orderBy: desc(industrialLand.createdAt),
+      });
+      res.json(lands);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Office Spaces Routes
+  app.get("/api/admin/office-spaces", async (_req, res) => {
+    try {
+      const offices = await db.query.officeSpaces.findMany({
+        orderBy: desc(officeSpaces.createdAt),
+      });
+      res.json(offices);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
     }
   });
 
