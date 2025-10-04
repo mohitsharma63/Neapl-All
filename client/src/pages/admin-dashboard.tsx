@@ -1,4 +1,4 @@
-import React, {  useState,useEffect } from 'react';
+ort React, {  useState,useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -296,85 +296,22 @@ function DashboardSection() {
 
 // Categories Component
 function CategoriesSection() {
-  const [categories, setCategories] = useState<AdminCategory[]>([]);
-  const [isCreateCategoryOpen, setIsCreateCategoryOpen] = useState(false);
-  const [isCreateSubcategoryOpen, setIsCreateSubcategoryOpen] = useState(false);
-  const [categoryForm, setCategoryForm] = useState({
-    name: '',
-    slug: '',
-    description: '',
-    icon: '',
-    color: '#1e40af',
+  const [categoryDialogOpen, setCategoryDialogOpen] = useState(false);
+  const [subcategoryDialogOpen, setSubcategoryDialogOpen] = useState(false);
+
+  const { data: categories = [], isLoading } = useQuery({
+    queryKey: ["categories"],
+    queryFn: async () => {
+      const response = await fetch("/api/admin/categories");
+      if (!response.ok) throw new Error("Failed to fetch categories");
+      return response.json();
+    },
   });
-  const [subcategoryForm, setSubcategoryForm] = useState({
-    name: '',
-    slug: '',
-    description: '',
-    icon: '',
-    color: '',
-    parentCategoryId: '',
-  });
-
-  useEffect(() => {
-    fetchCategories();
-  }, []);
-
-  const fetchCategories = async () => {
-    try {
-      const response = await fetch('/api/admin/categories');
-      const data = await response.json();
-      setCategories(Array.isArray(data) ? data : []);
-    } catch (error) {
-      console.error('Error fetching categories:', error);
-      setCategories([]);
-    }
-  };
-
-  const handleCreateCategory = async (e: React.FormEvent) => {
-    e.preventDefault();
-    try {
-      const response = await fetch('/api/admin/categories', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(categoryForm),
-      });
-      
-      if (response.ok) {
-        fetchCategories();
-        setIsCreateCategoryOpen(false);
-        setCategoryForm({ name: '', slug: '', description: '', icon: '', color: '#1e40af' });
-      }
-    } catch (error) {
-      console.error('Error creating category:', error);
-    }
-  };
-
-  const handleCreateSubcategory = async (e: React.FormEvent) => {
-    e.preventDefault();
-    try {
-      const response = await fetch('/api/admin/subcategories', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(subcategoryForm),
-      });
-      
-      if (response.ok) {
-        fetchCategories();
-        setIsCreateSubcategoryOpen(false);
-        setSubcategoryForm({ name: '', slug: '', description: '', icon: '', color: '', parentCategoryId: '' });
-      }
-    } catch (error) {
-      console.error('Error creating subcategory:', error);
-    }
-  };
 
   const generateSlug = (name: string) => {
     return name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
   };
 
-  // State for dialog visibility
-  const [categoryDialogOpen, setCategoryDialogOpen] = useState(false);
-  const [subcategoryDialogOpen, setSubcategoryDialogOpen] = useState(false);
 
   return (
     <div className="space-y-6">
@@ -398,90 +335,90 @@ function CategoriesSection() {
       <CategoryDialog 
         open={categoryDialogOpen} 
         onOpenChange={setCategoryDialogOpen}
-        onCreateCategory={handleCreateCategory} // Pass the handler
-        categoryForm={categoryForm} // Pass the form state
-        setCategoryForm={setCategoryForm} // Pass the setter
       />
       <SubcategoryDialog 
         open={subcategoryDialogOpen} 
         onOpenChange={setSubcategoryDialogOpen}
         categories={categories}
-        onCreateSubcategory={handleCreateSubcategory} // Pass the handler
-        subcategoryForm={subcategoryForm} // Pass the form state
-        setSubcategoryForm={setSubcategoryForm} // Pass the setter
       />
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-        {Array.isArray(categories) && categories.map((category) => {
-          const IconComponent = iconMap[category.icon as keyof typeof iconMap] || Settings;
-          
-          return (
-            <Card key={category.id} className="group">
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-3">
-                    <div 
-                      className="p-3 rounded-lg transition-colors"
-                      style={{ backgroundColor: `${category.color}20`, color: category.color }}
-                    >
-                      <IconComponent className="w-6 h-6" />
-                    </div>
-                    <div>
-                      <CardTitle className="text-lg font-semibold">{category.name}</CardTitle>
-                      <div className="flex items-center space-x-2 mt-1">
-                        <Badge variant="outline" className="text-xs">{category.slug}</Badge>
-                        <Badge 
-                          variant={category.isActive ? "default" : "secondary"} 
-                          className="text-xs"
-                        >
-                          {category.isActive ? "Active" : "Inactive"}
-                        </Badge>
+      {isLoading ? (
+        <div className="text-center py-8">
+          <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto"></div>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+          {categories.map((category) => {
+            const IconComponent = iconMap[category.icon as keyof typeof iconMap] || Settings;
+            
+            return (
+              <Card key={category.id} className="group">
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-3">
+                      <div 
+                        className="p-3 rounded-lg transition-colors"
+                        style={{ backgroundColor: `${category.color}20`, color: category.color }}
+                      >
+                        <IconComponent className="w-6 h-6" />
                       </div>
+                      <div>
+                        <CardTitle className="text-lg font-semibold">{category.name}</CardTitle>
+                        <div className="flex items-center space-x-2 mt-1">
+                          <Badge variant="outline" className="text-xs">{category.slug}</Badge>
+                          <Badge 
+                            variant={category.isActive ? "default" : "secondary"} 
+                            className="text-xs"
+                          >
+                            {category.isActive ? "Active" : "Inactive"}
+                          </Badge>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div className="opacity-0 group-hover:opacity-100 transition-opacity">
+                      <Button variant="ghost" size="icon" className="h-8 w-8">
+                        <Edit className="w-4 h-4" />
+                      </Button>
                     </div>
                   </div>
                   
-                  <div className="opacity-0 group-hover:opacity-100 transition-opacity">
-                    <Button variant="ghost" size="icon" className="h-8 w-8">
-                      <Edit className="w-4 h-4" />
-                    </Button>
-                  </div>
-                </div>
+                  {category.description && (
+                    <CardDescription className="mt-2">{category.description}</CardDescription>
+                  )}
+                </CardHeader>
                 
-                {category.description && (
-                  <CardDescription className="mt-2">{category.description}</CardDescription>
-                )}
-              </CardHeader>
-              
-              <CardContent>
-                {category.subcategories && category.subcategories.length > 0 && (
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between">
-                      <h4 className="font-medium text-sm text-muted-foreground">
-                        Subcategories ({category.subcategories.length})
-                      </h4>
+                <CardContent>
+                  {category.subcategories && category.subcategories.length > 0 && (
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <h4 className="font-medium text-sm text-muted-foreground">
+                          Subcategories ({category.subcategories.length})
+                        </h4>
+                      </div>
+                      <div className="space-y-2 max-h-32 overflow-y-auto">
+                        {category.subcategories.map((sub) => (
+                          <div key={sub.id} className="flex items-center justify-between p-2 bg-muted/50 rounded-md hover:bg-muted transition-colors">
+                            <span className="text-sm font-medium">{sub.name}</span>
+                            <Badge variant="secondary" className="text-xs">{sub.slug}</Badge>
+                          </div>
+                        ))}
+                      </div>
                     </div>
-                    <div className="space-y-2 max-h-32 overflow-y-auto">
-                      {category.subcategories.map((sub) => (
-                        <div key={sub.id} className="flex items-center justify-between p-2 bg-muted/50 rounded-md hover:bg-muted transition-colors">
-                          <span className="text-sm font-medium">{sub.name}</span>
-                          <Badge variant="secondary" className="text-xs">{sub.slug}</Badge>
-                        </div>
-                      ))}
+                  )}
+                  
+                  {(!category.subcategories || category.subcategories.length === 0) && (
+                    <div className="text-center py-6 text-muted-foreground">
+                      <FileText className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                      <p className="text-sm">No subcategories yet</p>
                     </div>
-                  </div>
-                )}
-                
-                {(!category.subcategories || category.subcategories.length === 0) && (
-                  <div className="text-center py-6 text-muted-foreground">
-                    <FileText className="w-8 h-8 mx-auto mb-2 opacity-50" />
-                    <p className="text-sm">No subcategories yet</p>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          );
-        })}
-      </div>
+                  )}
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }

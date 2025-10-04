@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -35,29 +34,22 @@ export function SubcategoryDialog({ open, onOpenChange, categories, subcategory 
         ? `/api/admin/subcategories/${subcategory.id}`
         : "/api/admin/subcategories";
       const method = subcategory ? "PUT" : "POST";
-      
+
       const response = await fetch(url, {
         method,
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),
       });
-      
-      if (!response.ok) throw new Error("Failed to save subcategory");
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || "Failed to save subcategory");
+      }
       return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["admin-categories"] });
+      queryClient.invalidateQueries({ queryKey: ["categories"] });
       onOpenChange(false);
-      setFormData({
-        name: "",
-        slug: "",
-        description: "",
-        icon: "",
-        color: "",
-        isActive: true,
-        sortOrder: 0,
-        parentCategoryId: "",
-      });
     },
   });
 

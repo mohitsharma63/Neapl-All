@@ -58,44 +58,21 @@ export function CategoryDialog({ open, onOpenChange, category }: CategoryDialogP
         : "/api/admin/categories";
       const method = category ? "PUT" : "POST";
 
-      // Prepare data with proper types
-      const payload = {
-        name: data.name,
-        slug: data.slug,
-        description: data.description || undefined,
-        icon: data.icon || undefined,
-        color: data.color,
-        isActive: data.isActive,
-        sortOrder: data.sortOrder,
-      };
-
       const response = await fetch(url, {
         method,
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
+        body: JSON.stringify(data),
       });
 
       if (!response.ok) {
         const error = await response.json();
-        const errorMsg = error.details 
-          ? `${error.message}: ${JSON.stringify(error.details)}`
-          : error.error || error.message || "Failed to save category";
-        throw new Error(errorMsg);
+        throw new Error(error.message || "Failed to save category");
       }
       return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["admin-categories"] });
+      queryClient.invalidateQueries({ queryKey: ["categories"] });
       onOpenChange(false);
-      setFormData({
-        name: "",
-        slug: "",
-        description: "",
-        icon: "",
-        color: "#1e40af",
-        isActive: true,
-        sortOrder: 0,
-      });
     },
   });
 
