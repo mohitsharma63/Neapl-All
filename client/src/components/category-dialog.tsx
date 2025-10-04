@@ -1,5 +1,4 @@
-
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -17,29 +16,72 @@ interface CategoryDialogProps {
 export function CategoryDialog({ open, onOpenChange, category }: CategoryDialogProps) {
   const queryClient = useQueryClient();
   const [formData, setFormData] = useState({
-    name: category?.name || "",
-    slug: category?.slug || "",
-    description: category?.description || "",
-    icon: category?.icon || "",
-    color: category?.color || "#1e40af",
-    isActive: category?.isActive ?? true,
-    sortOrder: category?.sortOrder || 0,
+    name: "",
+    slug: "",
+    description: "",
+    icon: "",
+    color: "#1e40af",
+    isActive: true,
+    sortOrder: 0,
   });
+
+  // Update form data when category changes or dialog opens
+  useEffect(() => {
+    if (open && category) {
+      setFormData({
+        name: category.name || "",
+        slug: category.slug || "",
+        description: category.description || "",
+        icon: category.icon || "",
+        color: category.color || "#1e40af",
+        isActive: category.isActive ?? true,
+        sortOrder: category.sortOrder || 0,
+      });
+    } else if (!open) {
+      // Reset form when dialog closes
+      setFormData({
+        name: "",
+        slug: "",
+        description: "",
+        icon: "",
+        color: "#1e40af",
+        isActive: true,
+        sortOrder: 0,
+      });
+    }
+  }, [open, category]);
 
   const mutation = useMutation({
     mutationFn: async (data: typeof formData) => {
-      const url = category 
+      const url = category
         ? `/api/admin/categories/${category.id}`
         : "/api/admin/categories";
       const method = category ? "PUT" : "POST";
-      
+
+      // Prepare data with proper types
+      const payload = {
+        name: data.name,
+        slug: data.slug,
+        description: data.description || undefined,
+        icon: data.icon || undefined,
+        color: data.color,
+        isActive: data.isActive,
+        sortOrder: data.sortOrder,
+      };
+
       const response = await fetch(url, {
         method,
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
+        body: JSON.stringify(payload),
       });
-      
-      if (!response.ok) throw new Error("Failed to save category");
+
+      if (!response.ok) {
+        const error = await response.json();
+        const errorMsg = error.details 
+          ? `${error.message}: ${JSON.stringify(error.details)}`
+          : error.error || error.message || "Failed to save category";
+        throw new Error(errorMsg);
+      }
       return response.json();
     },
     onSuccess: () => {
@@ -71,6 +113,11 @@ export function CategoryDialog({ open, onOpenChange, category }: CategoryDialogP
             {category ? "Update category details" : "Create a new category for the admin dashboard"}
           </DialogDescription>
         </DialogHeader>
+        {mutation.error && (
+          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
+            <p className="text-sm">{mutation.error.message}</p>
+          </div>
+        )}
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="name">Name</Label>
@@ -81,7 +128,7 @@ export function CategoryDialog({ open, onOpenChange, category }: CategoryDialogP
               required
             />
           </div>
-          
+
           <div className="space-y-2">
             <Label htmlFor="slug">Slug</Label>
             <Input

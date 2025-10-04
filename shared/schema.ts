@@ -183,6 +183,12 @@ export const insertAdminCategorySchema = createInsertSchema(adminCategories).omi
   id: true,
   createdAt: true,
   updatedAt: true,
+}).extend({
+  description: z.string().optional().nullable(),
+  icon: z.string().optional().nullable(),
+  sortOrder: z.number().int().default(0),
+  isActive: z.boolean().default(true),
+  color: z.string().default("#1e40af"),
 });
 
 export const insertAdminSubcategorySchema = createInsertSchema(adminSubcategories).omit({
