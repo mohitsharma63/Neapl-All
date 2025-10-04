@@ -1,39 +1,4 @@
 
--- Admin Categories and Subcategories Migration
--- Create categories table for super admin dashboard
-
--- Enhanced Users Table Migration
-
--- Drop and recreate users table with enhanced fields
-DROP TABLE IF EXISTS users CASCADE;
-
-CREATE TABLE users (
-  id VARCHAR PRIMARY KEY DEFAULT gen_random_uuid(),
-  username TEXT NOT NULL UNIQUE,
-  email TEXT NOT NULL UNIQUE,
-  password TEXT NOT NULL,
-  first_name TEXT,
-  last_name TEXT,
-  phone TEXT,
-  role TEXT DEFAULT 'user',
-  is_active BOOLEAN DEFAULT true,
-  avatar TEXT,
-  created_at TIMESTAMP DEFAULT NOW(),
-  updated_at TIMESTAMP DEFAULT NOW()
-);
-
--- Create indexes for better performance
-CREATE INDEX idx_users_email ON users(email);
-CREATE INDEX idx_users_username ON users(username);
-CREATE INDEX idx_users_role ON users(role);
-CREATE INDEX idx_users_active ON users(is_active);
-
--- Insert sample users
-INSERT INTO users (username, email, password, first_name, last_name, role) VALUES
-('admin', 'admin@jeevika.com', 'hashed_password_here', 'Super', 'Admin', 'admin'),
-('john_doe', 'john@example.com', 'hashed_password_here', 'John', 'Doe', 'user'),
-('jane_agent', 'jane@example.com', 'hashed_password_here', 'Jane', 'Smith', 'agent');
-
 CREATE TABLE admin_categories (
   id VARCHAR PRIMARY KEY DEFAULT gen_random_uuid(),
   name TEXT NOT NULL,
