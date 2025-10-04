@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -18,19 +18,47 @@ interface SubcategoryDialogProps {
 export function SubcategoryDialog({ open, onOpenChange, categories, subcategory }: SubcategoryDialogProps) {
   const queryClient = useQueryClient();
   const [formData, setFormData] = useState({
-    name: subcategory?.name || "",
-    slug: subcategory?.slug || "",
-    description: subcategory?.description || "",
-    icon: subcategory?.icon || "",
-    color: subcategory?.color || "",
-    isActive: subcategory?.isActive ?? true,
-    sortOrder: subcategory?.sortOrder || 0,
-    parentCategoryId: subcategory?.parentCategoryId || "",
+    name: "",
+    slug: "",
+    description: "",
+    icon: "",
+    color: "",
+    isActive: true,
+    sortOrder: 0,
+    parentCategoryId: "",
   });
+
+  // Update form data when subcategory changes
+  useEffect(() => {
+    if (subcategory) {
+      setFormData({
+        name: subcategory.name || "",
+        slug: subcategory.slug || "",
+        description: subcategory.description || "",
+        icon: subcategory.icon || "",
+        color: subcategory.color || "",
+        isActive: subcategory.isActive ?? true,
+        sortOrder: subcategory.sortOrder || 0,
+        parentCategoryId: subcategory.parentCategoryId || "",
+      });
+    } else {
+      // Reset form when no subcategory (create mode)
+      setFormData({
+        name: "",
+        slug: "",
+        description: "",
+        icon: "",
+        color: "",
+        isActive: true,
+        sortOrder: 0,
+        parentCategoryId: "",
+      });
+    }
+  }, [subcategory]);
 
   const mutation = useMutation({
     mutationFn: async (data: typeof formData) => {
-      const url = subcategory 
+      const url = subcategory
         ? `/api/admin/subcategories/${subcategory.id}`
         : "/api/admin/subcategories";
       const method = subcategory ? "PUT" : "POST";
@@ -50,6 +78,8 @@ export function SubcategoryDialog({ open, onOpenChange, categories, subcategory 
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["categories"] });
       onOpenChange(false);
+      // Force window reload to ensure fresh data
+      window.location.reload();
     },
   });
 
@@ -97,7 +127,7 @@ export function SubcategoryDialog({ open, onOpenChange, categories, subcategory 
               required
             />
           </div>
-          
+
           <div className="space-y-2">
             <Label htmlFor="slug">Slug</Label>
             <Input

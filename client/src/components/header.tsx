@@ -1,11 +1,35 @@
-import { Heart, User, Plus, Menu, X } from "lucide-react";
+import { Heart, User, Plus, Menu, X, Home, Building2, MapPin, Briefcase, Users as UsersIcon, GraduationCap, Settings, ChevronDown } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { useQuery } from "@tanstack/react-query";
+
+const iconMap: Record<string, any> = {
+  'home': Home,
+  'building': Building2,
+  'map-pin': MapPin,
+  'briefcase': Briefcase,
+  'users': UsersIcon,
+  'graduation-cap': GraduationCap,
+  'settings': Settings,
+};
 
 export default function Header() {
   const [location] = useLocation();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [activeCategory, setActiveCategory] = useState<string>("");
+  const [showSubcategories, setShowSubcategories] = useState(false);
+
+  const { data: categories = [] } = useQuery({
+    queryKey: ["admin-categories"],
+    queryFn: async () => {
+      const response = await fetch("/api/admin/categories");
+      if (!response.ok) throw new Error("Failed to fetch categories");
+      return response.json();
+    },
+  });
+
+  const activeCategories = categories.filter((cat: any) => cat.isActive);
 
   const navItems = [
     { href: "/properties", label: "घर जग्गा | Properties", shortLabel: "Properties", isActive: location.startsWith("/properties") || location === "/", hasRoute: true },
@@ -34,20 +58,69 @@ export default function Header() {
               </div>
             </Link>
 
-            {/* Desktop Navigation */}
-            <nav className="hidden md:flex items-center space-x-6">
-              <Link href="/properties" className="text-sm font-medium hover:text-accent transition-colors px-3 py-2 rounded-lg hover:bg-accent/10">
-                Properties
-              </Link>
-              <Link href="/agents" className="text-sm font-medium hover:text-accent transition-colors px-3 py-2 rounded-lg hover:bg-accent/10">
-                Agents
-              </Link>
-              <Link href="/agencies" className="text-sm font-medium hover:text-accent transition-colors px-3 py-2 rounded-lg hover:bg-accent/10">
-                Agencies
-              </Link>
-              <Link href="/contact" className="text-sm font-medium hover:text-accent transition-colors px-3 py-2 rounded-lg hover:bg-accent/10">
-                Contact
-              </Link>
+            {/* Desktop Navigation - Category Dropdown */}
+            <nav className="hidden md:flex items-center space-x-4 relative">
+              {activeCategories.map((category: any) => {
+                const Icon = iconMap[category.icon] || Settings;
+                const hasSubcategories = category.subcategories && category.subcategories.filter((sub: any) => sub.isActive).length > 0;
+                
+                return (
+                  <div 
+                    key={category.id} 
+                    className="relative group"
+                    onMouseEnter={() => {
+                      setActiveCategory(category.id);
+                      setShowSubcategories(true);
+                    }}
+                    onMouseLeave={() => {
+                      setShowSubcategories(false);
+                    }}
+                  >
+                    <Link
+                      href={`/category/${category.slug}`}
+                      className={`flex items-center space-x-2 px-3 py-2 rounded-lg text-sm font-medium transition-all hover:bg-white/10 ${
+                        location === `/category/${category.slug}` ? "bg-white/20 text-accent" : "text-white"
+                      }`}
+                    >
+                      <Icon className="h-4 w-4" />
+                      <span>{category.name}</span>
+                      {hasSubcategories && <ChevronDown className="h-3 w-3" />}
+                    </Link>
+
+                    {/* Subcategories Dropdown */}
+                    {hasSubcategories && showSubcategories && activeCategory === category.id && (
+                      <div className="absolute top-full left-0 mt-1 w-64 bg-white rounded-lg shadow-xl border border-gray-200 py-2 z-50">
+                     
+                        {category.subcategories
+                          .filter((sub: any) => sub.isActive)
+                          .map((subcategory: any) => {
+                            const SubIcon = iconMap[subcategory.icon] || Settings;
+                            return (
+                              <Link
+                                key={subcategory.id}
+                                href={`/subcategory/${subcategory.slug}`}
+                                className="flex items-center gap-3 px-4 py-2 hover:bg-gray-50 transition-colors"
+                              >
+                                <div 
+                                  className="p-1.5 rounded-lg"
+                                  style={{ backgroundColor: `${category.color}15` }}
+                                >
+                                  <SubIcon className="w-4 h-4" style={{ color: category.color }} />
+                                </div>
+                                <div className="flex-1">
+                                  <p className="text-sm font-medium text-gray-900">{subcategory.name}</p>
+                                  {subcategory.description && (
+                                    <p className="text-xs text-gray-500 line-clamp-1">{subcategory.description}</p>
+                                  )}
+                                </div>
+                              </Link>
+                            );
+                          })}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
             </nav>
 
             {/* Header Actions */}
@@ -86,62 +159,92 @@ export default function Header() {
       {/* Mobile Menu Overlay */}
       {isMobileMenuOpen && (
         <div className="lg:hidden fixed inset-0 z-40 bg-black/50" onClick={() => setIsMobileMenuOpen(false)} data-testid="mobile-menu-overlay">
-          <div className="fixed top-16 left-0 right-0 bg-white shadow-lg" onClick={(e) => e.stopPropagation()}>
+          <div className="fixed top-16 left-0 right-0 bg-white shadow-lg max-h-[80vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
             <nav className="container mx-auto px-4 py-6" data-testid="nav-mobile">
-              <div className="space-y-4">
-                {navItems.map((item) => (
-                  item.hasRoute ? (
-                    <Link
-                      key={item.label}
-                      href={item.href}
-                      className={`block py-2 px-4 rounded-lg transition-colors ${
-                        item.isActive
-                          ? "bg-primary text-primary-foreground"
-                          : "text-gray-700 hover:bg-gray-100"
-                      }`}
-                      onClick={() => setIsMobileMenuOpen(false)}
-                      data-testid={`mobile-link-${item.label.toLowerCase()}`}
-                    >
-                      {item.label}
-                    </Link>
-                  ) : (
-                    <button
-                      key={item.label}
-                      className={`block w-full text-left py-2 px-4 rounded-lg transition-colors ${
-                        item.isActive
-                          ? "bg-primary text-primary-foreground"
-                          : "text-gray-700 hover:bg-gray-100"
-                      }`}
-                      onClick={() => {
-                        // Add your category selection logic here
-                        console.log(`Selected category: ${item.label}`);
-                        // Don't close menu for inactive categories
-                      }}
-                      data-testid={`mobile-button-${item.label.toLowerCase()}`}
-                    >
-                      {item.label}
-                      <span className="text-xs text-gray-500 block">(Coming Soon)</span>
-                    </button>
-                  )
-                ))}
+              <div className="space-y-2">
+                {/* Categories */}
+                {activeCategories.map((category: any) => {
+                  const Icon = iconMap[category.icon] || Settings;
+                  const hasSubcategories = category.subcategories && category.subcategories.filter((sub: any) => sub.isActive).length > 0;
+                  const isExpanded = activeCategory === category.id;
+
+                  return (
+                    <div key={category.id}>
+                      <div className="flex items-center gap-2">
+                        <Link
+                          href={`/category/${category.slug}`}
+                          className={`flex-1 flex items-center gap-3 py-3 px-4 rounded-lg transition-colors ${
+                            location === `/category/${category.slug}` 
+                              ? "text-primary-foreground" 
+                              : "text-gray-700 hover:bg-gray-100"
+                          }`}
+                          style={{
+                            backgroundColor: location === `/category/${category.slug}` ? category.color : 'transparent'
+                          }}
+                          onClick={() => setIsMobileMenuOpen(false)}
+                          data-testid={`mobile-link-${category.name.toLowerCase()}`}
+                        >
+                          <Icon className="w-5 h-5" />
+                          <span className="font-medium">{category.name}</span>
+                        </Link>
+                        {hasSubcategories && (
+                          <button
+                            onClick={() => setActiveCategory(isExpanded ? "" : category.id)}
+                            className="p-2 hover:bg-gray-100 rounded-lg"
+                          >
+                            <ChevronDown className={`w-4 h-4 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
+                          </button>
+                        )}
+                      </div>
+
+                      {/* Subcategories */}
+                      {hasSubcategories && isExpanded && (
+                        <div className="ml-8 mt-2 space-y-1">
+                          {category.subcategories
+                            .filter((sub: any) => sub.isActive)
+                            .map((subcategory: any) => {
+                              const SubIcon = iconMap[subcategory.icon] || Settings;
+                              return (
+                                <Link
+                                  key={subcategory.id}
+                                  href={`/subcategory/${subcategory.slug}`}
+                                  className="flex items-center gap-3 py-2 px-3 rounded-lg hover:bg-gray-50 transition-colors"
+                                  onClick={() => setIsMobileMenuOpen(false)}
+                                >
+                                  <div 
+                                    className="p-1.5 rounded-lg"
+                                    style={{ backgroundColor: `${category.color}15` }}
+                                  >
+                                    <SubIcon className="w-4 h-4" style={{ color: category.color }} />
+                                  </div>
+                                  <span className="text-sm text-gray-700">{subcategory.name}</span>
+                                </Link>
+                              );
+                            })}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+
                 <hr className="my-4" />
                 <Link
                   href="#"
-                  className="block py-2 px-4 rounded-lg text-gray-700 hover:bg-gray-100 transition-colors"
+                  className="flex items-center gap-3 py-3 px-4 rounded-lg text-gray-700 hover:bg-gray-100 transition-colors"
                   onClick={() => setIsMobileMenuOpen(false)}
                   data-testid="mobile-link-favorites"
                 >
-                  <Heart className="w-4 h-4 mr-2 inline" />
-                  Favorites
+                  <Heart className="w-5 h-5" />
+                  <span>Favorites</span>
                 </Link>
                 <Link
                   href="/login"
-                  className="block py-2 px-4 rounded-lg text-gray-700 hover:bg-gray-100 transition-colors"
+                  className="flex items-center gap-3 py-3 px-4 rounded-lg text-gray-700 hover:bg-gray-100 transition-colors"
                   onClick={() => setIsMobileMenuOpen(false)}
                   data-testid="mobile-link-profile"
                 >
-                  <User className="w-4 h-4 mr-2 inline" />
-                  Profile
+                  <User className="w-5 h-5" />
+                  <span>Profile</span>
                 </Link>
               </div>
             </nav>

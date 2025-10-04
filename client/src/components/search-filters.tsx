@@ -66,7 +66,7 @@ export default function SearchFilters({
                 {isExpanded ? "Collapse" : "Expand"}
               </Button>
             </div>
-            
+
             {/* Quick filters row for mobile */}
             <div className="grid grid-cols-2 gap-3 mb-4">
               <div data-testid="filter-location-mobile">
@@ -150,10 +150,12 @@ export default function SearchFilters({
               </label>
               <Select
                 value={filters.priceType || "rent"}
-                onValueChange={(value) => updateFilter("priceType", value)}
+                onValueChange={(value) => onFiltersChange({ ...filters, priceType: value as "rent" | "sale" })}
               >
-                <SelectTrigger>
-                  <SelectValue placeholder="For Rent" />
+                <SelectTrigger className="w-full">
+                  <SelectValue>
+                    {filters.priceType === "rent" ? "For Rent" : "For Sale"}
+                  </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="rent">For Rent</SelectItem>
@@ -275,7 +277,7 @@ export default function SearchFilters({
               </div>
             </div>
           </div>
-          
+
           {/* Mobile: Quick action buttons */}
           <div className="md:hidden mt-4 flex space-x-3">
             <Button

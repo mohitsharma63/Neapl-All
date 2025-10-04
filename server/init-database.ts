@@ -1,10 +1,18 @@
-
 import { db } from "./db";
 import { sql } from "drizzle-orm";
 
 export async function initDatabase() {
   try {
     console.log("Initializing database...");
+
+    // Test database connection first
+    try {
+      await db.execute(sql`SELECT 1`);
+      console.log("✅ Database connection successful");
+    } catch (connError) {
+      console.error("❌ Database connection failed:", connError);
+      throw new Error("Cannot connect to database. Please ensure DATABASE_URL is correct and the database is accessible.");
+    }
 
     // Check if tables exist
     const result = await db.execute(sql`

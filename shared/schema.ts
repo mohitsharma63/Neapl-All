@@ -149,6 +149,20 @@ export const adminSubcategoriesRelations = relations(adminSubcategories, ({ one 
   }),
 }));
 
+export const propertyPages = pgTable("property_pages", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: text("name").notNull(),
+  slug: text("slug").notNull().unique(),
+  description: text("description"),
+  icon: text("icon"),
+  priceType: text("price_type").notNull(),
+  propertyFilter: text("property_filter"),
+  isActive: boolean("is_active").default(true),
+  sortOrder: integer("sort_order").default(0),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
 // Insert schemas
 export const insertUserSchema = createInsertSchema(users).omit({
   id: true,
@@ -221,3 +235,12 @@ export type AdminCategory = typeof adminCategories.$inferSelect;
 
 export type InsertAdminSubcategory = z.infer<typeof insertAdminSubcategorySchema>;
 export type AdminSubcategory = typeof adminSubcategories.$inferSelect;
+
+export const insertPropertyPageSchema = createInsertSchema(propertyPages).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type InsertPropertyPage = z.infer<typeof insertPropertyPageSchema>;
+export type PropertyPage = typeof propertyPages.$inferSelect;

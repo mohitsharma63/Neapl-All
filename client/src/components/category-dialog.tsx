@@ -27,7 +27,7 @@ export function CategoryDialog({ open, onOpenChange, category }: CategoryDialogP
 
   // Update form data when category changes or dialog opens
   useEffect(() => {
-    if (open && category) {
+    if (category) {
       setFormData({
         name: category.name || "",
         slug: category.slug || "",
@@ -37,8 +37,8 @@ export function CategoryDialog({ open, onOpenChange, category }: CategoryDialogP
         isActive: category.isActive ?? true,
         sortOrder: category.sortOrder || 0,
       });
-    } else if (!open) {
-      // Reset form when dialog closes
+    } else {
+      // Reset form when no category (create mode)
       setFormData({
         name: "",
         slug: "",
@@ -49,7 +49,7 @@ export function CategoryDialog({ open, onOpenChange, category }: CategoryDialogP
         sortOrder: 0,
       });
     }
-  }, [open, category]);
+  }, [category]);
 
   const mutation = useMutation({
     mutationFn: async (data: typeof formData) => {
@@ -73,6 +73,8 @@ export function CategoryDialog({ open, onOpenChange, category }: CategoryDialogP
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["categories"] });
       onOpenChange(false);
+      // Force window reload to ensure fresh data
+      window.location.reload();
     },
   });
 

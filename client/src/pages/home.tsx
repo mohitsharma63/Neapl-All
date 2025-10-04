@@ -1,37 +1,68 @@
-
 import { useState } from "react";
-import { Home as HomeIcon, Building, Globe, Bus, Users, GraduationCap, List, Map } from "lucide-react";
+import { Home as HomeIcon, Building, Globe, Bus, Users, GraduationCap, List, Map, Building2, MapPin, Briefcase, Settings } from "lucide-react";
 import { Link } from "wouter";
 import Header from "@/components/header";
 import SearchFilters from "@/components/search-filters";
-import PropertyCard from "@/components/property-card";
 import FeaturedBanner from "@/components/featured-banner";
 import StatsSection from "@/components/stats-section";
-import GlobalPropertiesSection from "@/components/global-properties";
 import FAQSection from "@/components/faq-section";
 import Footer from "@/components/footer";
 import { Button } from "@/components/ui/button";
 import type { Property } from "@shared/schema";
 import type { SearchFilters as SearchFiltersType } from "@/lib/types";
 import propertiesData from "@/data/properties.json";
+import { useQuery } from "@tanstack/react-query";
 
-const PROPERTY_CATEGORIES = [
-  { id: "residential", icon: HomeIcon, label: "आवासीय | Residential", href: "/properties?category=residential" },
-  { id: "commercial", icon: Building, label: "व्यावसायिक | Commercial", href: "/properties?category=commercial" },
-  { id: "international", icon: Globe, label: "अन्तर्राष्ट्रिय | International", href: "/properties?category=international" },
-  { id: "agents", icon: Bus, label: "एजेन्टहरू | Agents", href: "/agents" },
-  { id: "agencies", icon: Users, label: "एजेन्सीहरू | Agencies", href: "/agencies" },
-  { id: "schools", icon: GraduationCap, label: "विद्यालयहरू | Schools", href: "/schools" },
-];
+const iconMap: Record<string, any> = {
+  'home': Home,
+  'building': Building2,
+  'map-pin': MapPin,
+  'briefcase': Briefcase,
+  'users': Users,
+  'graduation-cap': GraduationCap,
+  'settings': Settings,
+};
+
+// Helper function to cast JSON properties to the Property type
+function castToProperty(data: any): Property {
+  return {
+    ...data,
+    // Explicitly cast date strings to Date objects, handle nulls
+    createdAt: data.createdAt ? new Date(data.createdAt) : null,
+    updatedAt: data.updatedAt ? new Date(data.updatedAt) : null,
+    // Ensure numeric fields are numbers, handle potential nulls from schema
+    bedrooms: data.bedrooms ?? null,
+    bathrooms: data.bathrooms ?? null,
+    // Ensure price and area are parsed as numbers (or handle as per schema, assuming decimal/float for now)
+    price: parseFloat(data.price) || 0,
+    area: parseFloat(data.area) || 0,
+    // Ensure other potentially nullable fields are handled
+    locationId: data.locationId ?? null,
+    categoryId: data.categoryId ?? null,
+    agencyId: data.agencyId ?? null,
+    furnishingStatus: data.furnishingStatus ?? "unfurnished", // Default if not present
+    availabilityStatus: data.availabilityStatus ?? "available", // Default if not present
+  };
+}
+
 
 export default function Home() {
   const [filters, setFilters] = useState<SearchFiltersType>({
     priceType: "rent",
   });
-  const [activeCategory, setActiveCategory] = useState<string>("residential");
+  const [activeCategory, setActiveCategory] = useState("");
 
-  // Static data instead of API call
-  const featuredProperties: Property[] = propertiesData.filter(p => p.isFeatured);
+  const { data: categories = [], isLoading: categoriesLoading } = useQuery({
+    queryKey: ["admin-categories"],
+    queryFn: async () => {
+      const response = await fetch("/api/admin/categories");
+      if (!response.ok) throw new Error("Failed to fetch categories");
+      return response.json();
+    },
+  });
+
+  // Static data instead of API call, cast to Property type
+  const featuredProperties: Property[] = propertiesData.map(castToProperty).filter(p => p.isFeatured);
 
   const handleSaveSearch = () => {
     console.log("Save search:", filters);
@@ -44,63 +75,6 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-background" data-testid="page-home">
       <Header />
-
-      {/* Property Categories - Only show on exact home page */}
-      <section className="bg-white border-b shadow-sm" data-testid="property-categories">
-        <div className="container mx-auto px-4">
-          {/* Mobile: Horizontal scroll */}
-          <div className="md:hidden overflow-x-auto py-4">
-            <div className="flex space-x-6 min-w-max px-2">
-              {PROPERTY_CATEGORIES.map((category) => {
-                const Icon = category.icon;
-                return (
-                  <Link href={category.href} key={category.label}>
-                    <button
-                      onClick={() => setActiveCategory(category.id)}
-                      className={`flex flex-col items-center space-y-2 pb-2 px-3 py-2 rounded-lg min-w-0 whitespace-nowrap transition-all duration-200 ${
-                        activeCategory === category.id
-                          ? "bg-accent/10 text-accent border-2 border-accent/20"
-                          : "text-muted-foreground hover:text-foreground hover:bg-gray-50"
-                      }`}
-                      data-testid={`button-category-${category.label.toLowerCase()}`}
-                    >
-                      <Icon className="w-5 h-5" />
-                      <span className="text-xs font-medium leading-tight text-center">
-                        {category.label.split(' | ')[0]}
-                      </span>
-                  </button>
-                </Link>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Desktop: Grid layout */}
-          <div className="hidden md:flex items-center justify-center space-x-8 py-6">
-            {PROPERTY_CATEGORIES.map((category) => {
-              const Icon = category.icon;
-              return (
-                <Link href={category.href} key={category.label}>
-                  <button
-                    onClick={() => setActiveCategory(category.id)}
-                    className={`flex flex-col items-center space-y-3 pb-3 px-4 py-3 rounded-xl transition-all duration-300 hover:transform hover:scale-105 ${
-                      activeCategory === category.id
-                        ? "text-accent border-b-3 border-accent bg-accent/5 shadow-lg"
-                        : "text-muted-foreground hover:text-foreground hover:bg-gray-50 hover:shadow-md"
-                    }`}
-                    data-testid={`button-category-${category.label.toLowerCase()}`}
-                  >
-                    <Icon className="w-6 h-6" />
-                    <span className="font-medium text-sm text-center leading-tight">
-                      {category.label}
-                    </span>
-                  </button>
-                </Link>
-              );
-            })}
-          </div>
-        </div>
-      </section>
 
       <SearchFilters
         filters={filters}
@@ -122,17 +96,12 @@ export default function Home() {
             </Link>
             <span>{'>'}</span>
             <span className="text-foreground font-medium">
-              {PROPERTY_CATEGORIES.find(cat => cat.id === activeCategory)?.label.split(' | ')[1] || 'Residential'}
+              {categories.find(cat => cat.id === activeCategory)?.name || 'Residential'}
             </span>
           </nav>
           <div className="flex items-center justify-between">
             <h1 className="text-2xl font-bold text-foreground" data-testid="text-page-title">
-              {activeCategory === 'residential' ? 'Properties for Rent in Nepal' :
-               activeCategory === 'commercial' ? 'Commercial Properties in Nepal' :
-               activeCategory === 'international' ? 'International Properties' :
-               activeCategory === 'agents' ? 'Real Estate Agents in Nepal' :
-               activeCategory === 'agencies' ? 'Real Estate Agencies in Nepal' :
-               'Schools in Nepal'} ({featuredProperties.length} results)
+              {categories.find(cat => cat.id === activeCategory)?.name || 'Properties'} ({featuredProperties.length} results)
             </h1>
             <div className="flex items-center space-x-4">
               <div className="flex items-center space-x-2 text-sm text-muted-foreground">
@@ -180,13 +149,7 @@ export default function Home() {
                 </div>
               ) : (
                 <>
-                  <div className="mb-6">
-                    <h2 className="text-2xl font-bold text-gray-900 mb-2">विशेष सम्पत्तिहरू</h2>
-                    <p className="text-gray-600">नेपालका उत्कृष्ट घर र जग्गाहरू</p>
-                  </div>
-                  {featuredProperties.map((property) => (
-                    <PropertyCard key={property.id} property={property} />
-                  ))}
+           
                 </>
               )}
             </div>
@@ -220,8 +183,7 @@ export default function Home() {
       </section>
 
       <StatsSection />
-      <GlobalPropertiesSection />
-      <FAQSection />
+a      <FAQSection />
       <Footer />
 
       {/* Back to Top Button */}

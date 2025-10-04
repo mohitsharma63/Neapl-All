@@ -27,6 +27,10 @@ CREATE TABLE admin_subcategories (
   updated_at TIMESTAMP DEFAULT NOW()
 );
 
+
+
+
+
 -- Create indexes for better performance
 CREATE INDEX idx_admin_categories_slug ON admin_categories(slug);
 CREATE INDEX idx_admin_categories_active ON admin_categories(is_active);

@@ -41,7 +41,13 @@ app.use((req, res, next) => {
 });
 
 (async () => {
- 
+  // Initialize database tables
+  const { initDatabase } = await import("./init-database");
+  await initDatabase();
+
+  // Seed database with initial data
+  const { seedDatabase } = await import("./seed-database");
+  await seedDatabase();
 
   const server = registerRoutes(app);
 
