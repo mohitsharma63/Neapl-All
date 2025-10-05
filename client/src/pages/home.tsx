@@ -10,7 +10,6 @@ import Footer from "@/components/footer";
 import { Button } from "@/components/ui/button";
 import type { Property } from "@shared/schema";
 import type { SearchFilters as SearchFiltersType } from "@/lib/types";
-import propertiesData from "@/data/properties.json";
 import { useQuery } from "@tanstack/react-query";
 
 const iconMap: Record<string, any> = {
@@ -62,7 +61,6 @@ export default function Home() {
   });
 
   // Static data instead of API call, cast to Property type
-  const featuredProperties: Property[] = propertiesData.map(castToProperty).filter(p => p.isFeatured);
 
   const handleSaveSearch = () => {
     console.log("Save search:", filters);
@@ -84,7 +82,7 @@ export default function Home() {
       />
 
       {/* Breadcrumb Navigation */}
-      <section className="bg-white py-4 border-b" data-testid="breadcrumb-navigation">
+      {/* <section className="bg-white py-4 border-b" data-testid="breadcrumb-navigation">
         <div className="container mx-auto px-4">
           <nav className="flex items-center space-x-2 text-sm text-muted-foreground mb-4">
             <Link href="/" className="hover:text-foreground transition-colors" data-testid="link-breadcrumb-home">
@@ -124,7 +122,7 @@ export default function Home() {
             </div>
           </div>
         </div>
-      </section>
+      </section> */}
 
       <FeaturedBanner />
 
@@ -132,7 +130,7 @@ export default function Home() {
       <section className="container mx-auto px-4 py-8" data-testid="property-listings">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Main Property Listings */}
-          <div className="lg:col-span-2">
+          {/* <div className="lg:col-span-2">
             <div className="space-y-6">
               {featuredProperties.length === 0 ? (
                 <div className="text-center py-16 bg-white rounded-xl border border-border">
@@ -153,7 +151,7 @@ export default function Home() {
                 </>
               )}
             </div>
-          </div>
+          </div> */}
 
           {/* Sidebar */}
           <div className="lg:col-span-1">

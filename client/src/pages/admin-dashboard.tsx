@@ -47,11 +47,7 @@ import {
 } from '@/components/ui/sidebar';
 import { CategoryDialog } from "@/components/category-dialog";
 import { SubcategoryDialog } from "@/components/subcategory-dialog";
-import { RentalListingForm } from "@/components/rental-listing-form";
-import { HostelPGForm } from '@/components/hostel-pg-form';
-import { ConstructionMaterialForm } from '@/components/construction-material-form';
-import { PropertyDealForm } from '@/components/property-deal-form';
-import { OfficeSpaceForm } from '@/components/office-space-form';
+
 
 interface AdminCategory {
   id: string;
@@ -91,52 +87,6 @@ interface User {
   updatedAt: string;
 }
 
-interface Property {
-  id: string;
-  title: string;
-  description?: string;
-  price: string;
-  priceType: string;
-  propertyType: string;
-  bedrooms?: number;
-  bathrooms?: number;
-  area?: string;
-  furnishingStatus?: string;
-  availabilityStatus?: string;
-  images: string[];
-  amenities: string[];
-  isFeatured: boolean;
-  isNegotiable: boolean;
-  locationId?: string;
-  categoryId?: string;
-  agencyId?: string;
-  createdAt: string;
-  updatedAt: string;
-}
-
-interface Agency {
-  id: string;
-  name: string;
-  description?: string;
-  logo?: string;
-  phone?: string;
-  email?: string;
-  website?: string;
-  propertyCount: number;
-  createdAt: string;
-}
-
-interface PropertyPage {
-  id: string;
-  name: string;
-  slug: string;
-  description?: string;
-  icon?: string;
-  priceType: string;
-  sortOrder: number;
-  isActive: boolean;
-}
-
 const iconMap: Record<string, React.ElementType> = {
   'building': Building,
   'map-pin': MapPin,
@@ -148,21 +98,39 @@ const iconMap: Record<string, React.ElementType> = {
 };
 
 function AppSidebar({ activeSection, setActiveSection }: { activeSection: string; setActiveSection: (section: string) => void }) {
-  const sidebarItems = [
+  const [categories, setCategories] = useState<AdminCategory[]>([]);
+  const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    fetchCategories();
+  }, []);
+
+  const fetchCategories = async () => {
+    try {
+      const response = await fetch('/api/admin/categories');
+      const data = await response.json();
+      setCategories(Array.isArray(data) ? data : []);
+    } catch (error) {
+      console.error('Error fetching categories:', error);
+      setCategories([]);
+    }
+  };
+
+  const toggleCategoryExpand = (categoryId: string) => {
+    setExpandedCategories(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(categoryId)) {
+        newSet.delete(categoryId);
+      } else {
+        newSet.add(categoryId);
+      }
+      return newSet;
+    });
+  };
+
+  const staticItems = [
     { title: "Dashboard", icon: Home, key: "dashboard" },
-    { title: "Categories", icon: FileText, key: "categories", badge: "12" },
-    { title: "Property Pages", icon: MapPin, key: "property-pages" },
-    { title: "Rental Listings", icon: Building, key: "rental-listings" },
-    { title: "Hostels & PG", icon: Building, key: "hostel-pg" },
-    { title: "Construction Materials", icon: Building, key: "construction-materials" },
-    { title: "Property Deals", icon: Building, key: "property-deals" },
-    { title: "Commercial Properties", icon: Building, key: "commercial-properties" },
-    { title: "Industrial Land", icon: Building, key: "industrial-land" },
-    { title: "Office Spaces", icon: Building, key: "office-spaces" },
-    { title: "Users", icon: Users, key: "users" },
-    { title: "Agencies", icon: Bookmark, key: "agencies" },
-    { title: "Analytics", icon: BarChart3, key: "analytics" },
-    { title: "Settings", icon: Settings, key: "settings" }
+    { title: "Categories", icon: FileText, key: "categories" },
   ];
 
   return (
@@ -184,7 +152,7 @@ function AppSidebar({ activeSection, setActiveSection }: { activeSection: string
           <SidebarGroupLabel>Main Navigation</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {sidebarItems.map((item) => (
+              {staticItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton
                     tooltip={item.title}
@@ -194,14 +162,103 @@ function AppSidebar({ activeSection, setActiveSection }: { activeSection: string
                   >
                     <item.icon className="w-4 h-4" />
                     <span>{item.title}</span>
-                    {item.badge && (
-                      <Badge variant="secondary" className="ml-auto text-xs">
-                        {item.badge}
-                      </Badge>
-                    )}
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        
+        {categories.length > 0 && (
+          <SidebarGroup>
+            <SidebarGroupLabel>Categories</SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                {categories.map((category) => {
+                  const IconComponent = iconMap[category.icon as keyof typeof iconMap] || Settings;
+                  const hasSubcategories = category.subcategories && category.subcategories.length > 0;
+                  const isExpanded = expandedCategories.has(category.id);
+
+                  return (
+                    <div key={category.id}>
+                      <SidebarMenuItem>
+                        <SidebarMenuButton
+                          tooltip={category.name}
+                          isActive={activeSection === category.slug}
+                          className="w-full justify-start cursor-pointer"
+                          onClick={() => {
+                            if (hasSubcategories) {
+                              toggleCategoryExpand(category.id);
+                            }
+                            setActiveSection(category.slug);
+                          }}
+                        >
+                          <IconComponent className="w-4 h-4" style={{ color: category.color }} />
+                          <span>{category.name}</span>
+                          {hasSubcategories && (
+                            <ChevronDown className={`w-3 h-3 ml-auto transition-transform ${isExpanded ? 'rotate-0' : '-rotate-90'}`} />
+                          )}
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+
+                      
+                    </div>
+                  );
+                })}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )}
+
+        <SidebarGroup>
+          <SidebarGroupLabel>System</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  tooltip="Users"
+                  isActive={activeSection === "users"}
+                  className="w-full justify-start cursor-pointer"
+                  onClick={() => setActiveSection('users')}
+                >
+                  <Users className="w-4 h-4" />
+                  <span>Users</span>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  tooltip="Agencies"
+                  isActive={activeSection === "agencies"}
+                  className="w-full justify-start cursor-pointer"
+                  onClick={() => setActiveSection('agencies')}
+                >
+                  <Bookmark className="w-4 h-4" />
+                  <span>Agencies</span>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  tooltip="Analytics"
+                  isActive={activeSection === "analytics"}
+                  className="w-full justify-start cursor-pointer"
+                  onClick={() => setActiveSection('analytics')}
+                >
+                  <BarChart3 className="w-4 h-4" />
+                  <span>Analytics</span>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  tooltip="Settings"
+                  isActive={activeSection === "settings"}
+                  className="w-full justify-start cursor-pointer"
+                  onClick={() => setActiveSection('settings')}
+                >
+                  <Settings className="w-4 h-4" />
+                  <span>Settings</span>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
@@ -219,7 +276,6 @@ function AppSidebar({ activeSection, setActiveSection }: { activeSection: string
                   <span>Add Category</span>
                 </SidebarMenuButton>
               </SidebarMenuItem>
-
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
@@ -309,7 +365,7 @@ function DashboardSection() {
   );
 }
 
-// Categories Component
+// Categories Section
 function CategoriesSection() {
   const [categories, setCategories] = useState<AdminCategory[]>([]);
   const [categoryDialogOpen, setCategoryDialogOpen] = useState(false);
@@ -822,1084 +878,6 @@ function UsersSection() {
   );
 }
 
-// Property Pages Section Component
-function PropertyPagesSection() {
-  const [pages, setPages] = useState<PropertyPage[]>([]);
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [editingPage, setEditingPage] = useState<PropertyPage | undefined>(undefined);
-
-  useEffect(() => {
-    fetchPages();
-  }, []);
-
-  const fetchPages = async () => {
-    try {
-      const response = await fetch('/api/admin/property-pages');
-      const data = await response.json();
-      setPages(Array.isArray(data) ? data : []);
-    } catch (error) {
-      console.error('Error fetching property pages:', error);
-      setPages([]);
-    }
-  };
-
-  const handleDeletePage = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this property page?')) return;
-
-    try {
-      const response = await fetch(`/api/admin/property-pages/${id}`, {
-        method: 'DELETE',
-      });
-
-      if (response.ok) {
-        await fetchPages();
-      }
-    } catch (error) {
-      console.error('Error deleting property page:', error);
-    }
-  };
-
-  const handleToggleActive = async (page: PropertyPage) => {
-    try {
-      const response = await fetch(`/api/admin/property-pages/${page.id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...page, isActive: !page.isActive }),
-      });
-
-      if (response.ok) {
-        await fetchPages();
-      }
-    } catch (error) {
-      console.error('Error toggling page status:', error);
-    }
-  };
-
-  const handleEditPage = (page: PropertyPage) => {
-    setEditingPage(page);
-    setIsDialogOpen(true);
-  };
-
-  const handleAddPage = () => {
-    setEditingPage(undefined);
-    setIsDialogOpen(true);
-  };
-
-  const handleSavePage = async (formData: any) => {
-    try {
-      const url = editingPage
-        ? `/api/admin/property-pages/${editingPage.id}`
-        : '/api/admin/property-pages';
-      const method = editingPage ? 'PUT' : 'POST';
-
-      const response = await fetch(url, {
-        method,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
-      });
-
-      if (response.ok) {
-        await fetchPages();
-        setIsDialogOpen(false);
-        setEditingPage(undefined);
-      }
-    } catch (error) {
-      console.error('Error saving property page:', error);
-    }
-  };
-
-  return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-start">
-        <div>
-          <h3 className="text-lg font-semibold text-foreground mb-1">Property Pages Management</h3>
-          <p className="text-sm text-muted-foreground">Manage property listing pages and categories</p>
-        </div>
-        <Button size="sm" onClick={handleAddPage}>
-          <Plus className="w-4 h-4 mr-2" />
-          Add Property Page
-        </Button>
-      </div>
-
-      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="sm:max-w-[500px]">
-          <DialogHeader>
-            <DialogTitle>{editingPage ? 'Edit Property Page' : 'Add Property Page'}</DialogTitle>
-            <DialogDescription>
-              {editingPage ? 'Update property page details' : 'Create a new property listing page'}
-            </DialogDescription>
-          </DialogHeader>
-          <PropertyPageForm
-            page={editingPage}
-            onSave={handleSavePage}
-            onCancel={() => setIsDialogOpen(false)}
-          />
-        </DialogContent>
-      </Dialog>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {pages.map((page) => (
-          <Card key={page.id} className="group">
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-3">
-                  <div className="p-3 rounded-lg bg-primary/10 text-primary">
-                    <Building className="w-6 h-6" />
-                  </div>
-                  <div>
-                    <CardTitle className="text-lg font-semibold">{page.name}</CardTitle>
-                    <div className="flex items-center space-x-2 mt-1">
-                      <Badge variant="outline" className="text-xs">/{page.slug}</Badge>
-                      <Badge
-                        variant={page.isActive ? "default" : "secondary"}
-                        className="text-xs"
-                      >
-                        {page.isActive ? "Active" : "Inactive"}
-                      </Badge>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-1">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8"
-                    onClick={() => handleEditPage(page)}
-                  >
-                    <Edit className="w-4 h-4" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8"
-                    onClick={() => handleToggleActive(page)}
-                  >
-                    {page.isActive ? (
-                      <Eye className="w-4 h-4" />
-                    ) : (
-                      <Eye className="w-4 h-4 opacity-50" />
-                    )}
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8 text-destructive"
-                    onClick={() => handleDeletePage(page.id)}
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
-                </div>
-              </div>
-
-              {page.description && (
-                <CardDescription className="mt-2">{page.description}</CardDescription>
-              )}
-            </CardHeader>
-
-            <CardContent>
-              <div className="space-y-2">
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-muted-foreground">Price Type:</span>
-                  <Badge variant="outline">{page.priceType}</Badge>
-                </div>
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-muted-foreground">Sort Order:</span>
-                  <span className="font-medium">{page.sortOrder}</span>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-// Property Page Form Component
-function PropertyPageForm({ page, onSave, onCancel }: { page?: PropertyPage; onSave: (data: any) => void; onCancel: () => void }) {
-  const [formData, setFormData] = useState({
-    name: page?.name || '',
-    slug: page?.slug || '',
-    description: page?.description || '',
-    icon: page?.icon || '',
-    priceType: page?.priceType || 'sale',
-    sortOrder: page?.sortOrder || 0,
-    isActive: page?.isActive ?? true,
-  });
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    onSave(formData);
-  };
-
-  return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      <div className="space-y-2">
-        <Label htmlFor="name">Name</Label>
-        <Input
-          id="name"
-          value={formData.name}
-          onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-          required
-        />
-      </div>
-
-      <div className="space-y-2">
-        <Label htmlFor="slug">Slug</Label>
-        <Input
-          id="slug"
-          value={formData.slug}
-          onChange={(e) => setFormData({ ...formData, slug: e.target.value })}
-          required
-        />
-      </div>
-
-      <div className="space-y-2">
-        <Label htmlFor="description">Description</Label>
-        <Textarea
-          id="description"
-          value={formData.description}
-          onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-        />
-      </div>
-
-      <div className="grid grid-cols-2 gap-4">
-        <div className="space-y-2">
-          <Label htmlFor="icon">Icon</Label>
-          <Input
-            id="icon"
-            value={formData.icon}
-            onChange={(e) => setFormData({ ...formData, icon: e.target.value })}
-            placeholder="e.g., home"
-          />
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="priceType">Price Type</Label>
-          <Select
-            value={formData.priceType}
-            onValueChange={(value) => setFormData({ ...formData, priceType: value })}
-          >
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="sale">Sale</SelectItem>
-              <SelectItem value="rent">Rent</SelectItem>
-              <SelectItem value="both">Both</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
-
-      <div className="space-y-2">
-        <Label htmlFor="sortOrder">Sort Order</Label>
-        <Input
-          id="sortOrder"
-          type="number"
-          value={formData.sortOrder}
-          onChange={(e) => setFormData({ ...formData, sortOrder: parseInt(e.target.value) || 0 })}
-        />
-      </div>
-
-      <div className="flex items-center space-x-2">
-        <Switch
-          id="isActive"
-          checked={formData.isActive}
-          onCheckedChange={(checked) => setFormData({ ...formData, isActive: checked })}
-        />
-        <Label htmlFor="isActive">Active</Label>
-      </div>
-
-      <div className="flex justify-end gap-2">
-        <Button type="button" variant="outline" onClick={onCancel}>
-          Cancel
-        </Button>
-        <Button type="submit">
-          {page ? 'Update' : 'Create'}
-        </Button>
-      </div>
-    </form>
-  );
-}
-
-// Rental Listings Section
-function RentalListingsSection() {
-  const [listings, setListings] = useState([]);
-  const [showForm, setShowForm] = useState(false);
-  const [editingListing, setEditingListing] = useState(null);
-
-  useEffect(() => {
-    fetchListings();
-  }, []);
-
-  const fetchListings = async () => {
-    try {
-      const response = await fetch('/api/rental-listings');
-      const data = await response.json();
-      setListings(data);
-    } catch (error) {
-      console.error('Error fetching rental listings:', error);
-    }
-  };
-
-  const handleSuccess = () => {
-    setShowForm(false);
-    setEditingListing(null);
-    fetchListings();
-  };
-
-  const handleEdit = (listing: any) => {
-    setEditingListing(listing);
-    setShowForm(true);
-  };
-
-  const handleDelete = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this listing?')) return;
-
-    try {
-      const response = await fetch(`/api/rental-listings/${id}`, {
-        method: 'DELETE',
-      });
-
-      if (response.ok) {
-        fetchListings();
-      }
-    } catch (error) {
-      console.error('Error deleting listing:', error);
-    }
-  };
-
-  return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold">Rental Listings</h2>
-          <p className="text-muted-foreground">Manage rental properties</p>
-        </div>
-        <Button onClick={() => setShowForm(true)}>
-          <Plus className="w-4 h-4 mr-2" />
-          Add Rental Listing
-        </Button>
-      </div>
-
-      {showForm && (
-        <Dialog open={showForm} onOpenChange={setShowForm}>
-          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>
-                {editingListing ? 'Edit Rental Listing' : 'Add Rental Listing'}
-              </DialogTitle>
-            </DialogHeader>
-            <RentalListingForm
-              listing={editingListing}
-              onCancel={() => {
-                setShowForm(false);
-                setEditingListing(null);
-              }}
-              onSuccess={handleSuccess}
-            />
-          </DialogContent>
-        </Dialog>
-      )}
-
-      <Card>
-        <CardContent className="p-6">
-          <div className="space-y-4">
-            <p className="text-muted-foreground">Total Listings: {listings.length}</p>
-            {listings.length > 0 ? (
-              <div className="space-y-4">
-                {listings.map((listing: any) => (
-                  <div key={listing.id} className="border rounded-lg p-4 flex justify-between items-start">
-                    <div className="flex-1">
-                      <h3 className="font-semibold">{listing.title}</h3>
-                      <p className="text-sm text-muted-foreground">{listing.rentalType}</p>
-                      <p className="text-sm font-medium">₹{listing.price}/month</p>
-                      <div className="flex gap-2 mt-2">
-                        {listing.bedrooms && <span className="text-xs bg-gray-100 px-2 py-1 rounded">{listing.bedrooms} BHK</span>}
-                        {listing.area && <span className="text-xs bg-gray-100 px-2 py-1 rounded">{listing.area} sq.ft</span>}
-                        {listing.furnishingStatus && <span className="text-xs bg-gray-100 px-2 py-1 rounded">{listing.furnishingStatus}</span>}
-                      </div>
-                    </div>
-                    <div className="flex gap-2">
-                      <Button variant="outline" size="sm" onClick={() => handleEdit(listing)}>
-                        <Pencil className="w-4 h-4" />
-                      </Button>
-                      <Button variant="destructive" size="sm" onClick={() => handleDelete(listing.id)}>
-                        <Trash className="w-4 h-4" />
-                      </Button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <p className="text-center text-muted-foreground py-8">No rental listings yet. Click "Add Rental Listing" to create one.</p>
-            )}
-          </div>
-        </CardContent>
-      </Card>
-    </div>
-  );
-}
-
-// Hostel PG Section
-function HostelPGSection() {
-  const [listings, setListings] = useState([]);
-  const [showForm, setShowForm] = useState(false);
-  const [editingListing, setEditingListing] = useState(null);
-
-  useEffect(() => {
-    fetchListings();
-  }, []);
-
-  const fetchListings = async () => {
-    try {
-      const response = await fetch('/api/admin/hostel-pg');
-      const data = await response.json();
-      setListings(data);
-    } catch (error) {
-      console.error('Error fetching hostel listings:', error);
-    }
-  };
-
-  const handleSuccess = () => {
-    setShowForm(false);
-    setEditingListing(null);
-    fetchListings();
-  };
-
-  const handleEdit = (listing: any) => {
-    setEditingListing(listing);
-    setShowForm(true);
-  };
-
-  const handleDelete = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this hostel/PG listing?')) return;
-    try {
-      const response = await fetch(`/api/admin/hostel-pg/${id}`, {
-        method: 'DELETE',
-      });
-      if (response.ok) {
-        fetchListings();
-      }
-    } catch (error) {
-      console.error('Error deleting hostel/PG listing:', error);
-    }
-  };
-
-  return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold">Hostels & PG</h2>
-          <p className="text-muted-foreground">Manage hostel and PG accommodations</p>
-        </div>
-        <Button onClick={() => setShowForm(true)}>
-          <Plus className="w-4 h-4 mr-2" />
-          Add Hostel/PG
-        </Button>
-      </div>
-
-      {showForm && (
-        <Dialog open={showForm} onOpenChange={setShowForm}>
-          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>
-                {editingListing ? 'Edit Hostel/PG Listing' : 'Add Hostel/PG Listing'}
-              </DialogTitle>
-            </DialogHeader>
-            <HostelPGForm
-              listing={editingListing}
-              onCancel={() => {
-                setShowForm(false);
-                setEditingListing(null);
-              }}
-              onSuccess={handleSuccess}
-            />
-          </DialogContent>
-        </Dialog>
-      )}
-
-      <Card>
-        <CardContent className="p-6">
-          <p className="text-muted-foreground">Total Listings: {listings.length}</p>
-          {listings.length > 0 && (
-            <div className="space-y-4 mt-4">
-              {listings.map((listing: any) => (
-                <div key={listing.id} className="border rounded-lg p-4 flex justify-between items-start">
-                  <div className="flex-1">
-                    <h3 className="font-semibold">{listing.title}</h3>
-                    <p className="text-sm text-muted-foreground">{listing.accommodationType}</p>
-                    <p className="text-sm font-medium">₹{listing.price}/month</p>
-                    <div className="flex gap-2 mt-2">
-                      {listing.bedrooms && <span className="text-xs bg-gray-100 px-2 py-1 rounded">{listing.bedrooms} Sharing</span>}
-                      {listing.area && <span className="text-xs bg-gray-100 px-2 py-1 rounded">{listing.area} sq.ft</span>}
-                    </div>
-                  </div>
-                  <div className="flex gap-2">
-                    <Button variant="outline" size="sm" onClick={() => handleEdit(listing)}>
-                      <Pencil className="w-4 h-4" />
-                    </Button>
-                    <Button variant="destructive" size="sm" onClick={() => handleDelete(listing.id)}>
-                      <Trash className="w-4 h-4" />
-                    </Button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
-    </div>
-  );
-}
-
-// Construction Materials Section
-function ConstructionMaterialsSection() {
-  const [materials, setMaterials] = useState([]);
-  const [showForm, setShowForm] = useState(false);
-  const [editingMaterial, setEditingMaterial] = useState(null);
-
-  useEffect(() => {
-    fetchMaterials();
-  }, []);
-
-  const fetchMaterials = async () => {
-    try {
-      const response = await fetch('/api/admin/construction-materials');
-      const data = await response.json();
-      setMaterials(data);
-    } catch (error) {
-      console.error('Error fetching materials:', error);
-    }
-  };
-
-  const handleSuccess = () => {
-    setShowForm(false);
-    setEditingMaterial(null);
-    fetchMaterials();
-  };
-
-  const handleEdit = (material: any) => {
-    setEditingMaterial(material);
-    setShowForm(true);
-  };
-
-  const handleDelete = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this material?')) return;
-    try {
-      const response = await fetch(`/api/admin/construction-materials/${id}`, {
-        method: 'DELETE',
-      });
-      if (response.ok) {
-        fetchMaterials();
-      }
-    } catch (error) {
-      console.error('Error deleting material:', error);
-    }
-  };
-
-  return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold">Construction Materials</h2>
-          <p className="text-muted-foreground">Manage construction materials and supplies</p>
-        </div>
-        <Button onClick={() => setShowForm(true)}>
-          <Plus className="w-4 h-4 mr-2" />
-          Add Material
-        </Button>
-      </div>
-
-      {showForm && (
-        <Dialog open={showForm} onOpenChange={setShowForm}>
-          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>
-                {editingMaterial ? 'Edit Material' : 'Add Material'}
-              </DialogTitle>
-            </DialogHeader>
-            <ConstructionMaterialForm
-              material={editingMaterial}
-              onCancel={() => {
-                setShowForm(false);
-                setEditingMaterial(null);
-              }}
-              onSuccess={handleSuccess}
-            />
-          </DialogContent>
-        </Dialog>
-      )}
-
-      <Card>
-        <CardContent className="p-6">
-          <p className="text-muted-foreground">Total Materials: {materials.length}</p>
-          {materials.length > 0 && (
-            <div className="space-y-4 mt-4">
-              {materials.map((material: any) => (
-                <div key={material.id} className="border rounded-lg p-4 flex justify-between items-start">
-                  <div className="flex-1">
-                    <h3 className="font-semibold">{material.name}</h3>
-                    <p className="text-sm text-muted-foreground">{material.category}</p>
-                    <p className="text-sm font-medium">₹{material.price}</p>
-                    <div className="flex gap-2 mt-2">
-                      {material.unit && <span className="text-xs bg-gray-100 px-2 py-1 rounded">{material.unit}</span>}
-                    </div>
-                  </div>
-                  <div className="flex gap-2">
-                    <Button variant="outline" size="sm" onClick={() => handleEdit(material)}>
-                      <Pencil className="w-4 h-4" />
-                    </Button>
-                    <Button variant="destructive" size="sm" onClick={() => handleDelete(material.id)}>
-                      <Trash className="w-4 h-4" />
-                    </Button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
-    </div>
-  );
-}
-
-// Property Deals Section
-function PropertyDealsSection() {
-  const [deals, setDeals] = useState([]);
-  const [showForm, setShowForm] = useState(false);
-  const [editingDeal, setEditingDeal] = useState(null);
-
-  useEffect(() => {
-    fetchDeals();
-  }, []);
-
-  const fetchDeals = async () => {
-    try {
-      const response = await fetch('/api/admin/property-deals');
-      const data = await response.json();
-      setDeals(data);
-    } catch (error) {
-      console.error('Error fetching deals:', error);
-    }
-  };
-
-  const handleSuccess = () => {
-    setShowForm(false);
-    setEditingDeal(null);
-    fetchDeals();
-  };
-
-  const handleEdit = (deal: any) => {
-    setEditingDeal(deal);
-    setShowForm(true);
-  };
-
-  const handleDelete = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this deal?')) return;
-    try {
-      const response = await fetch(`/api/admin/property-deals/${id}`, {
-        method: 'DELETE',
-      });
-      if (response.ok) {
-        fetchDeals();
-      }
-    } catch (error) {
-      console.error('Error deleting deal:', error);
-    }
-  };
-
-  return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold">Property Deals</h2>
-          <p className="text-muted-foreground">Manage property buy/sell deals</p>
-        </div>
-        <Button onClick={() => setShowForm(true)}>
-          <Plus className="w-4 h-4 mr-2" />
-          Add Deal
-        </Button>
-      </div>
-
-      {showForm && (
-        <Dialog open={showForm} onOpenChange={setShowForm}>
-          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>
-                {editingDeal ? 'Edit Deal' : 'Add Deal'}
-              </DialogTitle>
-            </DialogHeader>
-            <PropertyDealForm
-              deal={editingDeal}
-              onCancel={() => {
-                setShowForm(false);
-                setEditingDeal(null);
-              }}
-              onSuccess={handleSuccess}
-            />
-          </DialogContent>
-        </Dialog>
-      )}
-
-      <Card>
-        <CardContent className="p-6">
-          <p className="text-muted-foreground">Total Deals: {deals.length}</p>
-          {deals.length > 0 && (
-            <div className="space-y-4 mt-4">
-              {deals.map((deal: any) => (
-                <div key={deal.id} className="border rounded-lg p-4 flex justify-between items-start">
-                  <div className="flex-1">
-                    <h3 className="font-semibold">{deal.title}</h3>
-                    <p className="text-sm text-muted-foreground">{deal.dealType}</p>
-                    <p className="text-sm font-medium">₹{deal.price}</p>
-                    <div className="flex gap-2 mt-2">
-                      {deal.propertyType && <span className="text-xs bg-gray-100 px-2 py-1 rounded">{deal.propertyType}</span>}
-                    </div>
-                  </div>
-                  <div className="flex gap-2">
-                    <Button variant="outline" size="sm" onClick={() => handleEdit(deal)}>
-                      <Pencil className="w-4 h-4" />
-                    </Button>
-                    <Button variant="destructive" size="sm" onClick={() => handleDelete(deal.id)}>
-                      <Trash className="w-4 h-4" />
-                    </Button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
-    </div>
-  );
-}
-
-// Commercial Properties Section
-function CommercialPropertiesSection() {
-  const [properties, setProperties] = useState([]);
-  const [showForm, setShowForm] = useState(false);
-  const [editingProperty, setEditingProperty] = useState(null);
-
-  useEffect(() => {
-    fetchProperties();
-  }, []);
-
-  const fetchProperties = async () => {
-    try {
-      const response = await fetch('/api/admin/commercial-properties');
-      const data = await response.json();
-      setProperties(data);
-    } catch (error) {
-      console.error('Error fetching properties:', error);
-    }
-  };
-
-  const handleSuccess = () => {
-    setShowForm(false);
-    setEditingProperty(null);
-    fetchProperties();
-  };
-
-  const handleEdit = (property: any) => {
-    setEditingProperty(property);
-    setShowForm(true);
-  };
-
-  const handleDelete = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this property?')) return;
-    try {
-      const response = await fetch(`/api/admin/commercial-properties/${id}`, {
-        method: 'DELETE',
-      });
-      if (response.ok) {
-        fetchProperties();
-      }
-    } catch (error) {
-      console.error('Error deleting property:', error);
-    }
-  };
-
-  return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold">Commercial Properties</h2>
-          <p className="text-muted-foreground">Manage commercial spaces</p>
-        </div>
-        <Button onClick={() => setShowForm(true)}>
-          <Plus className="w-4 h-4 mr-2" />
-          Add Property
-        </Button>
-      </div>
-
-      {showForm && (
-        <Dialog open={showForm} onOpenChange={setShowForm}>
-          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>
-                {editingProperty ? 'Edit Commercial Property' : 'Add Commercial Property'}
-              </DialogTitle>
-            </DialogHeader>
-            {/* Assuming a CommercialPropertyForm component exists */}
-            {/* <CommercialPropertyForm property={editingProperty} onCancel={() => setShowForm(false)} onSuccess={handleSuccess} /> */}
-            <p>Commercial Property Form Placeholder</p>
-          </DialogContent>
-        </Dialog>
-      )}
-
-      <Card>
-        <CardContent className="p-6">
-          <p className="text-muted-foreground">Total Properties: {properties.length}</p>
-          {properties.length > 0 && (
-            <div className="space-y-4 mt-4">
-              {properties.map((property: any) => (
-                <div key={property.id} className="border rounded-lg p-4 flex justify-between items-start">
-                  <div className="flex-1">
-                    <h3 className="font-semibold">{property.title}</h3>
-                    <p className="text-sm text-muted-foreground">{property.propertyType}</p>
-                    <p className="text-sm font-medium">₹{property.price}</p>
-                    <div className="flex gap-2 mt-2">
-                      {property.area && <span className="text-xs bg-gray-100 px-2 py-1 rounded">{property.area} sq.ft</span>}
-                    </div>
-                  </div>
-                  <div className="flex gap-2">
-                    <Button variant="outline" size="sm" onClick={() => handleEdit(property)}>
-                      <Pencil className="w-4 h-4" />
-                    </Button>
-                    <Button variant="destructive" size="sm" onClick={() => handleDelete(property.id)}>
-                      <Trash className="w-4 h-4" />
-                    </Button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
-    </div>
-  );
-}
-
-// Industrial Land Section
-function IndustrialLandSection() {
-  const [lands, setLands] = useState([]);
-  const [showForm, setShowForm] = useState(false);
-  const [editingLand, setEditingLand] = useState(null);
-
-  useEffect(() => {
-    fetchLands();
-  }, []);
-
-  const fetchLands = async () => {
-    try {
-      const response = await fetch('/api/admin/industrial-land');
-      const data = await response.json();
-      setLands(data);
-    } catch (error) {
-      console.error('Error fetching lands:', error);
-    }
-  };
-
-  const handleSuccess = () => {
-    setShowForm(false);
-    setEditingLand(null);
-    fetchLands();
-  };
-
-  const handleEdit = (land: any) => {
-    setEditingLand(land);
-    setShowForm(true);
-  };
-
-  const handleDelete = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this land listing?')) return;
-    try {
-      const response = await fetch(`/api/admin/industrial-land/${id}`, {
-        method: 'DELETE',
-      });
-      if (response.ok) {
-        fetchLands();
-      }
-    } catch (error) {
-      console.error('Error deleting land listing:', error);
-    }
-  };
-
-  return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold">Industrial Land</h2>
-          <p className="text-muted-foreground">Manage industrial land listings</p>
-        </div>
-        <Button onClick={() => setShowForm(true)}>
-          <Plus className="w-4 h-4 mr-2" />
-          Add Land
-        </Button>
-      </div>
-
-      {showForm && (
-        <Dialog open={showForm} onOpenChange={setShowForm}>
-          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>
-                {editingLand ? 'Edit Land Listing' : 'Add Land Listing'}
-              </DialogTitle>
-            </DialogHeader>
-            {/* Assuming an IndustrialLandForm component exists */}
-            {/* <IndustrialLandForm land={editingLand} onCancel={() => setShowForm(false)} onSuccess={handleSuccess} /> */}
-            <p>Industrial Land Form Placeholder</p>
-          </DialogContent>
-        </Dialog>
-      )}
-
-      <Card>
-        <CardContent className="p-6">
-          <p className="text-muted-foreground">Total Listings: {lands.length}</p>
-          {lands.length > 0 && (
-            <div className="space-y-4 mt-4">
-              {lands.map((land: any) => (
-                <div key={land.id} className="border rounded-lg p-4 flex justify-between items-start">
-                  <div className="flex-1">
-                    <h3 className="font-semibold">{land.title}</h3>
-                    <p className="text-sm text-muted-foreground">{land.landType}</p>
-                    <p className="text-sm font-medium">₹{land.price}</p>
-                    <div className="flex gap-2 mt-2">
-                      {land.area && <span className="text-xs bg-gray-100 px-2 py-1 rounded">{land.area} acres</span>}
-                    </div>
-                  </div>
-                  <div className="flex gap-2">
-                    <Button variant="outline" size="sm" onClick={() => handleEdit(land)}>
-                      <Pencil className="w-4 h-4" />
-                    </Button>
-                    <Button variant="destructive" size="sm" onClick={() => handleDelete(land.id)}>
-                      <Trash className="w-4 h-4" />
-                    </Button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
-    </div>
-  );
-}
-
-// Office Spaces Section
-function OfficeSpacesSection() {
-  const [offices, setOffices] = useState([]);
-  const [showForm, setShowForm] = useState(false);
-  const [editingOffice, setEditingOffice] = useState(null);
-
-  useEffect(() => {
-    fetchOffices();
-  }, []);
-
-  const fetchOffices = async () => {
-    try {
-      const response = await fetch('/api/admin/office-spaces');
-      const data = await response.json();
-      setOffices(data);
-    } catch (error) {
-      console.error('Error fetching offices:', error);
-    }
-  };
-
-  const handleSuccess = () => {
-    setShowForm(false);
-    setEditingOffice(null);
-    fetchOffices();
-  };
-
-  const handleEdit = (office: any) => {
-    setEditingOffice(office);
-    setShowForm(true);
-  };
-
-  const handleDelete = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this office space?')) return;
-    try {
-      const response = await fetch(`/api/admin/office-spaces/${id}`, {
-        method: 'DELETE',
-      });
-      if (response.ok) {
-        fetchOffices();
-      }
-    } catch (error) {
-      console.error('Error deleting office space:', error);
-    }
-  };
-
-  return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold">Office Spaces</h2>
-          <p className="text-muted-foreground">Manage office space listings</p>
-        </div>
-        <Button onClick={() => setShowForm(true)}>
-          <Plus className="w-4 h-4 mr-2" />
-          Add Office Space
-        </Button>
-      </div>
-
-      {showForm && (
-        <Dialog open={showForm} onOpenChange={setShowForm}>
-          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>
-                {editingOffice ? 'Edit Office Space' : 'Add Office Space'}
-              </DialogTitle>
-            </DialogHeader>
-            <OfficeSpaceForm
-              office={editingOffice}
-              onCancel={() => {
-                setShowForm(false);
-                setEditingOffice(null);
-              }}
-              onSuccess={handleSuccess}
-            />
-          </DialogContent>
-        </Dialog>
-      )}
-
-      <Card>
-        <CardContent className="p-6">
-          <p className="text-muted-foreground">Total Offices: {offices.length}</p>
-          {offices.length > 0 && (
-            <div className="space-y-4 mt-4">
-              {offices.map((office: any) => (
-                <div key={office.id} className="border rounded-lg p-4 flex justify-between items-start">
-                  <div className="flex-1">
-                    <h3 className="font-semibold">{office.title}</h3>
-                    <p className="text-sm text-muted-foreground">{office.officeType}</p>
-                    <p className="text-sm font-medium">₹{office.price}</p>
-                    <div className="flex gap-2 mt-2">
-                      {office.area && <span className="text-xs bg-gray-100 px-2 py-1 rounded">{office.area} sq.ft</span>}
-                    </div>
-                  </div>
-                  <div className="flex gap-2">
-                    <Button variant="outline" size="sm" onClick={() => handleEdit(office)}>
-                      <Pencil className="w-4 h-4" />
-                    </Button>
-                    <Button variant="destructive" size="sm" onClick={() => handleDelete(office.id)}>
-                      <Trash className="w-4 h-4" />
-                    </Button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
-    </div>
-  );
-}
-
 // Agencies Section Component
 function AgenciesSection() {
   const [agencies, setAgencies] = useState<Agency[]>([]);
@@ -2154,23 +1132,7 @@ export default function AdminDashboard() {
         return <DashboardSection />;
       case "categories":
         return <CategoriesSection />;
-      case "property-pages":
-        return <PropertyPagesSection />;
-      case "rental-listings":
-        return <RentalListingsSection />;
-      case "hostel-pg":
-        return <HostelPGSection />;
-      case "construction-materials":
-        return <ConstructionMaterialsSection />;
-      case "property-deals":
-        return <PropertyDealsSection />;
-      case "commercial-properties":
-        return <CommercialPropertiesSection />;
-      case "industrial-land":
-        return <IndustrialLandSection />;
-      case "office-spaces":
-        return <OfficeSpacesSection />;
-      case "users":
+     
         return <UsersSection />;
       case "agencies":
         return <AgenciesSection />;

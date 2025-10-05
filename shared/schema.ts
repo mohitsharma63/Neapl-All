@@ -14,31 +14,65 @@ export const users = pgTable("users", {
   lastName: text("last_name"),
   phone: text("phone"),
   role: text("role").default("user"), // "admin", "agent", "user"
+  accountType: text("account_type"), // "individual", "buyer", "seller"
   isActive: boolean("is_active").default(true),
   avatar: text("avatar"),
+  country: text("country"),
+  state: text("state"),
+  city: text("city"),
+  area: text("area"),
+  address: text("address"),
+  postalCode: text("postal_code"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const userCategoryPreferences = pgTable("user_category_preferences", {
+  id: varchar("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  categorySlug: text("category_slug").notNull(),
+  subcategorySlugs: jsonb("subcategory_slugs").$type<string[]>().default([]),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const userDocuments = pgTable("user_documents", {
+  id: varchar("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  documentName: text("document_name").notNull(),
+  documentUrl: text("document_url").notNull(),
+  documentType: text("document_type"),
+  fileSize: integer("file_size"),
+  uploadedAt: timestamp("uploaded_at").defaultNow(),
 });
 
 export const agencies = pgTable("agencies", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   name: text("name").notNull(),
-  description: text("description"),
-  logo: text("logo"),
-  phone: text("phone"),
+  ownerName: text("owner_name"),
   email: text("email"),
-  website: text("website"),
+  phone: text("phone"),
+  address: text("address"),
+  logo: text("logo"),
+  description: text("description"),
+  verified: boolean("verified").default(false),
   propertyCount: integer("property_count").default(0),
   createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
 });
 
 export const locations = pgTable("locations", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  name: text("name").notNull(),
-  country: text("country").notNull(),
+  country: text("country"),
+  state: text("state"),
   city: text("city"),
   area: text("area"),
+  address: text("address"),
+  latitude: decimal("latitude", { precision: 10, scale: 6 }),
+  longitude: decimal("longitude", { precision: 10, scale: 6 }),
+  postalCode: text("postal_code"),
   propertyCount: integer("property_count").default(0),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
 });
 
 export const propertyCategories = pgTable("property_categories", {
@@ -167,6 +201,22 @@ export const propertyPages = pgTable("property_pages", {
 // Insert schemas
 export const insertUserSchema = createInsertSchema(users).omit({
   id: true,
+  createdAt: true,
+  updatedAt: true,
+}).extend({
+  username: z.string().min(3).max(50),
+  email: z.string().email(),
+  password: z.string().min(6),
+  firstName: z.string().min(1),
+  lastName: z.string().min(1),
+  phone: z.string().min(10),
+  accountType: z.enum(["individual", "buyer", "seller"]),
+  country: z.string().optional(),
+  state: z.string().optional(),
+  city: z.string().optional(),
+  area: z.string().optional(),
+  address: z.string().optional(),
+  postalCode: z.string().optional(),
 });
 
 export const insertAgencySchema = createInsertSchema(agencies).omit({
@@ -194,6 +244,35 @@ export const insertFaqSchema = createInsertSchema(faqs).omit({
   id: true,
 });
 
+export const userRelations = relations(users, ({ many }) => ({
+  categoryPreferences: many(userCategoryPreferences),
+  documents: many(userDocuments),
+}));
+
+export const userCategoryPreferencesRelations = relations(userCategoryPreferences, ({ one }) => ({
+  user: one(users, {
+    fields: [userCategoryPreferences.userId],
+    references: [users.id],
+  }),
+}));
+
+export const userDocumentsRelations = relations(userDocuments, ({ one }) => ({
+  user: one(users, {
+    fields: [userDocuments.userId],
+    references: [users.id],
+  }),
+}));
+
+export const insertUserCategoryPreferenceSchema = createInsertSchema(userCategoryPreferences).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertUserDocumentSchema = createInsertSchema(userDocuments).omit({
+  id: true,
+  uploadedAt: true,
+});
+
 export const insertAdminCategorySchema = createInsertSchema(adminCategories).omit({
   id: true,
   createdAt: true,
@@ -211,6 +290,11 @@ export const insertAdminSubcategorySchema = createInsertSchema(adminSubcategorie
   createdAt: true,
   updatedAt: true,
 });
+
+// export type User = typeof users.$inferSelect;
+// export type InsertUser = z.infer<typeof insertUserSchema>;
+export type UserCategoryPreference = typeof userCategoryPreferences.$inferSelect;
+export type UserDocument = typeof userDocuments.$inferSelect;
 
 // Rental Listings
 export const rentalListings = pgTable("rental_listings", {

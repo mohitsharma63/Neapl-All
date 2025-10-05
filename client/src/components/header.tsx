@@ -139,8 +139,18 @@ export default function Header() {
                 <Heart className="w-4 h-4 md:w-5 md:h-5" />
               </button>
 
-              <Link href="/login" className="p-2 hover:bg-primary/80 rounded-lg transition-colors hidden sm:block" data-testid="button-profile">
-                <User className="w-4 h-4 md:w-5 md:h-5" />
+              <Link href="/profile" className="hidden sm:block" data-testid="button-profile">
+                {(() => {
+                  const storedUser = localStorage.getItem("user");
+                  const user = storedUser ? JSON.parse(storedUser) : null;
+                  const initial = user?.firstName?.[0] || user?.username?.[0] || 'U';
+                  
+                  return (
+                    <div className="w-8 h-8 md:w-9 md:h-9 bg-gradient-to-br from-blue-500 to-purple-500 rounded-full flex items-center justify-center text-white font-semibold hover:opacity-90 transition-opacity">
+                      {initial.toUpperCase()}
+                    </div>
+                  );
+                })()}
               </Link>
 
               {/* Mobile Menu Button */}
@@ -238,12 +248,22 @@ export default function Header() {
                   <span>Favorites</span>
                 </Link>
                 <Link
-                  href="/login"
+                  href="/profile"
                   className="flex items-center gap-3 py-3 px-4 rounded-lg text-gray-700 hover:bg-gray-100 transition-colors"
                   onClick={() => setIsMobileMenuOpen(false)}
                   data-testid="mobile-link-profile"
                 >
-                  <User className="w-5 h-5" />
+                  {(() => {
+                    const storedUser = localStorage.getItem("user");
+                    const user = storedUser ? JSON.parse(storedUser) : null;
+                    const initial = user?.firstName?.[0] || user?.username?.[0] || 'U';
+                    
+                    return (
+                      <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-500 rounded-full flex items-center justify-center text-white font-semibold">
+                        {initial.toUpperCase()}
+                      </div>
+                    );
+                  })()}
                   <span>Profile</span>
                 </Link>
               </div>
