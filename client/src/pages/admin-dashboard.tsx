@@ -25,7 +25,9 @@ import {
   Eye,
   Mail,
   Phone,
-  ChevronDown
+  ChevronDown,
+  Pencil,
+  Trash
 } from 'lucide-react';
 import {
   Sidebar,
@@ -45,6 +47,11 @@ import {
 } from '@/components/ui/sidebar';
 import { CategoryDialog } from "@/components/category-dialog";
 import { SubcategoryDialog } from "@/components/subcategory-dialog";
+import { RentalListingForm } from "@/components/rental-listing-form";
+import { HostelPGForm } from '@/components/hostel-pg-form';
+import { ConstructionMaterialForm } from '@/components/construction-material-form';
+import { PropertyDealForm } from '@/components/property-deal-form';
+import { OfficeSpaceForm } from '@/components/office-space-form';
 
 interface AdminCategory {
   id: string;
@@ -1120,6 +1127,8 @@ function PropertyPageForm({ page, onSave, onCancel }: { page?: PropertyPage; onS
 // Rental Listings Section
 function RentalListingsSection() {
   const [listings, setListings] = useState([]);
+  const [showForm, setShowForm] = useState(false);
+  const [editingListing, setEditingListing] = useState(null);
 
   useEffect(() => {
     fetchListings();
@@ -1127,11 +1136,38 @@ function RentalListingsSection() {
 
   const fetchListings = async () => {
     try {
-      const response = await fetch('/api/admin/rental-listings');
+      const response = await fetch('/api/rental-listings');
       const data = await response.json();
       setListings(data);
     } catch (error) {
       console.error('Error fetching rental listings:', error);
+    }
+  };
+
+  const handleSuccess = () => {
+    setShowForm(false);
+    setEditingListing(null);
+    fetchListings();
+  };
+
+  const handleEdit = (listing: any) => {
+    setEditingListing(listing);
+    setShowForm(true);
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!confirm('Are you sure you want to delete this listing?')) return;
+
+    try {
+      const response = await fetch(`/api/rental-listings/${id}`, {
+        method: 'DELETE',
+      });
+
+      if (response.ok) {
+        fetchListings();
+      }
+    } catch (error) {
+      console.error('Error deleting listing:', error);
     }
   };
 
@@ -1142,14 +1178,65 @@ function RentalListingsSection() {
           <h2 className="text-2xl font-bold">Rental Listings</h2>
           <p className="text-muted-foreground">Manage rental properties</p>
         </div>
-        <Button>
+        <Button onClick={() => setShowForm(true)}>
           <Plus className="w-4 h-4 mr-2" />
           Add Rental Listing
         </Button>
       </div>
+
+      {showForm && (
+        <Dialog open={showForm} onOpenChange={setShowForm}>
+          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>
+                {editingListing ? 'Edit Rental Listing' : 'Add Rental Listing'}
+              </DialogTitle>
+            </DialogHeader>
+            <RentalListingForm
+              listing={editingListing}
+              onCancel={() => {
+                setShowForm(false);
+                setEditingListing(null);
+              }}
+              onSuccess={handleSuccess}
+            />
+          </DialogContent>
+        </Dialog>
+      )}
+
       <Card>
         <CardContent className="p-6">
-          <p className="text-muted-foreground">Total Listings: {listings.length}</p>
+          <div className="space-y-4">
+            <p className="text-muted-foreground">Total Listings: {listings.length}</p>
+            {listings.length > 0 ? (
+              <div className="space-y-4">
+                {listings.map((listing: any) => (
+                  <div key={listing.id} className="border rounded-lg p-4 flex justify-between items-start">
+                    <div className="flex-1">
+                      <h3 className="font-semibold">{listing.title}</h3>
+                      <p className="text-sm text-muted-foreground">{listing.rentalType}</p>
+                      <p className="text-sm font-medium">₹{listing.price}/month</p>
+                      <div className="flex gap-2 mt-2">
+                        {listing.bedrooms && <span className="text-xs bg-gray-100 px-2 py-1 rounded">{listing.bedrooms} BHK</span>}
+                        {listing.area && <span className="text-xs bg-gray-100 px-2 py-1 rounded">{listing.area} sq.ft</span>}
+                        {listing.furnishingStatus && <span className="text-xs bg-gray-100 px-2 py-1 rounded">{listing.furnishingStatus}</span>}
+                      </div>
+                    </div>
+                    <div className="flex gap-2">
+                      <Button variant="outline" size="sm" onClick={() => handleEdit(listing)}>
+                        <Pencil className="w-4 h-4" />
+                      </Button>
+                      <Button variant="destructive" size="sm" onClick={() => handleDelete(listing.id)}>
+                        <Trash className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-center text-muted-foreground py-8">No rental listings yet. Click "Add Rental Listing" to create one.</p>
+            )}
+          </div>
         </CardContent>
       </Card>
     </div>
@@ -1159,6 +1246,8 @@ function RentalListingsSection() {
 // Hostel PG Section
 function HostelPGSection() {
   const [listings, setListings] = useState([]);
+  const [showForm, setShowForm] = useState(false);
+  const [editingListing, setEditingListing] = useState(null);
 
   useEffect(() => {
     fetchListings();
@@ -1174,6 +1263,31 @@ function HostelPGSection() {
     }
   };
 
+  const handleSuccess = () => {
+    setShowForm(false);
+    setEditingListing(null);
+    fetchListings();
+  };
+
+  const handleEdit = (listing: any) => {
+    setEditingListing(listing);
+    setShowForm(true);
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!confirm('Are you sure you want to delete this hostel/PG listing?')) return;
+    try {
+      const response = await fetch(`/api/admin/hostel-pg/${id}`, {
+        method: 'DELETE',
+      });
+      if (response.ok) {
+        fetchListings();
+      }
+    } catch (error) {
+      console.error('Error deleting hostel/PG listing:', error);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -1181,14 +1295,60 @@ function HostelPGSection() {
           <h2 className="text-2xl font-bold">Hostels & PG</h2>
           <p className="text-muted-foreground">Manage hostel and PG accommodations</p>
         </div>
-        <Button>
+        <Button onClick={() => setShowForm(true)}>
           <Plus className="w-4 h-4 mr-2" />
           Add Hostel/PG
         </Button>
       </div>
+
+      {showForm && (
+        <Dialog open={showForm} onOpenChange={setShowForm}>
+          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>
+                {editingListing ? 'Edit Hostel/PG Listing' : 'Add Hostel/PG Listing'}
+              </DialogTitle>
+            </DialogHeader>
+            <HostelPGForm
+              listing={editingListing}
+              onCancel={() => {
+                setShowForm(false);
+                setEditingListing(null);
+              }}
+              onSuccess={handleSuccess}
+            />
+          </DialogContent>
+        </Dialog>
+      )}
+
       <Card>
         <CardContent className="p-6">
           <p className="text-muted-foreground">Total Listings: {listings.length}</p>
+          {listings.length > 0 && (
+            <div className="space-y-4 mt-4">
+              {listings.map((listing: any) => (
+                <div key={listing.id} className="border rounded-lg p-4 flex justify-between items-start">
+                  <div className="flex-1">
+                    <h3 className="font-semibold">{listing.title}</h3>
+                    <p className="text-sm text-muted-foreground">{listing.accommodationType}</p>
+                    <p className="text-sm font-medium">₹{listing.price}/month</p>
+                    <div className="flex gap-2 mt-2">
+                      {listing.bedrooms && <span className="text-xs bg-gray-100 px-2 py-1 rounded">{listing.bedrooms} Sharing</span>}
+                      {listing.area && <span className="text-xs bg-gray-100 px-2 py-1 rounded">{listing.area} sq.ft</span>}
+                    </div>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button variant="outline" size="sm" onClick={() => handleEdit(listing)}>
+                      <Pencil className="w-4 h-4" />
+                    </Button>
+                    <Button variant="destructive" size="sm" onClick={() => handleDelete(listing.id)}>
+                      <Trash className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>
@@ -1198,6 +1358,8 @@ function HostelPGSection() {
 // Construction Materials Section
 function ConstructionMaterialsSection() {
   const [materials, setMaterials] = useState([]);
+  const [showForm, setShowForm] = useState(false);
+  const [editingMaterial, setEditingMaterial] = useState(null);
 
   useEffect(() => {
     fetchMaterials();
@@ -1213,6 +1375,31 @@ function ConstructionMaterialsSection() {
     }
   };
 
+  const handleSuccess = () => {
+    setShowForm(false);
+    setEditingMaterial(null);
+    fetchMaterials();
+  };
+
+  const handleEdit = (material: any) => {
+    setEditingMaterial(material);
+    setShowForm(true);
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!confirm('Are you sure you want to delete this material?')) return;
+    try {
+      const response = await fetch(`/api/admin/construction-materials/${id}`, {
+        method: 'DELETE',
+      });
+      if (response.ok) {
+        fetchMaterials();
+      }
+    } catch (error) {
+      console.error('Error deleting material:', error);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -1220,14 +1407,59 @@ function ConstructionMaterialsSection() {
           <h2 className="text-2xl font-bold">Construction Materials</h2>
           <p className="text-muted-foreground">Manage construction materials and supplies</p>
         </div>
-        <Button>
+        <Button onClick={() => setShowForm(true)}>
           <Plus className="w-4 h-4 mr-2" />
           Add Material
         </Button>
       </div>
+
+      {showForm && (
+        <Dialog open={showForm} onOpenChange={setShowForm}>
+          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>
+                {editingMaterial ? 'Edit Material' : 'Add Material'}
+              </DialogTitle>
+            </DialogHeader>
+            <ConstructionMaterialForm
+              material={editingMaterial}
+              onCancel={() => {
+                setShowForm(false);
+                setEditingMaterial(null);
+              }}
+              onSuccess={handleSuccess}
+            />
+          </DialogContent>
+        </Dialog>
+      )}
+
       <Card>
         <CardContent className="p-6">
           <p className="text-muted-foreground">Total Materials: {materials.length}</p>
+          {materials.length > 0 && (
+            <div className="space-y-4 mt-4">
+              {materials.map((material: any) => (
+                <div key={material.id} className="border rounded-lg p-4 flex justify-between items-start">
+                  <div className="flex-1">
+                    <h3 className="font-semibold">{material.name}</h3>
+                    <p className="text-sm text-muted-foreground">{material.category}</p>
+                    <p className="text-sm font-medium">₹{material.price}</p>
+                    <div className="flex gap-2 mt-2">
+                      {material.unit && <span className="text-xs bg-gray-100 px-2 py-1 rounded">{material.unit}</span>}
+                    </div>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button variant="outline" size="sm" onClick={() => handleEdit(material)}>
+                      <Pencil className="w-4 h-4" />
+                    </Button>
+                    <Button variant="destructive" size="sm" onClick={() => handleDelete(material.id)}>
+                      <Trash className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>
@@ -1237,6 +1469,8 @@ function ConstructionMaterialsSection() {
 // Property Deals Section
 function PropertyDealsSection() {
   const [deals, setDeals] = useState([]);
+  const [showForm, setShowForm] = useState(false);
+  const [editingDeal, setEditingDeal] = useState(null);
 
   useEffect(() => {
     fetchDeals();
@@ -1252,6 +1486,31 @@ function PropertyDealsSection() {
     }
   };
 
+  const handleSuccess = () => {
+    setShowForm(false);
+    setEditingDeal(null);
+    fetchDeals();
+  };
+
+  const handleEdit = (deal: any) => {
+    setEditingDeal(deal);
+    setShowForm(true);
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!confirm('Are you sure you want to delete this deal?')) return;
+    try {
+      const response = await fetch(`/api/admin/property-deals/${id}`, {
+        method: 'DELETE',
+      });
+      if (response.ok) {
+        fetchDeals();
+      }
+    } catch (error) {
+      console.error('Error deleting deal:', error);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -1259,14 +1518,59 @@ function PropertyDealsSection() {
           <h2 className="text-2xl font-bold">Property Deals</h2>
           <p className="text-muted-foreground">Manage property buy/sell deals</p>
         </div>
-        <Button>
+        <Button onClick={() => setShowForm(true)}>
           <Plus className="w-4 h-4 mr-2" />
           Add Deal
         </Button>
       </div>
+
+      {showForm && (
+        <Dialog open={showForm} onOpenChange={setShowForm}>
+          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>
+                {editingDeal ? 'Edit Deal' : 'Add Deal'}
+              </DialogTitle>
+            </DialogHeader>
+            <PropertyDealForm
+              deal={editingDeal}
+              onCancel={() => {
+                setShowForm(false);
+                setEditingDeal(null);
+              }}
+              onSuccess={handleSuccess}
+            />
+          </DialogContent>
+        </Dialog>
+      )}
+
       <Card>
         <CardContent className="p-6">
           <p className="text-muted-foreground">Total Deals: {deals.length}</p>
+          {deals.length > 0 && (
+            <div className="space-y-4 mt-4">
+              {deals.map((deal: any) => (
+                <div key={deal.id} className="border rounded-lg p-4 flex justify-between items-start">
+                  <div className="flex-1">
+                    <h3 className="font-semibold">{deal.title}</h3>
+                    <p className="text-sm text-muted-foreground">{deal.dealType}</p>
+                    <p className="text-sm font-medium">₹{deal.price}</p>
+                    <div className="flex gap-2 mt-2">
+                      {deal.propertyType && <span className="text-xs bg-gray-100 px-2 py-1 rounded">{deal.propertyType}</span>}
+                    </div>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button variant="outline" size="sm" onClick={() => handleEdit(deal)}>
+                      <Pencil className="w-4 h-4" />
+                    </Button>
+                    <Button variant="destructive" size="sm" onClick={() => handleDelete(deal.id)}>
+                      <Trash className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>
@@ -1276,6 +1580,8 @@ function PropertyDealsSection() {
 // Commercial Properties Section
 function CommercialPropertiesSection() {
   const [properties, setProperties] = useState([]);
+  const [showForm, setShowForm] = useState(false);
+  const [editingProperty, setEditingProperty] = useState(null);
 
   useEffect(() => {
     fetchProperties();
@@ -1291,6 +1597,31 @@ function CommercialPropertiesSection() {
     }
   };
 
+  const handleSuccess = () => {
+    setShowForm(false);
+    setEditingProperty(null);
+    fetchProperties();
+  };
+
+  const handleEdit = (property: any) => {
+    setEditingProperty(property);
+    setShowForm(true);
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!confirm('Are you sure you want to delete this property?')) return;
+    try {
+      const response = await fetch(`/api/admin/commercial-properties/${id}`, {
+        method: 'DELETE',
+      });
+      if (response.ok) {
+        fetchProperties();
+      }
+    } catch (error) {
+      console.error('Error deleting property:', error);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -1298,14 +1629,54 @@ function CommercialPropertiesSection() {
           <h2 className="text-2xl font-bold">Commercial Properties</h2>
           <p className="text-muted-foreground">Manage commercial spaces</p>
         </div>
-        <Button>
+        <Button onClick={() => setShowForm(true)}>
           <Plus className="w-4 h-4 mr-2" />
           Add Property
         </Button>
       </div>
+
+      {showForm && (
+        <Dialog open={showForm} onOpenChange={setShowForm}>
+          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>
+                {editingProperty ? 'Edit Commercial Property' : 'Add Commercial Property'}
+              </DialogTitle>
+            </DialogHeader>
+            {/* Assuming a CommercialPropertyForm component exists */}
+            {/* <CommercialPropertyForm property={editingProperty} onCancel={() => setShowForm(false)} onSuccess={handleSuccess} /> */}
+            <p>Commercial Property Form Placeholder</p>
+          </DialogContent>
+        </Dialog>
+      )}
+
       <Card>
         <CardContent className="p-6">
           <p className="text-muted-foreground">Total Properties: {properties.length}</p>
+          {properties.length > 0 && (
+            <div className="space-y-4 mt-4">
+              {properties.map((property: any) => (
+                <div key={property.id} className="border rounded-lg p-4 flex justify-between items-start">
+                  <div className="flex-1">
+                    <h3 className="font-semibold">{property.title}</h3>
+                    <p className="text-sm text-muted-foreground">{property.propertyType}</p>
+                    <p className="text-sm font-medium">₹{property.price}</p>
+                    <div className="flex gap-2 mt-2">
+                      {property.area && <span className="text-xs bg-gray-100 px-2 py-1 rounded">{property.area} sq.ft</span>}
+                    </div>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button variant="outline" size="sm" onClick={() => handleEdit(property)}>
+                      <Pencil className="w-4 h-4" />
+                    </Button>
+                    <Button variant="destructive" size="sm" onClick={() => handleDelete(property.id)}>
+                      <Trash className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>
@@ -1315,6 +1686,8 @@ function CommercialPropertiesSection() {
 // Industrial Land Section
 function IndustrialLandSection() {
   const [lands, setLands] = useState([]);
+  const [showForm, setShowForm] = useState(false);
+  const [editingLand, setEditingLand] = useState(null);
 
   useEffect(() => {
     fetchLands();
@@ -1330,6 +1703,31 @@ function IndustrialLandSection() {
     }
   };
 
+  const handleSuccess = () => {
+    setShowForm(false);
+    setEditingLand(null);
+    fetchLands();
+  };
+
+  const handleEdit = (land: any) => {
+    setEditingLand(land);
+    setShowForm(true);
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!confirm('Are you sure you want to delete this land listing?')) return;
+    try {
+      const response = await fetch(`/api/admin/industrial-land/${id}`, {
+        method: 'DELETE',
+      });
+      if (response.ok) {
+        fetchLands();
+      }
+    } catch (error) {
+      console.error('Error deleting land listing:', error);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -1337,14 +1735,54 @@ function IndustrialLandSection() {
           <h2 className="text-2xl font-bold">Industrial Land</h2>
           <p className="text-muted-foreground">Manage industrial land listings</p>
         </div>
-        <Button>
+        <Button onClick={() => setShowForm(true)}>
           <Plus className="w-4 h-4 mr-2" />
           Add Land
         </Button>
       </div>
+
+      {showForm && (
+        <Dialog open={showForm} onOpenChange={setShowForm}>
+          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>
+                {editingLand ? 'Edit Land Listing' : 'Add Land Listing'}
+              </DialogTitle>
+            </DialogHeader>
+            {/* Assuming an IndustrialLandForm component exists */}
+            {/* <IndustrialLandForm land={editingLand} onCancel={() => setShowForm(false)} onSuccess={handleSuccess} /> */}
+            <p>Industrial Land Form Placeholder</p>
+          </DialogContent>
+        </Dialog>
+      )}
+
       <Card>
         <CardContent className="p-6">
           <p className="text-muted-foreground">Total Listings: {lands.length}</p>
+          {lands.length > 0 && (
+            <div className="space-y-4 mt-4">
+              {lands.map((land: any) => (
+                <div key={land.id} className="border rounded-lg p-4 flex justify-between items-start">
+                  <div className="flex-1">
+                    <h3 className="font-semibold">{land.title}</h3>
+                    <p className="text-sm text-muted-foreground">{land.landType}</p>
+                    <p className="text-sm font-medium">₹{land.price}</p>
+                    <div className="flex gap-2 mt-2">
+                      {land.area && <span className="text-xs bg-gray-100 px-2 py-1 rounded">{land.area} acres</span>}
+                    </div>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button variant="outline" size="sm" onClick={() => handleEdit(land)}>
+                      <Pencil className="w-4 h-4" />
+                    </Button>
+                    <Button variant="destructive" size="sm" onClick={() => handleDelete(land.id)}>
+                      <Trash className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>
@@ -1354,6 +1792,8 @@ function IndustrialLandSection() {
 // Office Spaces Section
 function OfficeSpacesSection() {
   const [offices, setOffices] = useState([]);
+  const [showForm, setShowForm] = useState(false);
+  const [editingOffice, setEditingOffice] = useState(null);
 
   useEffect(() => {
     fetchOffices();
@@ -1369,6 +1809,31 @@ function OfficeSpacesSection() {
     }
   };
 
+  const handleSuccess = () => {
+    setShowForm(false);
+    setEditingOffice(null);
+    fetchOffices();
+  };
+
+  const handleEdit = (office: any) => {
+    setEditingOffice(office);
+    setShowForm(true);
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!confirm('Are you sure you want to delete this office space?')) return;
+    try {
+      const response = await fetch(`/api/admin/office-spaces/${id}`, {
+        method: 'DELETE',
+      });
+      if (response.ok) {
+        fetchOffices();
+      }
+    } catch (error) {
+      console.error('Error deleting office space:', error);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -1376,14 +1841,59 @@ function OfficeSpacesSection() {
           <h2 className="text-2xl font-bold">Office Spaces</h2>
           <p className="text-muted-foreground">Manage office space listings</p>
         </div>
-        <Button>
+        <Button onClick={() => setShowForm(true)}>
           <Plus className="w-4 h-4 mr-2" />
           Add Office Space
         </Button>
       </div>
+
+      {showForm && (
+        <Dialog open={showForm} onOpenChange={setShowForm}>
+          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>
+                {editingOffice ? 'Edit Office Space' : 'Add Office Space'}
+              </DialogTitle>
+            </DialogHeader>
+            <OfficeSpaceForm
+              office={editingOffice}
+              onCancel={() => {
+                setShowForm(false);
+                setEditingOffice(null);
+              }}
+              onSuccess={handleSuccess}
+            />
+          </DialogContent>
+        </Dialog>
+      )}
+
       <Card>
         <CardContent className="p-6">
           <p className="text-muted-foreground">Total Offices: {offices.length}</p>
+          {offices.length > 0 && (
+            <div className="space-y-4 mt-4">
+              {offices.map((office: any) => (
+                <div key={office.id} className="border rounded-lg p-4 flex justify-between items-start">
+                  <div className="flex-1">
+                    <h3 className="font-semibold">{office.title}</h3>
+                    <p className="text-sm text-muted-foreground">{office.officeType}</p>
+                    <p className="text-sm font-medium">₹{office.price}</p>
+                    <div className="flex gap-2 mt-2">
+                      {office.area && <span className="text-xs bg-gray-100 px-2 py-1 rounded">{office.area} sq.ft</span>}
+                    </div>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button variant="outline" size="sm" onClick={() => handleEdit(office)}>
+                      <Pencil className="w-4 h-4" />
+                    </Button>
+                    <Button variant="destructive" size="sm" onClick={() => handleDelete(office.id)}>
+                      <Trash className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>
@@ -1393,6 +1903,8 @@ function OfficeSpacesSection() {
 // Agencies Section Component
 function AgenciesSection() {
   const [agencies, setAgencies] = useState<Agency[]>([]);
+  const [showForm, setShowForm] = useState(false);
+  const [editingAgency, setEditingAgency] = useState(null);
 
   useEffect(() => {
     fetchAgencies();
@@ -1408,6 +1920,31 @@ function AgenciesSection() {
     }
   };
 
+  const handleSuccess = () => {
+    setShowForm(false);
+    setEditingAgency(null);
+    fetchAgencies();
+  };
+
+  const handleEdit = (agency: any) => {
+    setEditingAgency(agency);
+    setShowForm(true);
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!confirm('Are you sure you want to delete this agency?')) return;
+    try {
+      const response = await fetch(`/api/agencies/${id}`, {
+        method: 'DELETE',
+      });
+      if (response.ok) {
+        fetchAgencies();
+      }
+    } catch (error) {
+      console.error('Error deleting agency:', error);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -1415,11 +1952,26 @@ function AgenciesSection() {
           <h2 className="text-2xl font-bold">Agencies Management</h2>
           <p className="text-muted-foreground">Manage real estate agencies</p>
         </div>
-        <Button>
+        <Button onClick={() => setShowForm(true)}>
           <Plus className="w-4 h-4 mr-2" />
           Add Agency
         </Button>
       </div>
+
+      {showForm && (
+        <Dialog open={showForm} onOpenChange={setShowForm}>
+          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>
+                {editingAgency ? 'Edit Agency' : 'Add Agency'}
+              </DialogTitle>
+            </DialogHeader>
+            {/* Assuming an AgencyForm component exists */}
+            {/* <AgencyForm agency={editingAgency} onCancel={() => setShowForm(false)} onSuccess={handleSuccess} /> */}
+            <p>Agency Form Placeholder</p>
+          </DialogContent>
+        </Dialog>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
         {agencies.map((agency) => (
@@ -1432,9 +1984,14 @@ function AgenciesSection() {
                     {agency.propertyCount} properties
                   </div>
                 </div>
-                <Button variant="ghost" size="icon">
-                  <Edit className="w-4 h-4" />
-                </Button>
+                <div className="flex gap-2">
+                  <Button variant="ghost" size="icon" onClick={() => handleEdit(agency)}>
+                    <Edit className="w-4 h-4" />
+                  </Button>
+                  <Button variant="ghost" size="icon" className="text-destructive" onClick={() => handleDelete(agency.id)}>
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
+                </div>
               </div>
             </CardHeader>
             <CardContent>
