@@ -52,6 +52,9 @@ import { CategoryDialog } from "@/components/category-dialog";
 import { SubcategoryDialog } from "@/components/subcategory-dialog";
 import { HostelPgForm } from "@/components/hostel-pg-form";
 import { ConstructionMaterialsForm } from "@/components/construction-materials-form";
+import { RentalListingsForm } from "@/components/rental-listings-form";
+import { OfficeSpacesForm } from "@/components/office-spaces-form";
+import { IndustrialLandForm } from "@/components/industrial-land-form";
 
 
 interface AdminCategory {
@@ -2153,6 +2156,8 @@ function CommercialPropertiesSection() {
 // Industrial Land Section Component
 function IndustrialLandSection() {
   const [lands, setLands] = useState<any[]>([]);
+  const [showForm, setShowForm] = useState(false);
+  const [editingLand, setEditingLand] = useState(null);
 
   useEffect(() => {
     fetchLands();
@@ -2167,6 +2172,17 @@ function IndustrialLandSection() {
       console.error('Error fetching industrial land:', error);
       setLands([]);
     }
+  };
+
+  const handleSuccess = () => {
+    setShowForm(false);
+    setEditingLand(null);
+    fetchLands();
+  };
+
+  const handleEdit = (land: any) => {
+    setEditingLand(land);
+    setShowForm(true);
   };
 
   const handleDelete = async (id: string) => {
@@ -2216,7 +2232,20 @@ function IndustrialLandSection() {
           <h2 className="text-2xl font-bold">Factory Industrial Land</h2>
           <p className="text-muted-foreground">Manage industrial land listings</p>
         </div>
+        <Button onClick={() => setShowForm(true)}>
+          <Plus className="w-4 h-4 mr-2" />
+          Add Industrial Land
+        </Button>
       </div>
+
+      {showForm && (
+        <IndustrialLandForm
+          open={showForm}
+          onOpenChange={setShowForm}
+          land={editingLand}
+          onSuccess={handleSuccess}
+        />
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
         {Array.isArray(lands) && lands.map((land) => (
@@ -2232,6 +2261,15 @@ function IndustrialLandSection() {
                   </div>
                 </div>
                 <div className="flex gap-1">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8"
+                    onClick={() => handleEdit(land)}
+                    title="Edit"
+                  >
+                    <Edit className="w-4 h-4" />
+                  </Button>
                   <Button
                     variant="ghost"
                     size="icon"
@@ -2289,7 +2327,11 @@ function IndustrialLandSection() {
           <CardContent className="py-12 text-center">
             <Building className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
             <h3 className="text-lg font-semibold mb-2">No Industrial Land Found</h3>
-            <p className="text-muted-foreground">No industrial land listings available</p>
+            <p className="text-muted-foreground mb-4">Start by adding your first industrial land listing</p>
+            <Button onClick={() => setShowForm(true)}>
+              <Plus className="w-4 h-4 mr-2" />
+              Add Industrial Land
+            </Button>
           </CardContent>
         </Card>
       )}
@@ -2300,6 +2342,8 @@ function IndustrialLandSection() {
 // Office Spaces Section Component
 function OfficeSpacesSection() {
   const [offices, setOffices] = useState<any[]>([]);
+  const [showForm, setShowForm] = useState(false);
+  const [editingOffice, setEditingOffice] = useState(null);
 
   useEffect(() => {
     fetchOffices();
@@ -2314,6 +2358,17 @@ function OfficeSpacesSection() {
       console.error('Error fetching office spaces:', error);
       setOffices([]);
     }
+  };
+
+  const handleSuccess = () => {
+    setShowForm(false);
+    setEditingOffice(null);
+    fetchOffices();
+  };
+
+  const handleEdit = (office: any) => {
+    setEditingOffice(office);
+    setShowForm(true);
   };
 
   const handleDelete = async (id: string) => {
@@ -2363,7 +2418,20 @@ function OfficeSpacesSection() {
           <h2 className="text-2xl font-bold">Company Office Spaces</h2>
           <p className="text-muted-foreground">Manage office space listings</p>
         </div>
+        <Button onClick={() => setShowForm(true)}>
+          <Plus className="w-4 h-4 mr-2" />
+          Add Office Space
+        </Button>
       </div>
+
+      {showForm && (
+        <OfficeSpacesForm
+          open={showForm}
+          onOpenChange={setShowForm}
+          office={editingOffice}
+          onSuccess={handleSuccess}
+        />
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
         {Array.isArray(offices) && offices.map((office) => (
@@ -2379,6 +2447,15 @@ function OfficeSpacesSection() {
                   </div>
                 </div>
                 <div className="flex gap-1">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8"
+                    onClick={() => handleEdit(office)}
+                    title="Edit"
+                  >
+                    <Edit className="w-4 h-4" />
+                  </Button>
                   <Button
                     variant="ghost"
                     size="icon"
@@ -2436,7 +2513,11 @@ function OfficeSpacesSection() {
           <CardContent className="py-12 text-center">
             <Building className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
             <h3 className="text-lg font-semibold mb-2">No Office Spaces Found</h3>
-            <p className="text-muted-foreground">No office space listings available</p>
+            <p className="text-muted-foreground mb-4">Start by adding your first office space listing</p>
+            <Button onClick={() => setShowForm(true)}>
+              <Plus className="w-4 h-4 mr-2" />
+              Add Office Space
+            </Button>
           </CardContent>
         </Card>
       )}
@@ -2447,6 +2528,8 @@ function OfficeSpacesSection() {
 // Rental Listings Section Component
 function RentalListingsSection() {
   const [rentals, setRentals] = useState<any[]>([]);
+  const [showForm, setShowForm] = useState(false);
+  const [editingRental, setEditingRental] = useState(null);
 
   useEffect(() => {
     fetchRentals();
@@ -2461,6 +2544,17 @@ function RentalListingsSection() {
       console.error('Error fetching rental listings:', error);
       setRentals([]);
     }
+  };
+
+  const handleSuccess = () => {
+    setShowForm(false);
+    setEditingRental(null);
+    fetchRentals();
+  };
+
+  const handleEdit = (rental: any) => {
+    setEditingRental(rental);
+    setShowForm(true);
   };
 
   const handleDelete = async (id: string) => {
@@ -2510,7 +2604,20 @@ function RentalListingsSection() {
           <h2 className="text-2xl font-bold">Rental – Rooms, Flats, Apartments</h2>
           <p className="text-muted-foreground">Manage rental property listings</p>
         </div>
+        <Button onClick={() => setShowForm(true)}>
+          <Plus className="w-4 h-4 mr-2" />
+          Add Rental Listing
+        </Button>
       </div>
+
+      {showForm && (
+        <RentalListingsForm
+          open={showForm}
+          onOpenChange={setShowForm}
+          rental={editingRental}
+          onSuccess={handleSuccess}
+        />
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
         {Array.isArray(rentals) && rentals.map((rental) => (
@@ -2526,6 +2633,15 @@ function RentalListingsSection() {
                   </div>
                 </div>
                 <div className="flex gap-1">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8"
+                    onClick={() => handleEdit(rental)}
+                    title="Edit"
+                  >
+                    <Edit className="w-4 h-4" />
+                  </Button>
                   <Button
                     variant="ghost"
                     size="icon"
@@ -2583,7 +2699,11 @@ function RentalListingsSection() {
           <CardContent className="py-12 text-center">
             <Building className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
             <h3 className="text-lg font-semibold mb-2">No Rental Listings Found</h3>
-            <p className="text-muted-foreground">No rental listings available</p>
+            <p className="text-muted-foreground mb-4">Start by adding your first rental listing</p>
+            <Button onClick={() => setShowForm(true)}>
+              <Plus className="w-4 h-4 mr-2" />
+              Add Rental Listing
+            </Button>
           </CardContent>
         </Card>
       )}
