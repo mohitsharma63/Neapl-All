@@ -92,6 +92,46 @@ export async function initDatabase() {
       )
     `);
 
+    // Create cars_bikes table
+    await db.execute(sql`
+      CREATE TABLE IF NOT EXISTS cars_bikes (
+        id VARCHAR PRIMARY KEY DEFAULT gen_random_uuid(),
+        title TEXT NOT NULL,
+        description TEXT,
+        listing_type TEXT NOT NULL,
+        vehicle_type TEXT NOT NULL,
+        brand TEXT NOT NULL,
+        model TEXT NOT NULL,
+        year INTEGER NOT NULL,
+        price NUMERIC(12,2) NOT NULL,
+        kilometers_driven INTEGER,
+        fuel_type TEXT,
+        transmission TEXT,
+        owner_number INTEGER,
+        registration_number TEXT,
+        registration_state TEXT,
+        insurance_valid_until TIMESTAMP,
+        color TEXT,
+        images JSONB DEFAULT '[]',
+        documents JSONB DEFAULT '[]',
+        features JSONB DEFAULT '[]',
+        condition TEXT,
+        is_negotiable BOOLEAN DEFAULT FALSE,
+        country TEXT NOT NULL DEFAULT 'India',
+        state_province TEXT,
+        city TEXT,
+        area_name TEXT,
+        full_address TEXT,
+        location_id VARCHAR,
+        seller_id VARCHAR,
+        is_active BOOLEAN DEFAULT TRUE,
+        is_featured BOOLEAN DEFAULT FALSE,
+        view_count INTEGER DEFAULT 0,
+        created_at TIMESTAMP DEFAULT NOW(),
+        updated_at TIMESTAMP DEFAULT NOW()
+      )
+    `);
+
     // Create indexes
     await db.execute(sql`CREATE INDEX IF NOT EXISTS idx_admin_categories_slug ON admin_categories(slug)`);
     await db.execute(sql`CREATE INDEX IF NOT EXISTS idx_admin_categories_active ON admin_categories(is_active)`);
@@ -101,6 +141,14 @@ export async function initDatabase() {
     await db.execute(sql`CREATE INDEX IF NOT EXISTS idx_industrial_land_city ON industrial_land(city)`);
     await db.execute(sql`CREATE INDEX IF NOT EXISTS idx_industrial_land_is_active ON industrial_land(is_active)`);
     await db.execute(sql`CREATE INDEX IF NOT EXISTS idx_industrial_land_is_featured ON industrial_land(is_featured)`);
+
+    // Create cars_bikes indexes
+    await db.execute(sql`CREATE INDEX IF NOT EXISTS idx_cars_bikes_listing_type ON cars_bikes(listing_type)`);
+    await db.execute(sql`CREATE INDEX IF NOT EXISTS idx_cars_bikes_vehicle_type ON cars_bikes(vehicle_type)`);
+    await db.execute(sql`CREATE INDEX IF NOT EXISTS idx_cars_bikes_brand ON cars_bikes(brand)`);
+    await db.execute(sql`CREATE INDEX IF NOT EXISTS idx_cars_bikes_city ON cars_bikes(city)`);
+    await db.execute(sql`CREATE INDEX IF NOT EXISTS idx_cars_bikes_is_active ON cars_bikes(is_active)`);
+    await db.execute(sql`CREATE INDEX IF NOT EXISTS idx_cars_bikes_is_featured ON cars_bikes(is_featured)`);
 
     // Create triggers
     await db.execute(sql`DROP TRIGGER IF EXISTS update_admin_categories_updated_at ON admin_categories`);
@@ -121,6 +169,14 @@ export async function initDatabase() {
     await db.execute(sql`
       CREATE TRIGGER update_industrial_land_updated_at 
       BEFORE UPDATE ON industrial_land 
+      FOR EACH ROW EXECUTE FUNCTION update_updated_at_column()
+    `);
+
+    // Create cars_bikes trigger
+    await db.execute(sql`DROP TRIGGER IF EXISTS update_cars_bikes_updated_at ON cars_bikes`);
+    await db.execute(sql`
+      CREATE TRIGGER update_cars_bikes_updated_at 
+      BEFORE UPDATE ON cars_bikes 
       FOR EACH ROW EXECUTE FUNCTION update_updated_at_column()
     `);
 

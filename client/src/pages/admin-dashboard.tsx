@@ -57,6 +57,7 @@ import { OfficeSpacesForm } from "@/components/office-spaces-form";
 import { IndustrialLandForm } from "@/components/industrial-land-form";
 import { PropertyDealsForm } from "@/components/property-deals-form";
 import { CommercialPropertiesForm } from '@/components/commercial-properties-form';
+import { CarsBikesForm } from "@/components/cars-bikes-form";
 
 
 interface AdminCategory {
@@ -2841,6 +2842,8 @@ export default function AdminDashboard() {
       case "rental-–-rooms,-flats,-apartments":
       case "rental-listings":
         return <RentalListingsSection />;
+      case "cars-bikes":
+        return <CarsBikesSection />; // Added case for Cars & Bikes
       default:
         return <DashboardSection />;
     }
@@ -2877,5 +2880,14 @@ export default function AdminDashboard() {
         </SidebarInset>
       </div>
     </SidebarProvider>
+  );
+}
+
+// Cars & Bikes Section Component
+function CarsBikesSection() {
+  return (
+    <div className="space-y-6">
+      <CarsBikesForm />
+    </div>
   );
 }

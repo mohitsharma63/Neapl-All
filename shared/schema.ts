@@ -381,6 +381,44 @@ export const constructionMaterials = pgTable("construction_materials", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+// Cars & Bikes
+export const carsBikes = pgTable("cars_bikes", {
+  id: varchar("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  title: text("title").notNull(),
+  description: text("description"),
+  listingType: text("listing_type").notNull(),
+  vehicleType: text("vehicle_type").notNull(),
+  brand: text("brand").notNull(),
+  model: text("model").notNull(),
+  year: integer("year").notNull(),
+  price: decimal("price", { precision: 12, scale: 2 }).notNull(),
+  kilometersDriven: integer("kilometers_driven"),
+  fuelType: text("fuel_type"),
+  transmission: text("transmission"),
+  ownerNumber: integer("owner_number"),
+  registrationNumber: text("registration_number"),
+  registrationState: text("registration_state"),
+  insuranceValidUntil: timestamp("insurance_valid_until"),
+  color: text("color"),
+  images: jsonb("images").$type<string[]>().default([]),
+  documents: jsonb("documents").$type<string[]>().default([]),
+  features: jsonb("features").$type<string[]>().default([]),
+  condition: text("condition"),
+  isNegotiable: boolean("is_negotiable").default(false),
+  country: text("country").notNull().default("India"),
+  stateProvince: text("state_province"),
+  city: text("city"),
+  areaName: text("area_name"),
+  fullAddress: text("full_address"),
+  locationId: varchar("location_id").references(() => locations.id),
+  sellerId: varchar("seller_id").references(() => users.id),
+  isActive: boolean("is_active").default(true),
+  isFeatured: boolean("is_featured").default(false),
+  viewCount: integer("view_count").default(0),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
 // Property Deals
 export const propertyDeals = pgTable("property_deals", {
   id: varchar("id").primaryKey().$defaultFn(() => crypto.randomUUID()),

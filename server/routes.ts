@@ -18,6 +18,7 @@ import {
   commercialProperties,
   industrialLand,
   officeSpaces,
+  carsBikes,
   insertAdminCategorySchema,
   insertAdminSubcategorySchema,
 } from "../shared/schema";
@@ -1747,6 +1748,137 @@ export function registerRoutes(app: Express) {
         .update(officeSpaces)
         .set({ isFeatured: !office.isFeatured, updatedAt: new Date() })
         .where(eq(officeSpaces.id, req.params.id))
+        .returning();
+
+      res.json(updated);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Cars & Bikes Routes - Full CRUD
+
+  // GET all cars & bikes
+  app.get("/api/admin/cars-bikes", async (_req, res) => {
+    try {
+      const vehicles = await db.query.carsBikes.findMany({
+        orderBy: desc(carsBikes.createdAt),
+      });
+      res.json(vehicles);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // GET single vehicle by ID
+  app.get("/api/admin/cars-bikes/:id", async (req, res) => {
+    try {
+      const vehicle = await db.query.carsBikes.findFirst({
+        where: eq(carsBikes.id, req.params.id),
+      });
+
+      if (!vehicle) {
+        return res.status(404).json({ message: "Vehicle not found" });
+      }
+
+      res.json(vehicle);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // CREATE new vehicle
+  app.post("/api/admin/cars-bikes", async (req, res) => {
+    try {
+      const [newVehicle] = await db
+        .insert(carsBikes)
+        .values({
+          ...req.body,
+          country: req.body.country || "India",
+        })
+        .returning();
+
+      res.status(201).json(newVehicle);
+    } catch (error: any) {
+      res.status(400).json({ message: error.message });
+    }
+  });
+
+  // UPDATE vehicle
+  app.put("/api/admin/cars-bikes/:id", async (req, res) => {
+    try {
+      const [updatedVehicle] = await db
+        .update(carsBikes)
+        .set({ ...req.body, updatedAt: new Date() })
+        .where(eq(carsBikes.id, req.params.id))
+        .returning();
+
+      if (!updatedVehicle) {
+        return res.status(404).json({ message: "Vehicle not found" });
+      }
+
+      res.json(updatedVehicle);
+    } catch (error: any) {
+      res.status(400).json({ message: error.message });
+    }
+  });
+
+  // DELETE vehicle
+  app.delete("/api/admin/cars-bikes/:id", async (req, res) => {
+    try {
+      const deletedRows = await db
+        .delete(carsBikes)
+        .where(eq(carsBikes.id, req.params.id))
+        .returning();
+
+      if (deletedRows.length === 0) {
+        return res.status(404).json({ message: "Vehicle not found" });
+      }
+
+      res.json({ message: "Vehicle deleted successfully", id: req.params.id });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // PATCH - Toggle active status
+  app.patch("/api/admin/cars-bikes/:id/toggle-active", async (req, res) => {
+    try {
+      const vehicle = await db.query.carsBikes.findFirst({
+        where: eq(carsBikes.id, req.params.id),
+      });
+
+      if (!vehicle) {
+        return res.status(404).json({ message: "Vehicle not found" });
+      }
+
+      const [updated] = await db
+        .update(carsBikes)
+        .set({ isActive: !vehicle.isActive, updatedAt: new Date() })
+        .where(eq(carsBikes.id, req.params.id))
+        .returning();
+
+      res.json(updated);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // PATCH - Toggle featured status
+  app.patch("/api/admin/cars-bikes/:id/toggle-featured", async (req, res) => {
+    try {
+      const vehicle = await db.query.carsBikes.findFirst({
+        where: eq(carsBikes.id, req.params.id),
+      });
+
+      if (!vehicle) {
+        return res.status(404).json({ message: "Vehicle not found" });
+      }
+
+      const [updated] = await db
+        .update(carsBikes)
+        .set({ isFeatured: !vehicle.isFeatured, updatedAt: new Date() })
+        .where(eq(carsBikes.id, req.params.id))
         .returning();
 
       res.json(updated);
