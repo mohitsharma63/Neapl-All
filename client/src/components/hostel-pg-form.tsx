@@ -1,3 +1,4 @@
+ 
 import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -30,10 +31,10 @@ export function HostelPgForm({ open, onOpenChange, hostelPg, onSuccess }: Hostel
     images: [] as string[],
     rules: "",
     country: "",
-    stateProvince: "", // Updated field name
+    stateProvince: "",
     city: "",
     area: "",
-    fullAddress: "", // Updated field name
+    fullAddress: "",
     contactPerson: "",
     contactPhone: "",
     isActive: true,
@@ -58,10 +59,10 @@ export function HostelPgForm({ open, onOpenChange, hostelPg, onSuccess }: Hostel
         images: hostelPg.images || [],
         rules: hostelPg.rules || "",
         country: hostelPg.country || "",
-        stateProvince: hostelPg.stateProvince || "", // Updated field name
+        stateProvince: hostelPg.stateProvince || "",
         city: hostelPg.city || "",
         area: hostelPg.area || "",
-        fullAddress: hostelPg.fullAddress || "", // Updated field name
+        fullAddress: hostelPg.fullAddress || "",
         contactPerson: hostelPg.contactPerson || "",
         contactPhone: hostelPg.contactPhone || "",
         isActive: hostelPg.isActive ?? true,
@@ -81,10 +82,10 @@ export function HostelPgForm({ open, onOpenChange, hostelPg, onSuccess }: Hostel
         images: [],
         rules: "",
         country: "",
-        stateProvince: "", // Updated field name
+        stateProvince: "",
         city: "",
         area: "",
-        fullAddress: "", // Updated field name
+        fullAddress: "",
         contactPerson: "",
         contactPhone: "",
         isActive: true,
@@ -166,7 +167,7 @@ export function HostelPgForm({ open, onOpenChange, hostelPg, onSuccess }: Hostel
       console.error("Error uploading images:", error);
     } finally {
       setUploadingImage(false);
-      e.target.value = ""; // Reset input
+      e.target.value = "";
     }
   };
 

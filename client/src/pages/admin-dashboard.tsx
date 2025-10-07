@@ -55,6 +55,8 @@ import { ConstructionMaterialsForm } from "@/components/construction-materials-f
 import { RentalListingsForm } from "@/components/rental-listings-form";
 import { OfficeSpacesForm } from "@/components/office-spaces-form";
 import { IndustrialLandForm } from "@/components/industrial-land-form";
+import { PropertyDealsForm } from "@/components/property-deals-form";
+import { CommercialPropertiesForm } from '@/components/commercial-properties-form';
 
 
 interface AdminCategory {
@@ -1862,6 +1864,8 @@ function ConstructionMaterialsSection() {
 // Property Deals Section Component
 function PropertyDealsSection() {
   const [deals, setDeals] = useState<any[]>([]);
+  const [showForm, setShowForm] = useState(false);
+  const [editingDeal, setEditingDeal] = useState(null);
 
   useEffect(() => {
     fetchDeals();
@@ -1876,6 +1880,17 @@ function PropertyDealsSection() {
       console.error('Error fetching property deals:', error);
       setDeals([]);
     }
+  };
+
+  const handleSuccess = () => {
+    setShowForm(false);
+    setEditingDeal(null);
+    fetchDeals();
+  };
+
+  const handleEdit = (deal: any) => {
+    setEditingDeal(deal);
+    setShowForm(true);
   };
 
   const handleDelete = async (id: string) => {
@@ -1925,7 +1940,20 @@ function PropertyDealsSection() {
           <h2 className="text-2xl font-bold">Property Deals (Buy/Sell)</h2>
           <p className="text-muted-foreground">Manage property buy and sell listings</p>
         </div>
+        <Button onClick={() => setShowForm(true)}>
+          <Plus className="w-4 h-4 mr-2" />
+          Add Property Deal
+        </Button>
       </div>
+
+      {showForm && (
+        <PropertyDealsForm
+          open={showForm}
+          onOpenChange={setShowForm}
+          propertyDeal={editingDeal}
+          onSuccess={handleSuccess}
+        />
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
         {Array.isArray(deals) && deals.map((deal) => (
@@ -1941,6 +1969,15 @@ function PropertyDealsSection() {
                   </div>
                 </div>
                 <div className="flex gap-1">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8"
+                    onClick={() => handleEdit(deal)}
+                    title="Edit"
+                  >
+                    <Edit className="w-4 h-4" />
+                  </Button>
                   <Button
                     variant="ghost"
                     size="icon"
@@ -1998,7 +2035,11 @@ function PropertyDealsSection() {
           <CardContent className="py-12 text-center">
             <Building className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
             <h3 className="text-lg font-semibold mb-2">No Property Deals Found</h3>
-            <p className="text-muted-foreground">No property deals available</p>
+            <p className="text-muted-foreground mb-4">Start by adding your first property deal</p>
+            <Button onClick={() => setShowForm(true)}>
+              <Plus className="w-4 h-4 mr-2" />
+              Add Property Deal
+            </Button>
           </CardContent>
         </Card>
       )}
@@ -2009,6 +2050,8 @@ function PropertyDealsSection() {
 // Commercial Properties Section Component
 function CommercialPropertiesSection() {
   const [properties, setProperties] = useState<any[]>([]);
+  const [showForm, setShowForm] = useState(false);
+  const [editingProperty, setEditingProperty] = useState(null);
 
   useEffect(() => {
     fetchProperties();
@@ -2023,6 +2066,17 @@ function CommercialPropertiesSection() {
       console.error('Error fetching commercial properties:', error);
       setProperties([]);
     }
+  };
+
+  const handleSuccess = () => {
+    setShowForm(false);
+    setEditingProperty(null);
+    fetchProperties();
+  };
+
+  const handleEdit = (property: any) => {
+    setEditingProperty(property);
+    setShowForm(true);
   };
 
   const handleDelete = async (id: string) => {
@@ -2072,7 +2126,20 @@ function CommercialPropertiesSection() {
           <h2 className="text-2xl font-bold">Local Market Commercial Properties</h2>
           <p className="text-muted-foreground">Manage commercial property listings</p>
         </div>
+        <Button onClick={() => setShowForm(true)}>
+          <Plus className="w-4 h-4 mr-2" />
+          Add Commercial Property
+        </Button>
       </div>
+
+      {showForm && (
+        <CommercialPropertiesForm
+          open={showForm}
+          onOpenChange={setShowForm}
+          property={editingProperty}
+          onSuccess={handleSuccess}
+        />
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
         {Array.isArray(properties) && properties.map((property) => (
@@ -2088,6 +2155,15 @@ function CommercialPropertiesSection() {
                   </div>
                 </div>
                 <div className="flex gap-1">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8"
+                    onClick={() => handleEdit(property)}
+                    title="Edit"
+                  >
+                    <Edit className="w-4 h-4" />
+                  </Button>
                   <Button
                     variant="ghost"
                     size="icon"
@@ -2145,7 +2221,11 @@ function CommercialPropertiesSection() {
           <CardContent className="py-12 text-center">
             <Building className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
             <h3 className="text-lg font-semibold mb-2">No Commercial Properties Found</h3>
-            <p className="text-muted-foreground">No commercial properties available</p>
+            <p className="text-muted-foreground mb-4">Start by adding your first commercial property listing</p>
+            <Button onClick={() => setShowForm(true)}>
+              <Plus className="w-4 h-4 mr-2" />
+              Add Commercial Property
+            </Button>
           </CardContent>
         </Card>
       )}
