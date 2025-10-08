@@ -1,4 +1,5 @@
-import { useState, useEffect } from "react";
+
+import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -13,7 +14,7 @@ import { Badge } from "@/components/ui/badge";
 import { Pencil, Trash2, Plus, Eye, EyeOff } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
-interface CarBike {
+interface SecondHandCarBike {
   id: string;
   title: string;
   description?: string;
@@ -21,6 +22,7 @@ interface CarBike {
   vehicleType: string;
   brand: string;
   model: string;
+  variant?: string;
   year: number;
   price: number;
   kilometersDriven?: number;
@@ -29,30 +31,48 @@ interface CarBike {
   ownerNumber?: number;
   registrationNumber?: string;
   registrationState?: string;
+  registrationYear?: number;
+  insuranceType?: string;
   insuranceValidUntil?: string;
+  taxValidity?: string;
   color?: string;
+  bodyType?: string;
+  seatingCapacity?: number;
+  engineCapacity?: number;
+  mileageKmpl?: number;
   images?: string[];
   documents?: string[];
   features?: string[];
   condition?: string;
+  accidentHistory: boolean;
+  floodAffected: boolean;
+  serviceRecordsAvailable: boolean;
+  nocAvailable: boolean;
   isNegotiable: boolean;
+  exchangeAccepted: boolean;
+  testDriveAvailable: boolean;
   country: string;
   stateProvince?: string;
   city?: string;
   areaName?: string;
   fullAddress?: string;
+  sellerType?: string;
+  contactPerson?: string;
+  contactPhone?: string;
+  contactEmail?: string;
   isActive: boolean;
   isFeatured: boolean;
+  isVerified: boolean;
   viewCount: number;
   createdAt: string;
   updatedAt: string;
 }
 
-export function CarsBikesForm() {
+export function SecondHandCarsBikesForm() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [editingItem, setEditingItem] = useState<CarBike | null>(null);
+  const [editingItem, setEditingItem] = useState<SecondHandCarBike | null>(null);
 
   const [formData, setFormData] = useState({
     title: "",
@@ -61,6 +81,7 @@ export function CarsBikesForm() {
     vehicleType: "car",
     brand: "",
     model: "",
+    variant: "",
     year: new Date().getFullYear(),
     price: "",
     kilometersDriven: "",
@@ -69,61 +90,61 @@ export function CarsBikesForm() {
     ownerNumber: 1,
     registrationNumber: "",
     registrationState: "",
+    registrationYear: "",
+    insuranceType: "comprehensive",
     insuranceValidUntil: "",
+    taxValidity: "",
     color: "",
+    bodyType: "",
+    seatingCapacity: "",
+    engineCapacity: "",
+    mileageKmpl: "",
     images: [] as string[],
     documents: [] as string[],
     features: [] as string[],
     condition: "good",
+    accidentHistory: false,
+    floodAffected: false,
+    serviceRecordsAvailable: false,
+    nocAvailable: false,
     isNegotiable: false,
+    exchangeAccepted: false,
+    testDriveAvailable: true,
     country: "India",
     stateProvince: "",
     city: "",
     areaName: "",
     fullAddress: "",
+    sellerType: "individual",
+    contactPerson: "",
+    contactPhone: "",
+    contactEmail: "",
     isActive: true,
     isFeatured: false,
+    isVerified: false,
   });
 
-  const { data: listings = [], isLoading } = useQuery<CarBike[]>({
-    queryKey: ["/api/admin/cars-bikes"],
+  const { data: listings = [], isLoading } = useQuery<SecondHandCarBike[]>({
+    queryKey: ["/api/admin/second-hand-cars-bikes"],
   });
 
   const createMutation = useMutation({
     mutationFn: async (data: typeof formData) => {
-      // Convert and validate data
       const payload = {
-        title: data.title,
-        description: data.description || null,
-        listingType: data.listingType,
-        vehicleType: data.vehicleType,
-        brand: data.brand,
-        model: data.model,
+        ...data,
         year: parseInt(data.year.toString()),
         price: parseFloat(data.price.toString()),
         kilometersDriven: data.kilometersDriven ? parseInt(data.kilometersDriven.toString()) : null,
-        fuelType: data.fuelType || null,
-        transmission: data.transmission || null,
         ownerNumber: data.ownerNumber ? parseInt(data.ownerNumber.toString()) : null,
-        registrationNumber: data.registrationNumber || null,
-        registrationState: data.registrationState || null,
+        registrationYear: data.registrationYear ? parseInt(data.registrationYear.toString()) : null,
+        seatingCapacity: data.seatingCapacity ? parseInt(data.seatingCapacity.toString()) : null,
+        engineCapacity: data.engineCapacity ? parseInt(data.engineCapacity.toString()) : null,
+        mileageKmpl: data.mileageKmpl ? parseFloat(data.mileageKmpl.toString()) : null,
         insuranceValidUntil: data.insuranceValidUntil || null,
-        color: data.color || null,
-        images: data.images || [],
-        documents: data.documents || [],
-        features: data.features || [],
-        condition: data.condition || null,
-        isNegotiable: data.isNegotiable,
-        country: data.country,
-        stateProvince: data.stateProvince || null,
-        city: data.city || null,
-        areaName: data.areaName || null,
-        fullAddress: data.fullAddress || null,
-        isActive: data.isActive,
-        isFeatured: data.isFeatured,
+        taxValidity: data.taxValidity || null,
       };
 
-      const response = await fetch("/api/admin/cars-bikes", {
+      const response = await fetch("/api/admin/second-hand-cars-bikes", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
@@ -132,7 +153,7 @@ export function CarsBikesForm() {
       return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/cars-bikes"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/second-hand-cars-bikes"] });
       toast({ title: "Success", description: "Vehicle listing created successfully" });
       resetForm();
       setIsDialogOpen(false);
@@ -144,39 +165,21 @@ export function CarsBikesForm() {
 
   const updateMutation = useMutation({
     mutationFn: async ({ id, data }: { id: string; data: typeof formData }) => {
-      // Convert and validate data
       const payload = {
-        title: data.title,
-        description: data.description || null,
-        listingType: data.listingType,
-        vehicleType: data.vehicleType,
-        brand: data.brand,
-        model: data.model,
+        ...data,
         year: parseInt(data.year.toString()),
         price: parseFloat(data.price.toString()),
         kilometersDriven: data.kilometersDriven ? parseInt(data.kilometersDriven.toString()) : null,
-        fuelType: data.fuelType || null,
-        transmission: data.transmission || null,
         ownerNumber: data.ownerNumber ? parseInt(data.ownerNumber.toString()) : null,
-        registrationNumber: data.registrationNumber || null,
-        registrationState: data.registrationState || null,
+        registrationYear: data.registrationYear ? parseInt(data.registrationYear.toString()) : null,
+        seatingCapacity: data.seatingCapacity ? parseInt(data.seatingCapacity.toString()) : null,
+        engineCapacity: data.engineCapacity ? parseInt(data.engineCapacity.toString()) : null,
+        mileageKmpl: data.mileageKmpl ? parseFloat(data.mileageKmpl.toString()) : null,
         insuranceValidUntil: data.insuranceValidUntil || null,
-        color: data.color || null,
-        images: data.images || [],
-        documents: data.documents || [],
-        features: data.features || [],
-        condition: data.condition || null,
-        isNegotiable: data.isNegotiable,
-        country: data.country,
-        stateProvince: data.stateProvince || null,
-        city: data.city || null,
-        areaName: data.areaName || null,
-        fullAddress: data.fullAddress || null,
-        isActive: data.isActive,
-        isFeatured: data.isFeatured,
+        taxValidity: data.taxValidity || null,
       };
 
-      const response = await fetch(`/api/admin/cars-bikes/${id}`, {
+      const response = await fetch(`/api/admin/second-hand-cars-bikes/${id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
@@ -185,7 +188,7 @@ export function CarsBikesForm() {
       return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/cars-bikes"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/second-hand-cars-bikes"] });
       toast({ title: "Success", description: "Vehicle listing updated successfully" });
       resetForm();
       setIsDialogOpen(false);
@@ -197,14 +200,14 @@ export function CarsBikesForm() {
 
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
-      const response = await fetch(`/api/admin/cars-bikes/${id}`, {
+      const response = await fetch(`/api/admin/second-hand-cars-bikes/${id}`, {
         method: "DELETE",
       });
       if (!response.ok) throw new Error(await response.text());
       return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/cars-bikes"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/second-hand-cars-bikes"] });
       toast({ title: "Success", description: "Vehicle listing deleted successfully" });
     },
     onError: (error: Error) => {
@@ -214,28 +217,28 @@ export function CarsBikesForm() {
 
   const toggleActiveMutation = useMutation({
     mutationFn: async (id: string) => {
-      const response = await fetch(`/api/admin/cars-bikes/${id}/toggle-active`, {
+      const response = await fetch(`/api/admin/second-hand-cars-bikes/${id}/toggle-active`, {
         method: "PATCH",
       });
       if (!response.ok) throw new Error(await response.text());
       return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/cars-bikes"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/second-hand-cars-bikes"] });
       toast({ title: "Success", description: "Status updated successfully" });
     },
   });
 
   const toggleFeaturedMutation = useMutation({
     mutationFn: async (id: string) => {
-      const response = await fetch(`/api/admin/cars-bikes/${id}/toggle-featured`, {
+      const response = await fetch(`/api/admin/second-hand-cars-bikes/${id}/toggle-featured`, {
         method: "PATCH",
       });
       if (!response.ok) throw new Error(await response.text());
       return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/cars-bikes"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/second-hand-cars-bikes"] });
       toast({ title: "Success", description: "Featured status updated successfully" });
     },
   });
@@ -248,6 +251,7 @@ export function CarsBikesForm() {
       vehicleType: "car",
       brand: "",
       model: "",
+      variant: "",
       year: new Date().getFullYear(),
       price: "",
       kilometersDriven: "",
@@ -256,25 +260,43 @@ export function CarsBikesForm() {
       ownerNumber: 1,
       registrationNumber: "",
       registrationState: "",
+      registrationYear: "",
+      insuranceType: "comprehensive",
       insuranceValidUntil: "",
+      taxValidity: "",
       color: "",
+      bodyType: "",
+      seatingCapacity: "",
+      engineCapacity: "",
+      mileageKmpl: "",
       images: [],
       documents: [],
       features: [],
       condition: "good",
+      accidentHistory: false,
+      floodAffected: false,
+      serviceRecordsAvailable: false,
+      nocAvailable: false,
       isNegotiable: false,
+      exchangeAccepted: false,
+      testDriveAvailable: true,
       country: "India",
       stateProvince: "",
       city: "",
       areaName: "",
       fullAddress: "",
+      sellerType: "individual",
+      contactPerson: "",
+      contactPhone: "",
+      contactEmail: "",
       isActive: true,
       isFeatured: false,
+      isVerified: false,
     });
     setEditingItem(null);
   };
 
-  const handleEdit = (item: CarBike) => {
+  const handleEdit = (item: SecondHandCarBike) => {
     setEditingItem(item);
     setFormData({
       title: item.title,
@@ -283,6 +305,7 @@ export function CarsBikesForm() {
       vehicleType: item.vehicleType,
       brand: item.brand,
       model: item.model,
+      variant: item.variant || "",
       year: item.year,
       price: item.price.toString(),
       kilometersDriven: item.kilometersDriven?.toString() || "",
@@ -291,20 +314,38 @@ export function CarsBikesForm() {
       ownerNumber: item.ownerNumber || 1,
       registrationNumber: item.registrationNumber || "",
       registrationState: item.registrationState || "",
+      registrationYear: item.registrationYear?.toString() || "",
+      insuranceType: item.insuranceType || "comprehensive",
       insuranceValidUntil: item.insuranceValidUntil || "",
+      taxValidity: item.taxValidity || "",
       color: item.color || "",
+      bodyType: item.bodyType || "",
+      seatingCapacity: item.seatingCapacity?.toString() || "",
+      engineCapacity: item.engineCapacity?.toString() || "",
+      mileageKmpl: item.mileageKmpl?.toString() || "",
       images: item.images || [],
       documents: item.documents || [],
       features: item.features || [],
       condition: item.condition || "good",
+      accidentHistory: item.accidentHistory,
+      floodAffected: item.floodAffected,
+      serviceRecordsAvailable: item.serviceRecordsAvailable,
+      nocAvailable: item.nocAvailable,
       isNegotiable: item.isNegotiable,
+      exchangeAccepted: item.exchangeAccepted,
+      testDriveAvailable: item.testDriveAvailable,
       country: item.country,
       stateProvince: item.stateProvince || "",
       city: item.city || "",
       areaName: item.areaName || "",
       fullAddress: item.fullAddress || "",
+      sellerType: item.sellerType || "individual",
+      contactPerson: item.contactPerson || "",
+      contactPhone: item.contactPhone || "",
+      contactEmail: item.contactEmail || "",
       isActive: item.isActive,
       isFeatured: item.isFeatured,
+      isVerified: item.isVerified,
     });
     setIsDialogOpen(true);
   };
@@ -323,8 +364,8 @@ export function CarsBikesForm() {
       <CardHeader>
         <div className="flex justify-between items-center">
           <div>
-            <CardTitle>Cars & Bikes</CardTitle>
-            <CardDescription>Manage vehicle listings</CardDescription>
+            <CardTitle>Second Hand Cars & Bikes</CardTitle>
+            <CardDescription>Manage second-hand vehicle listings</CardDescription>
           </div>
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger asChild>
@@ -340,13 +381,13 @@ export function CarsBikesForm() {
               </DialogHeader>
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
-                  <div>
+                  <div className="col-span-2">
                     <Label htmlFor="title">Title *</Label>
                     <Input
                       id="title"
                       value={formData.title}
                       onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                      placeholder="e.g., 2020 Honda City VX"
+                      placeholder="e.g., 2020 Honda City VX Petrol"
                       required
                     />
                   </div>
@@ -360,7 +401,6 @@ export function CarsBikesForm() {
                       <SelectContent>
                         <SelectItem value="buy">Buy</SelectItem>
                         <SelectItem value="sell">Sell</SelectItem>
-                        <SelectItem value="rent">Rent</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -403,13 +443,23 @@ export function CarsBikesForm() {
                   </div>
 
                   <div>
+                    <Label htmlFor="variant">Variant</Label>
+                    <Input
+                      id="variant"
+                      value={formData.variant}
+                      onChange={(e) => setFormData({ ...formData, variant: e.target.value })}
+                      placeholder="e.g., VX, ZX"
+                    />
+                  </div>
+
+                  <div>
                     <Label htmlFor="year">Year *</Label>
                     <Input
                       id="year"
                       type="number"
                       value={formData.year}
                       onChange={(e) => setFormData({ ...formData, year: parseInt(e.target.value) })}
-                      min="1990"
+                      min="1900"
                       max={new Date().getFullYear() + 1}
                       required
                     />
@@ -450,6 +500,7 @@ export function CarsBikesForm() {
                         <SelectItem value="electric">Electric</SelectItem>
                         <SelectItem value="hybrid">Hybrid</SelectItem>
                         <SelectItem value="cng">CNG</SelectItem>
+                        <SelectItem value="lpg">LPG</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -500,42 +551,12 @@ export function CarsBikesForm() {
                   </div>
 
                   <div>
-                    <Label htmlFor="registrationNumber">Registration Number</Label>
-                    <Input
-                      id="registrationNumber"
-                      value={formData.registrationNumber}
-                      onChange={(e) => setFormData({ ...formData, registrationNumber: e.target.value })}
-                      placeholder="e.g., MH12AB1234"
-                    />
-                  </div>
-
-                  <div>
-                    <Label htmlFor="registrationState">Registration State</Label>
-                    <Input
-                      id="registrationState"
-                      value={formData.registrationState}
-                      onChange={(e) => setFormData({ ...formData, registrationState: e.target.value })}
-                      placeholder="e.g., Maharashtra"
-                    />
-                  </div>
-
-                  <div>
                     <Label htmlFor="color">Color</Label>
                     <Input
                       id="color"
                       value={formData.color}
                       onChange={(e) => setFormData({ ...formData, color: e.target.value })}
                       placeholder="e.g., White, Black"
-                    />
-                  </div>
-
-                  <div>
-                    <Label htmlFor="insuranceValidUntil">Insurance Valid Until</Label>
-                    <Input
-                      id="insuranceValidUntil"
-                      type="date"
-                      value={formData.insuranceValidUntil}
-                      onChange={(e) => setFormData({ ...formData, insuranceValidUntil: e.target.value })}
                     />
                   </div>
 
@@ -547,6 +568,20 @@ export function CarsBikesForm() {
                       onChange={(e) => setFormData({ ...formData, city: e.target.value })}
                       placeholder="e.g., Mumbai"
                     />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="sellerType">Seller Type</Label>
+                    <Select value={formData.sellerType} onValueChange={(value) => setFormData({ ...formData, sellerType: value })}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="individual">Individual</SelectItem>
+                        <SelectItem value="dealer">Dealer</SelectItem>
+                        <SelectItem value="showroom">Showroom</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
                 </div>
 
@@ -561,13 +596,41 @@ export function CarsBikesForm() {
                   />
                 </div>
 
-                <div className="flex items-center space-x-4">
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                   <div className="flex items-center space-x-2">
                     <Switch
                       checked={formData.isNegotiable}
                       onCheckedChange={(checked) => setFormData({ ...formData, isNegotiable: checked })}
                     />
                     <Label>Price Negotiable</Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Switch
+                      checked={formData.exchangeAccepted}
+                      onCheckedChange={(checked) => setFormData({ ...formData, exchangeAccepted: checked })}
+                    />
+                    <Label>Exchange Accepted</Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Switch
+                      checked={formData.testDriveAvailable}
+                      onCheckedChange={(checked) => setFormData({ ...formData, testDriveAvailable: checked })}
+                    />
+                    <Label>Test Drive Available</Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Switch
+                      checked={formData.accidentHistory}
+                      onCheckedChange={(checked) => setFormData({ ...formData, accidentHistory: checked })}
+                    />
+                    <Label>Accident History</Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Switch
+                      checked={formData.serviceRecordsAvailable}
+                      onCheckedChange={(checked) => setFormData({ ...formData, serviceRecordsAvailable: checked })}
+                    />
+                    <Label>Service Records</Label>
                   </div>
                   <div className="flex items-center space-x-2">
                     <Switch

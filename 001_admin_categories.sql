@@ -455,3 +455,71 @@ CREATE OR REPLACE TRIGGER trigger_update_rental_listings_updated_at
 BEFORE UPDATE ON rental_listings
 FOR EACH ROW
 EXECUTE FUNCTION update_rental_listings_updated_at();
+
+
+
+CREATE TABLE IF NOT EXISTS heavy_equipment (
+  id VARCHAR PRIMARY KEY DEFAULT gen_random_uuid(),
+  title TEXT NOT NULL,
+  description TEXT,
+  listing_type TEXT NOT NULL CHECK (listing_type IN ('sale', 'rent', 'lease')),
+  equipment_type TEXT NOT NULL,
+  category TEXT NOT NULL,
+  brand TEXT,
+  model TEXT,
+  year INTEGER,
+  price NUMERIC(12,2) NOT NULL CHECK (price >= 0),
+  price_type TEXT DEFAULT 'total' CHECK (price_type IN ('hourly', 'daily', 'monthly', 'total')),
+  condition TEXT CHECK (condition IN ('new', 'used', 'refurbished')),
+  hours_used INTEGER,
+  serial_number TEXT,
+  specifications JSONB DEFAULT '{}',
+  images JSONB DEFAULT '[]',
+  documents JSONB DEFAULT '[]',
+  features JSONB DEFAULT '[]',
+  maintenance_history TEXT,
+  warranty_info TEXT,
+  is_negotiable BOOLEAN DEFAULT false,
+  country TEXT NOT NULL DEFAULT 'India',
+  state_province TEXT,
+  city TEXT,
+  area_name TEXT,
+  full_address TEXT,
+  location_id VARCHAR REFERENCES locations(id) ON DELETE SET NULL,
+  seller_id VARCHAR REFERENCES users(id) ON DELETE SET NULL,
+  is_active BOOLEAN NOT NULL DEFAULT TRUE,
+  is_featured BOOLEAN NOT NULL DEFAULT FALSE,
+  view_count INTEGER DEFAULT 0,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+-- ==========================================================
+-- Indexes
+-- ==========================================================
+CREATE INDEX IF NOT EXISTS idx_heavy_equipment_listing_type ON heavy_equipment(listing_type);
+CREATE INDEX IF NOT EXISTS idx_heavy_equipment_equipment_type ON heavy_equipment(equipment_type);
+CREATE INDEX IF NOT EXISTS idx_heavy_equipment_category ON heavy_equipment(category);
+CREATE INDEX IF NOT EXISTS idx_heavy_equipment_city ON heavy_equipment(city);
+CREATE INDEX IF NOT EXISTS idx_heavy_equipment_is_active ON heavy_equipment(is_active);
+CREATE INDEX IF NOT EXISTS idx_heavy_equipment_is_featured ON heavy_equipment(is_featured);
+CREATE INDEX IF NOT EXISTS idx_heavy_equipment_created_at ON heavy_equipment(created_at DESC);
+
+-- ==========================================================
+-- Trigger Function: Auto-update updated_at timestamp
+-- ==========================================================
+CREATE OR REPLACE FUNCTION update_heavy_equipment_updated_at()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.updated_at = NOW();
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- ==========================================================
+-- Trigger: Automatically updates updated_at before update
+-- ==========================================================
+CREATE OR REPLACE TRIGGER trigger_update_heavy_equipment_updated_at
+BEFORE UPDATE ON heavy_equipment
+FOR EACH ROW
+EXECUTE FUNCTION update_heavy_equipment_updated_at();

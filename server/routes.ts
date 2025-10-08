@@ -19,8 +19,18 @@ import {
   industrialLand,
   officeSpaces,
   carsBikes,
+  heavyEquipment,
+  showrooms,
+  secondHandCarsBikes,
   insertAdminCategorySchema,
   insertAdminSubcategorySchema,
+  carBikeRentals,
+  transportationMovingServices,
+  vehicleLicenseClasses,
+  electronicsGadgets,
+  phonesTabletsAccessories,
+  secondHandPhonesTabletsAccessories,
+  computerMobileLaptopRepairServices,
 } from "../shared/schema";
 import { eq, sql, desc } from "drizzle-orm";
 
@@ -369,14 +379,14 @@ export function registerRoutes(app: Express) {
         const preferences = categoryIds.map((categoryId: string) => {
           // Find the category
           const category = allCategories.find(c => c.id === categoryId);
-          
+
           // Filter subcategories that belong to this category and are selected
           const categorySubcategories = subcategoryIds && Array.isArray(subcategoryIds)
             ? subcategoryIds.filter((subId: string) => 
                 category?.subcategories.some(sub => sub.id === subId)
               )
             : [];
-          
+
           return {
             userId: newUser.id,
             categorySlug: categoryId,
@@ -674,7 +684,7 @@ export function registerRoutes(app: Express) {
   });
 
   // Rental Listings Routes - Full CRUD
-  
+
   // GET all rental listings
   app.get("/api/admin/rental-listings", async (_req, res) => {
     try {
@@ -805,18 +815,18 @@ export function registerRoutes(app: Express) {
   });
 
   // Hostel Listings Routes - Full CRUD
-  
+
   // GET all hostels (with optional filters)
   app.get("/api/admin/hostel-pg", async (req, res) => {
     try {
       const { active, featured, ownerId } = req.query;
-      
+
       let query = db.query.hostelPgListings.findMany({
         orderBy: desc(hostelPgListings.createdAt),
       });
 
       const listings = await query;
-      
+
       // Apply filters if provided
       let filtered = listings;
       if (active !== undefined) {
@@ -828,7 +838,7 @@ export function registerRoutes(app: Express) {
       if (ownerId) {
         filtered = filtered.filter(h => h.ownerId === ownerId);
       }
-      
+
       res.json(filtered);
     } catch (error: any) {
       res.status(500).json({ message: error.message });
@@ -1026,18 +1036,18 @@ export function registerRoutes(app: Express) {
   });
 
   // Construction Materials Routes - Full CRUD
-  
+
   // GET all materials (with optional filters)
   app.get("/api/admin/construction-materials", async (req, res) => {
     try {
       const { isActive, isFeatured, category, city } = req.query;
-      
+
       let query = db.query.constructionMaterials.findMany({
         orderBy: desc(constructionMaterials.createdAt),
       });
 
       const materials = await query;
-      
+
       // Apply filters if provided
       let filtered = materials;
       if (isActive !== undefined) {
@@ -1052,7 +1062,7 @@ export function registerRoutes(app: Express) {
       if (city) {
         filtered = filtered.filter(m => m.city === city);
       }
-      
+
       res.json(filtered);
     } catch (error: any) {
       res.status(500).json({ message: error.message });
@@ -1233,7 +1243,7 @@ export function registerRoutes(app: Express) {
   });
 
   // Property Deals Routes - Full CRUD
-  
+
   // GET all property deals
   app.get("/api/admin/property-deals", async (_req, res) => {
     try {
@@ -1364,7 +1374,7 @@ export function registerRoutes(app: Express) {
   });
 
   // Commercial Properties Routes - Full CRUD
-  
+
   // GET all commercial properties
   app.get("/api/admin/commercial-properties", async (_req, res) => {
     try {
@@ -1495,7 +1505,7 @@ export function registerRoutes(app: Express) {
   });
 
   // Industrial Land Routes - Full CRUD
-  
+
   // GET all industrial land
   app.get("/api/admin/industrial-land", async (_req, res) => {
     try {
@@ -1626,7 +1636,7 @@ export function registerRoutes(app: Express) {
   });
 
   // Office Spaces Routes - Full CRUD
-  
+
   // GET all office spaces
   app.get("/api/admin/office-spaces", async (_req, res) => {
     try {
@@ -1790,16 +1800,84 @@ export function registerRoutes(app: Express) {
   // CREATE new vehicle
   app.post("/api/admin/cars-bikes", async (req, res) => {
     try {
+      const {
+        title,
+        description,
+        listingType,
+        vehicleType,
+        brand,
+        model,
+        year,
+        price,
+        kilometersDriven,
+        fuelType,
+        transmission,
+        ownerNumber,
+        registrationNumber,
+        registrationState,
+        insuranceValidUntil,
+        color,
+        images,
+        documents,
+        features,
+        condition,
+        isNegotiable,
+        country,
+        stateProvince,
+        city,
+        areaName,
+        fullAddress,
+        isActive,
+        isFeatured,
+      } = req.body;
+
+      // Validate required fields
+      if (!title || !listingType || !vehicleType || !brand || !model || !year || !price) {
+        return res.status(400).json({ 
+          message: "Missing required fields: title, listingType, vehicleType, brand, model, year, price" 
+        });
+      }
+
+      // Convert date string to Date object if provided
+      const insuranceValidUntilDate = insuranceValidUntil ? new Date(insuranceValidUntil) : null;
+
       const [newVehicle] = await db
         .insert(carsBikes)
         .values({
-          ...req.body,
-          country: req.body.country || "India",
+          title,
+          description: description || null,
+          listingType,
+          vehicleType,
+          brand,
+          model,
+          year: parseInt(year.toString()),
+          price: parseFloat(price.toString()),
+          kilometersDriven: kilometersDriven ? parseInt(kilometersDriven.toString()) : null,
+          fuelType: fuelType || null,
+          transmission: transmission || null,
+          ownerNumber: ownerNumber ? parseInt(ownerNumber.toString()) : null,
+          registrationNumber: registrationNumber || null,
+          registrationState: registrationState || null,
+          insuranceValidUntil: insuranceValidUntilDate,
+          color: color || null,
+          images: images || [],
+          documents: documents || [],
+          features: features || [],
+          condition: condition || null,
+          isNegotiable: isNegotiable || false,
+          country: country || "India",
+          stateProvince: stateProvince || null,
+          city: city || null,
+          areaName: areaName || null,
+          fullAddress: fullAddress || null,
+          isActive: isActive !== undefined ? isActive : true,
+          isFeatured: isFeatured || false,
         })
         .returning();
 
       res.status(201).json(newVehicle);
     } catch (error: any) {
+      console.error("Error creating car/bike:", error);
       res.status(400).json({ message: error.message });
     }
   });
@@ -1807,10 +1885,78 @@ export function registerRoutes(app: Express) {
   // UPDATE vehicle
   app.put("/api/admin/cars-bikes/:id", async (req, res) => {
     try {
+      const { id } = req.params;
+      const {
+        title,
+        description,
+        listingType,
+        vehicleType,
+        brand,
+        model,
+        year,
+        price,
+        kilometersDriven,
+        fuelType,
+        transmission,
+        ownerNumber,
+        registrationNumber,
+        registrationState,
+        insuranceValidUntil,
+        color,
+        images,
+        documents,
+        features,
+        condition,
+        isNegotiable,
+        country,
+        stateProvince,
+        city,
+        areaName,
+        fullAddress,
+        isActive,
+        isFeatured,
+      } = req.body;
+
+      // Convert date string to Date object if provided
+      const insuranceValidUntilDate = insuranceValidUntil ? new Date(insuranceValidUntil) : null;
+
+      const updateData: any = {
+        updatedAt: new Date(),
+      };
+
+      if (title !== undefined) updateData.title = title;
+      if (description !== undefined) updateData.description = description || null;
+      if (listingType !== undefined) updateData.listingType = listingType;
+      if (vehicleType !== undefined) updateData.vehicleType = vehicleType;
+      if (brand !== undefined) updateData.brand = brand;
+      if (model !== undefined) updateData.model = model;
+      if (year !== undefined) updateData.year = parseInt(year.toString());
+      if (price !== undefined) updateData.price = parseFloat(price.toString());
+      if (kilometersDriven !== undefined) updateData.kilometersDriven = kilometersDriven ? parseInt(kilometersDriven.toString()) : null;
+      if (fuelType !== undefined) updateData.fuelType = fuelType || null;
+      if (transmission !== undefined) updateData.transmission = transmission || null;
+      if (ownerNumber !== undefined) updateData.ownerNumber = ownerNumber ? parseInt(ownerNumber.toString()) : null;
+      if (registrationNumber !== undefined) updateData.registrationNumber = registrationNumber || null;
+      if (registrationState !== undefined) updateData.registrationState = registrationState || null;
+      if (insuranceValidUntil !== undefined) updateData.insuranceValidUntil = insuranceValidUntilDate;
+      if (color !== undefined) updateData.color = color || null;
+      if (images !== undefined) updateData.images = images || [];
+      if (documents !== undefined) updateData.documents = documents || [];
+      if (features !== undefined) updateData.features = features || [];
+      if (condition !== undefined) updateData.condition = condition || null;
+      if (isNegotiable !== undefined) updateData.isNegotiable = isNegotiable;
+      if (country !== undefined) updateData.country = country;
+      if (stateProvince !== undefined) updateData.stateProvince = stateProvince || null;
+      if (city !== undefined) updateData.city = city || null;
+      if (areaName !== undefined) updateData.areaName = areaName || null;
+      if (fullAddress !== undefined) updateData.fullAddress = fullAddress || null;
+      if (isActive !== undefined) updateData.isActive = isActive;
+      if (isFeatured !== undefined) updateData.isFeatured = isFeatured;
+
       const [updatedVehicle] = await db
         .update(carsBikes)
-        .set({ ...req.body, updatedAt: new Date() })
-        .where(eq(carsBikes.id, req.params.id))
+        .set(updateData)
+        .where(eq(carsBikes.id, id))
         .returning();
 
       if (!updatedVehicle) {
@@ -1819,6 +1965,7 @@ export function registerRoutes(app: Express) {
 
       res.json(updatedVehicle);
     } catch (error: any) {
+      console.error("Error updating car/bike:", error);
       res.status(400).json({ message: error.message });
     }
   });
@@ -1837,6 +1984,7 @@ export function registerRoutes(app: Express) {
 
       res.json({ message: "Vehicle deleted successfully", id: req.params.id });
     } catch (error: any) {
+      console.error("Error deleting car/bike:", error);
       res.status(500).json({ message: error.message });
     }
   });
@@ -1860,6 +2008,7 @@ export function registerRoutes(app: Express) {
 
       res.json(updated);
     } catch (error: any) {
+      console.error("Error toggling active status for car/bike:", error);
       res.status(500).json({ message: error.message });
     }
   });
@@ -1883,6 +2032,680 @@ export function registerRoutes(app: Express) {
 
       res.json(updated);
     } catch (error: any) {
+      console.error("Error toggling featured status for car/bike:", error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Showrooms Routes - Full CRUD
+
+  // GET all showrooms
+  app.get("/api/admin/showrooms", async (_req, res) => {
+    try {
+      const showroomsList = await db.query.showrooms.findMany({
+        orderBy: desc(showrooms.createdAt),
+      });
+      res.json(showroomsList);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // GET single showroom by ID
+  app.get("/api/admin/showrooms/:id", async (req, res) => {
+    try {
+      const showroom = await db.query.showrooms.findFirst({
+        where: eq(showrooms.id, req.params.id),
+      });
+
+      if (!showroom) {
+        return res.status(404).json({ message: "Showroom not found" });
+      }
+
+      res.json(showroom);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // CREATE new showroom
+  app.post("/api/admin/showrooms", async (req, res) => {
+    try {
+      const [newShowroom] = await db
+        .insert(showrooms)
+        .values({
+          ...req.body,
+          country: req.body.country || "India",
+        })
+        .returning();
+
+      res.status(201).json(newShowroom);
+    } catch (error: any) {
+      console.error("Error creating showroom:", error);
+      res.status(400).json({ message: error.message });
+    }
+  });
+
+  // UPDATE showroom
+  app.put("/api/admin/showrooms/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const updateData = { ...req.body, updatedAt: new Date() };
+
+      const [updatedShowroom] = await db
+        .update(showrooms)
+        .set(updateData)
+        .where(eq(showrooms.id, id))
+        .returning();
+
+      if (!updatedShowroom) {
+        return res.status(404).json({ message: "Showroom not found" });
+      }
+
+      res.json(updatedShowroom);
+    } catch (error: any) {
+      console.error("Error updating showroom:", error);
+      res.status(400).json({ message: error.message });
+    }
+  });
+
+  // DELETE showroom
+  app.delete("/api/admin/showrooms/:id", async (req, res) => {
+    try {
+      const deletedRows = await db
+        .delete(showrooms)
+        .where(eq(showrooms.id, req.params.id))
+        .returning();
+
+      if (deletedRows.length === 0) {
+        return res.status(404).json({ message: "Showroom not found" });
+      }
+
+      res.json({ message: "Showroom deleted successfully", id: req.params.id });
+    } catch (error: any) {
+      console.error("Error deleting showroom:", error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // PATCH - Toggle active status
+  app.patch("/api/admin/showrooms/:id/toggle-active", async (req, res) => {
+    try {
+      const showroom = await db.query.showrooms.findFirst({
+        where: eq(showrooms.id, req.params.id),
+      });
+
+      if (!showroom) {
+        return res.status(404).json({ message: "Showroom not found" });
+      }
+
+      const [updated] = await db
+        .update(showrooms)
+        .set({ isActive: !showroom.isActive, updatedAt: new Date() })
+        .where(eq(showrooms.id, req.params.id))
+        .returning();
+
+      res.json(updated);
+    } catch (error: any) {
+      console.error("Error toggling active status:", error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // PATCH - Toggle featured status
+  app.patch("/api/admin/showrooms/:id/toggle-featured", async (req, res) => {
+    try {
+      const showroom = await db.query.showrooms.findFirst({
+        where: eq(showrooms.id, req.params.id),
+      });
+
+      if (!showroom) {
+        return res.status(404).json({ message: "Showroom not found" });
+      }
+
+      const [updated] = await db
+        .update(showrooms)
+        .set({ isFeatured: !showroom.isFeatured, updatedAt: new Date() })
+        .where(eq(showrooms.id, req.params.id))
+        .returning();
+
+      res.json(updated);
+    } catch (error: any) {
+      console.error("Error toggling featured status:", error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Heavy Equipment Routes - Full CRUD
+
+  // GET all heavy equipment
+  app.get("/api/admin/heavy-equipment", async (_req, res) => {
+    try {
+      const equipment = await db.query.heavyEquipment.findMany({
+        orderBy: desc(heavyEquipment.createdAt),
+      });
+      res.json(equipment);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // GET single equipment by ID
+  app.get("/api/admin/heavy-equipment/:id", async (req, res) => {
+    try {
+      const equipment = await db.query.heavyEquipment.findFirst({
+        where: eq(heavyEquipment.id, req.params.id),
+      });
+
+      if (!equipment) {
+        return res.status(404).json({ message: "Equipment not found" });
+      }
+
+      res.json(equipment);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // CREATE new equipment
+  app.post("/api/admin/heavy-equipment", async (req, res) => {
+    try {
+      const {
+        title,
+        description,
+        listingType,
+        equipmentType,
+        category,
+        brand,
+        model,
+        year,
+        price,
+        priceType,
+        condition,
+        hoursUsed,
+        serialNumber,
+        specifications,
+        images,
+        documents,
+        features,
+        maintenanceHistory,
+        warrantyInfo,
+        isNegotiable,
+        country,
+        stateProvince,
+        city,
+        areaName,
+        fullAddress,
+        isActive,
+        isFeatured,
+      } = req.body;
+
+      if (!title || !listingType || !equipmentType || !category || !price) {
+        return res.status(400).json({ 
+          message: "Missing required fields: title, listingType, equipmentType, category, price" 
+        });
+      }
+
+      const [newEquipment] = await db
+        .insert(heavyEquipment)
+        .values({
+          title,
+          description: description || null,
+          listingType,
+          equipmentType,
+          category,
+          brand: brand || null,
+          model: model || null,
+          year: year ? parseInt(year.toString()) : null,
+          price: parseFloat(price.toString()),
+          priceType: priceType || "total",
+          condition: condition || null,
+          hoursUsed: hoursUsed ? parseInt(hoursUsed.toString()) : null,
+          serialNumber: serialNumber || null,
+          specifications: specifications || {},
+          images: images || [],
+          documents: documents || [],
+          features: features || [],
+          maintenanceHistory: maintenanceHistory || null,
+          warrantyInfo: warrantyInfo || null,
+          isNegotiable: isNegotiable || false,
+          country: country || "India",
+          stateProvince: stateProvince || null,
+          city: city || null,
+          areaName: areaName || null,
+          fullAddress: fullAddress || null,
+          isActive: isActive !== undefined ? isActive : true,
+          isFeatured: isFeatured || false,
+        })
+        .returning();
+
+      res.status(201).json(newEquipment);
+    } catch (error: any) {
+      console.error("Error creating heavy equipment:", error);
+      res.status(400).json({ message: error.message });
+    }
+  });
+
+  // UPDATE equipment
+  app.put("/api/admin/heavy-equipment/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const updateData = { ...req.body, updatedAt: new Date() };
+
+      const [updatedEquipment] = await db
+        .update(heavyEquipment)
+        .set(updateData)
+        .where(eq(heavyEquipment.id, id))
+        .returning();
+
+      if (!updatedEquipment) {
+        return res.status(404).json({ message: "Equipment not found" });
+      }
+
+      res.json(updatedEquipment);
+    } catch (error: any) {
+      console.error("Error updating heavy equipment:", error);
+      res.status(400).json({ message: error.message });
+    }
+  });
+
+  // DELETE equipment
+  app.delete("/api/admin/heavy-equipment/:id", async (req, res) => {
+    try {
+      const deletedRows = await db
+        .delete(heavyEquipment)
+        .where(eq(heavyEquipment.id, req.params.id))
+        .returning();
+
+      if (deletedRows.length === 0) {
+        return res.status(404).json({ message: "Equipment not found" });
+      }
+
+      res.json({ message: "Equipment deleted successfully", id: req.params.id });
+    } catch (error: any) {
+      console.error("Error deleting heavy equipment:", error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // PATCH - Toggle active status
+  app.patch("/api/admin/heavy-equipment/:id/toggle-active", async (req, res) => {
+    try {
+      const equipment = await db.query.heavyEquipment.findFirst({
+        where: eq(heavyEquipment.id, req.params.id),
+      });
+
+      if (!equipment) {
+        return res.status(404).json({ message: "Equipment not found" });
+      }
+
+      const [updated] = await db
+        .update(heavyEquipment)
+        .set({ isActive: !equipment.isActive, updatedAt: new Date() })
+        .where(eq(heavyEquipment.id, req.params.id))
+        .returning();
+
+      res.json(updated);
+    } catch (error: any) {
+      console.error("Error toggling active status for heavy equipment:", error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // PATCH - Toggle featured status
+  app.patch("/api/admin/heavy-equipment/:id/toggle-featured", async (req, res) => {
+    try {
+      const equipment = await db.query.heavyEquipment.findFirst({
+        where: eq(heavyEquipment.id, req.params.id),
+      });
+
+      if (!equipment) {
+        return res.status(404).json({ message: "Equipment not found" });
+      }
+
+      const [updated] = await db
+        .update(heavyEquipment)
+        .set({ isFeatured: !equipment.isFeatured, updatedAt: new Date() })
+        .where(eq(heavyEquipment.id, req.params.id))
+        .returning();
+
+      res.json(updated);
+    } catch (error: any) {
+      console.error("Error toggling featured status for heavy equipment:", error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Second Hand Cars & Bikes Routes - Full CRUD
+
+  // GET all second hand cars & bikes
+  app.get("/api/admin/second-hand-cars-bikes", async (_req, res) => {
+    try {
+      const vehicles = await db.query.secondHandCarsBikes.findMany({
+        orderBy: desc(secondHandCarsBikes.createdAt),
+      });
+      res.json(vehicles);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // GET single vehicle by ID
+  app.get("/api/admin/second-hand-cars-bikes/:id", async (req, res) => {
+    try {
+      const vehicle = await db.query.secondHandCarsBikes.findFirst({
+        where: eq(secondHandCarsBikes.id, req.params.id),
+      });
+
+      if (!vehicle) {
+        return res.status(404).json({ message: "Vehicle not found" });
+      }
+
+      res.json(vehicle);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // CREATE new vehicle
+  app.post("/api/admin/second-hand-cars-bikes", async (req, res) => {
+    try {
+      const [newVehicle] = await db
+        .insert(secondHandCarsBikes)
+        .values({
+          ...req.body,
+          country: req.body.country || "India",
+        })
+        .returning();
+
+      res.status(201).json(newVehicle);
+    } catch (error: any) {
+      console.error("Error creating second hand vehicle:", error);
+      res.status(400).json({ message: error.message });
+    }
+  });
+
+  // UPDATE vehicle
+  app.put("/api/admin/second-hand-cars-bikes/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const updateData = { ...req.body, updatedAt: new Date() };
+
+      const [updatedVehicle] = await db
+        .update(secondHandCarsBikes)
+        .set(updateData)
+        .where(eq(secondHandCarsBikes.id, id))
+        .returning();
+
+      if (!updatedVehicle) {
+        return res.status(404).json({ message: "Vehicle not found" });
+      }
+
+      res.json(updatedVehicle);
+    } catch (error: any) {
+      console.error("Error updating second hand vehicle:", error);
+      res.status(400).json({ message: error.message });
+    }
+  });
+
+  // DELETE vehicle
+  app.delete("/api/admin/second-hand-cars-bikes/:id", async (req, res) => {
+    try {
+      const deletedRows = await db
+        .delete(secondHandCarsBikes)
+        .where(eq(secondHandCarsBikes.id, req.params.id))
+        .returning();
+
+      if (deletedRows.length === 0) {
+        return res.status(404).json({ message: "Vehicle not found" });
+      }
+
+      res.json({ message: "Vehicle deleted successfully", id: req.params.id });
+    } catch (error: any) {
+      console.error("Error deleting second hand vehicle:", error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // PATCH - Toggle active status
+  app.patch("/api/admin/second-hand-cars-bikes/:id/toggle-active", async (req, res) => {
+    try {
+      const vehicle = await db.query.secondHandCarsBikes.findFirst({
+        where: eq(secondHandCarsBikes.id, req.params.id),
+      });
+
+      if (!vehicle) {
+        return res.status(404).json({ message: "Vehicle not found" });
+      }
+
+      const [updated] = await db
+        .update(secondHandCarsBikes)
+        .set({ isActive: !vehicle.isActive, updatedAt: new Date() })
+        .where(eq(secondHandCarsBikes.id, req.params.id))
+        .returning();
+
+      res.json(updated);
+    } catch (error: any) {
+      console.error("Error toggling active status:", error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // PATCH - Toggle featured status
+  app.patch("/api/admin/second-hand-cars-bikes/:id/toggle-featured", async (req, res) => {
+    try {
+      const vehicle = await db.query.secondHandCarsBikes.findFirst({
+        where: eq(secondHandCarsBikes.id, req.params.id),
+      });
+
+      if (!vehicle) {
+        return res.status(404).json({ message: "Vehicle not found" });
+      }
+
+      const [updated] = await db
+        .update(secondHandCarsBikes)
+        .set({ isFeatured: !vehicle.isFeatured, updatedAt: new Date() })
+        .where(eq(secondHandCarsBikes.id, req.params.id))
+        .returning();
+
+      res.json(updated);
+    } catch (error: any) {
+      console.error("Error toggling featured status:", error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Second Hand Cars & Bikes routes
+  app.get("/api/second-hand-cars-bikes", async (req, res) => {
+    const listings = await db.select().from(secondHandCarsBikes);
+    res.json(listings);
+  });
+
+  app.post("/api/second-hand-cars-bikes", async (req, res) => {
+    const newListing = await db.insert(secondHandCarsBikes).values(req.body).returning();
+    res.json(newListing[0]);
+  });
+
+  app.get("/api/second-hand-cars-bikes/:id", async (req, res) => {
+    const listing = await db.select().from(secondHandCarsBikes).where(eq(secondHandCarsBikes.id, req.params.id));
+    if (listing.length === 0) {
+      return res.status(404).json({ error: "Listing not found" });
+    }
+    res.json(listing[0]);
+  });
+
+  app.put("/api/second-hand-cars-bikes/:id", async (req, res) => {
+    const updated = await db.update(secondHandCarsBikes).set(req.body).where(eq(secondHandCarsBikes.id, req.params.id)).returning();
+    if (updated.length === 0) {
+      return res.status(404).json({ error: "Listing not found" });
+    }
+    res.json(updated[0]);
+  });
+
+  app.delete("/api/second-hand-cars-bikes/:id", async (req, res) => {
+    await db.delete(secondHandCarsBikes).where(eq(secondHandCarsBikes.id, req.params.id));
+    res.json({ success: true });
+  });
+
+  // Car & Bike Rentals routes
+  app.get("/api/car-bike-rentals", async (req, res) => {
+    const rentals = await db.select().from(carBikeRentals);
+    res.json(rentals);
+  });
+
+  app.post("/api/car-bike-rentals", async (req, res) => {
+    const newRental = await db.insert(carBikeRentals).values(req.body).returning();
+    res.json(newRental[0]);
+  });
+
+  app.get("/api/car-bike-rentals/:id", async (req, res) => {
+    const rental = await db.select().from(carBikeRentals).where(eq(carBikeRentals.id, req.params.id));
+    if (rental.length === 0) {
+      return res.status(404).json({ error: "Rental not found" });
+    }
+    res.json(rental[0]);
+  });
+
+  app.put("/api/car-bike-rentals/:id", async (req, res) => {
+    const updated = await db.update(carBikeRentals).set(req.body).where(eq(carBikeRentals.id, req.params.id)).returning();
+    if (updated.length === 0) {
+      return res.status(404).json({ error: "Rental not found" });
+    }
+    res.json(updated[0]);
+  });
+
+  app.delete("/api/car-bike-rentals/:id", async (req, res) => {
+    await db.delete(carBikeRentals).where(eq(carBikeRentals.id, req.params.id));
+    res.json({ success: true });
+  });
+
+  // Transportation/Moving Services Routes - Full CRUD
+
+  // GET all transportation services
+  app.get("/api/admin/transportation-moving-services", async (_req, res) => {
+    try {
+      const services = await db.query.transportationMovingServices.findMany({
+        orderBy: desc(transportationMovingServices.createdAt),
+      });
+      res.json(services);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // GET single service by ID
+  app.get("/api/admin/transportation-moving-services/:id", async (req, res) => {
+    try {
+      const service = await db.query.transportationMovingServices.findFirst({
+        where: eq(transportationMovingServices.id, req.params.id),
+      });
+
+      if (!service) {
+        return res.status(404).json({ message: "Service not found" });
+      }
+
+      res.json(service);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // CREATE new service
+  app.post("/api/admin/transportation-moving-services", async (req, res) => {
+    try {
+      const [newService] = await db
+        .insert(transportationMovingServices)
+        .values({
+          ...req.body,
+          country: req.body.country || "India",
+        })
+        .returning();
+
+      res.status(201).json(newService);
+    } catch (error: any) {
+      res.status(400).json({ message: error.message });
+    }
+  });
+
+  // UPDATE service
+  app.put("/api/admin/transportation-moving-services/:id", async (req, res) => {
+    try {
+      const [updatedService] = await db
+        .update(transportationMovingServices)
+        .set({ ...req.body, updatedAt: new Date() })
+        .where(eq(transportationMovingServices.id, req.params.id))
+        .returning();
+
+      if (!updatedService) {
+        return res.status(404).json({ message: "Service not found" });
+      }
+
+      res.json(updatedService);
+    } catch (error: any) {
+      res.status(400).json({ message: error.message });
+    }
+  });
+
+  // DELETE service
+  app.delete("/api/admin/transportation-moving-services/:id", async (req, res) => {
+    try {
+      const deletedRows = await db
+        .delete(transportationMovingServices)
+        .where(eq(transportationMovingServices.id, req.params.id))
+        .returning();
+
+      if (deletedRows.length === 0) {
+        return res.status(404).json({ message: "Service not found" });
+      }
+
+      res.json({ message: "Service deleted successfully", id: req.params.id });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // PATCH - Toggle active status
+  app.patch("/api/admin/transportation-moving-services/:id/toggle-active", async (req, res) => {
+    try {
+      const service = await db.query.transportationMovingServices.findFirst({
+        where: eq(transportationMovingServices.id, req.params.id),
+      });
+
+      if (!service) {
+        return res.status(404).json({ message: "Service not found" });
+      }
+
+      const [updated] = await db
+        .update(transportationMovingServices)
+        .set({ isActive: !service.isActive, updatedAt: new Date() })
+        .where(eq(transportationMovingServices.id, req.params.id))
+        .returning();
+
+      res.json(updated);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // PATCH - Toggle featured status
+  app.patch("/api/admin/transportation-moving-services/:id/toggle-featured", async (req, res) => {
+    try {
+      const service = await db.query.transportationMovingServices.findFirst({
+        where: eq(transportationMovingServices.id, req.params.id),
+      });
+
+      if (!service) {
+        return res.status(404).json({ message: "Service not found" });
+      }
+
+      const [updated] = await db
+        .update(transportationMovingServices)
+        .set({ isFeatured: !service.isFeatured, updatedAt: new Date() })
+        .where(eq(transportationMovingServices.id, req.params.id))
+        .returning();
+
+      res.json(updated);
+    } catch (error: any) {
       res.status(500).json({ message: error.message });
     }
   });
@@ -1897,6 +2720,661 @@ export function registerRoutes(app: Express) {
       });
 
       res.json(categories);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Vehicle License Classes Routes - Full CRUD
+
+  // GET all vehicle license classes
+  app.get("/api/admin/vehicle-license-classes", async (_req, res) => {
+    try {
+      const classes = await db.query.vehicleLicenseClasses.findMany({
+        orderBy: desc(vehicleLicenseClasses.createdAt),
+      });
+      res.json(classes);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // GET single vehicle license class by ID
+  app.get("/api/admin/vehicle-license-classes/:id", async (req, res) => {
+    try {
+      const licenseClass = await db.query.vehicleLicenseClasses.findFirst({
+        where: eq(vehicleLicenseClasses.id, req.params.id),
+      });
+
+      if (!licenseClass) {
+        return res.status(404).json({ message: "License class not found" });
+      }
+
+      res.json(licenseClass);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // CREATE new vehicle license class
+  app.post("/api/admin/vehicle-license-classes", async (req, res) => {
+    try {
+      const [newClass] = await db
+        .insert(vehicleLicenseClasses)
+        .values({
+          ...req.body,
+          country: req.body.country || "India",
+        })
+        .returning();
+
+      res.status(201).json(newClass);
+    } catch (error: any) {
+      res.status(400).json({ message: error.message });
+    }
+  });
+
+  // UPDATE vehicle license class
+  app.put("/api/admin/vehicle-license-classes/:id", async (req, res) => {
+    try {
+      const [updatedClass] = await db
+        .update(vehicleLicenseClasses)
+        .set({ ...req.body, updatedAt: new Date() })
+        .where(eq(vehicleLicenseClasses.id, req.params.id))
+        .returning();
+
+      if (!updatedClass) {
+        return res.status(404).json({ message: "License class not found" });
+      }
+
+      res.json(updatedClass);
+    } catch (error: any) {
+      res.status(400).json({ message: error.message });
+    }
+  });
+
+  // DELETE vehicle license class
+  app.delete("/api/admin/vehicle-license-classes/:id", async (req, res) => {
+    try {
+      const deletedRows = await db
+        .delete(vehicleLicenseClasses)
+        .where(eq(vehicleLicenseClasses.id, req.params.id))
+        .returning();
+
+      if (deletedRows.length === 0) {
+        return res.status(404).json({ message: "License class not found" });
+      }
+
+      res.json({ message: "License class deleted successfully", id: req.params.id });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // PATCH - Toggle active status
+  app.patch("/api/admin/vehicle-license-classes/:id/toggle-active", async (req, res) => {
+    try {
+      const licenseClass = await db.query.vehicleLicenseClasses.findFirst({
+        where: eq(vehicleLicenseClasses.id, req.params.id),
+      });
+
+      if (!licenseClass) {
+        return res.status(404).json({ message: "License class not found" });
+      }
+
+      const [updated] = await db
+        .update(vehicleLicenseClasses)
+        .set({ isActive: !licenseClass.isActive, updatedAt: new Date() })
+        .where(eq(vehicleLicenseClasses.id, req.params.id))
+        .returning();
+
+      res.json(updated);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // PATCH - Toggle featured status
+  app.patch("/api/admin/vehicle-license-classes/:id/toggle-featured", async (req, res) => {
+    try {
+      const licenseClass = await db.query.vehicleLicenseClasses.findFirst({
+        where: eq(vehicleLicenseClasses.id, req.params.id),
+      });
+
+      if (!licenseClass) {
+        return res.status(404).json({ message: "License class not found" });
+      }
+
+      const [updated] = await db
+        .update(vehicleLicenseClasses)
+        .set({ isFeatured: !licenseClass.isFeatured, updatedAt: new Date() })
+        .where(eq(vehicleLicenseClasses.id, req.params.id))
+        .returning();
+
+      res.json(updated);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Electronics & Gadgets Routes - Full CRUD
+
+  // GET all electronics & gadgets
+  app.get("/api/admin/electronics-gadgets", async (_req, res) => {
+    try {
+      const gadgets = await db.query.electronicsGadgets.findMany({
+        orderBy: desc(electronicsGadgets.createdAt),
+      });
+      res.json(gadgets);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // GET single electronics gadget by ID
+  app.get("/api/admin/electronics-gadgets/:id", async (req, res) => {
+    try {
+      const gadget = await db.query.electronicsGadgets.findFirst({
+        where: eq(electronicsGadgets.id, req.params.id),
+      });
+
+      if (!gadget) {
+        return res.status(404).json({ message: "Electronics gadget not found" });
+      }
+
+      res.json(gadget);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // CREATE new electronics gadget
+  app.post("/api/admin/electronics-gadgets", async (req, res) => {
+    try {
+      const [newGadget] = await db
+        .insert(electronicsGadgets)
+        .values({
+          ...req.body,
+          country: req.body.country || "India",
+        })
+        .returning();
+
+      res.status(201).json(newGadget);
+    } catch (error: any) {
+      res.status(400).json({ message: error.message });
+    }
+  });
+
+  // UPDATE electronics gadget
+  app.put("/api/admin/electronics-gadgets/:id", async (req, res) => {
+    try {
+      const [updatedGadget] = await db
+        .update(electronicsGadgets)
+        .set({ ...req.body, updatedAt: new Date() })
+        .where(eq(electronicsGadgets.id, req.params.id))
+        .returning();
+
+      if (!updatedGadget) {
+        return res.status(404).json({ message: "Electronics gadget not found" });
+      }
+
+      res.json(updatedGadget);
+    } catch (error: any) {
+      res.status(400).json({ message: error.message });
+    }
+  });
+
+  // DELETE electronics gadget
+  app.delete("/api/admin/electronics-gadgets/:id", async (req, res) => {
+    try {
+      const deletedRows = await db
+        .delete(electronicsGadgets)
+        .where(eq(electronicsGadgets.id, req.params.id))
+        .returning();
+
+      if (deletedRows.length === 0) {
+        return res.status(404).json({ message: "Electronics gadget not found" });
+      }
+
+      res.json({ message: "Electronics gadget deleted successfully", id: req.params.id });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // PATCH - Toggle active status
+  app.patch("/api/admin/electronics-gadgets/:id/toggle-active", async (req, res) => {
+    try {
+      const gadget = await db.query.electronicsGadgets.findFirst({
+        where: eq(electronicsGadgets.id, req.params.id),
+      });
+
+      if (!gadget) {
+        return res.status(404).json({ message: "Electronics gadget not found" });
+      }
+
+      const [updated] = await db
+        .update(electronicsGadgets)
+        .set({ isActive: !gadget.isActive, updatedAt: new Date() })
+        .where(eq(electronicsGadgets.id, req.params.id))
+        .returning();
+
+      res.json(updated);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // PATCH - Toggle featured status
+  app.patch("/api/admin/electronics-gadgets/:id/toggle-featured", async (req, res) => {
+    try {
+      const gadget = await db.query.electronicsGadgets.findFirst({
+        where: eq(electronicsGadgets.id, req.params.id),
+      });
+
+      if (!gadget) {
+        return res.status(404).json({ message: "Electronics gadget not found" });
+      }
+
+      const [updated] = await db
+        .update(electronicsGadgets)
+        .set({ isFeatured: !gadget.isFeatured, updatedAt: new Date() })
+        .where(eq(electronicsGadgets.id, req.params.id))
+        .returning();
+
+      res.json(updated);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Phones, Tablets & Accessories Routes - Full CRUD
+
+  // GET all phones, tablets & accessories
+  app.get("/api/admin/phones-tablets-accessories", async (_req, res) => {
+    try {
+      const products = await db.query.phonesTabletsAccessories.findMany({
+        orderBy: desc(phonesTabletsAccessories.createdAt),
+      });
+      res.json(products);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // GET single product by ID
+  app.get("/api/admin/phones-tablets-accessories/:id", async (req, res) => {
+    try {
+      const product = await db.query.phonesTabletsAccessories.findFirst({
+        where: eq(phonesTabletsAccessories.id, req.params.id),
+      });
+
+      if (!product) {
+        return res.status(404).json({ message: "Product not found" });
+      }
+
+      res.json(product);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // CREATE new product
+  app.post("/api/admin/phones-tablets-accessories", async (req, res) => {
+    try {
+      const [newProduct] = await db
+        .insert(phonesTabletsAccessories)
+        .values({
+          ...req.body,
+          country: req.body.country || "India",
+        })
+        .returning();
+
+      res.status(201).json(newProduct);
+    } catch (error: any) {
+      res.status(400).json({ message: error.message });
+    }
+  });
+
+  // UPDATE product
+  app.put("/api/admin/phones-tablets-accessories/:id", async (req, res) => {
+    try {
+      const [updatedProduct] = await db
+        .update(phonesTabletsAccessories)
+        .set({ ...req.body, updatedAt: new Date() })
+        .where(eq(phonesTabletsAccessories.id, req.params.id))
+        .returning();
+
+      if (!updatedProduct) {
+        return res.status(404).json({ message: "Product not found" });
+      }
+
+      res.json(updatedProduct);
+    } catch (error: any) {
+      res.status(400).json({ message: error.message });
+    }
+  });
+
+  // DELETE product
+  app.delete("/api/admin/phones-tablets-accessories/:id", async (req, res) => {
+    try {
+      const deletedRows = await db
+        .delete(phonesTabletsAccessories)
+        .where(eq(phonesTabletsAccessories.id, req.params.id))
+        .returning();
+
+      if (deletedRows.length === 0) {
+        return res.status(404).json({ message: "Product not found" });
+      }
+
+      res.json({ message: "Product deleted successfully", id: req.params.id });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // PATCH - Toggle active status
+  app.patch("/api/admin/phones-tablets-accessories/:id/toggle-active", async (req, res) => {
+    try {
+      const product = await db.query.phonesTabletsAccessories.findFirst({
+        where: eq(phonesTabletsAccessories.id, req.params.id),
+      });
+
+      if (!product) {
+        return res.status(404).json({ message: "Product not found" });
+      }
+
+      const [updated] = await db
+        .update(phonesTabletsAccessories)
+        .set({ isActive: !product.isActive, updatedAt: new Date() })
+        .where(eq(phonesTabletsAccessories.id, req.params.id))
+        .returning();
+
+      res.json(updated);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // PATCH - Toggle featured status
+  app.patch("/api/admin/phones-tablets-accessories/:id/toggle-featured", async (req, res) => {
+    try {
+      const product = await db.query.phonesTabletsAccessories.findFirst({
+        where: eq(phonesTabletsAccessories.id, req.params.id),
+      });
+
+      if (!product) {
+        return res.status(404).json({ message: "Product not found" });
+      }
+
+      const [updated] = await db
+        .update(phonesTabletsAccessories)
+        .set({ isFeatured: !product.isFeatured, updatedAt: new Date() })
+        .where(eq(phonesTabletsAccessories.id, req.params.id))
+        .returning();
+
+      res.json(updated);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Second Hand Phones, Tablets & Accessories Routes - Full CRUD
+
+  // GET all second hand phones, tablets & accessories
+  app.get("/api/admin/second-hand-phones-tablets-accessories", async (_req, res) => {
+    try {
+      const products = await db.query.secondHandPhonesTabletsAccessories.findMany({
+        orderBy: desc(secondHandPhonesTabletsAccessories.createdAt),
+      });
+      res.json(products);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // GET single product by ID
+  app.get("/api/admin/second-hand-phones-tablets-accessories/:id", async (req, res) => {
+    try {
+      const product = await db.query.secondHandPhonesTabletsAccessories.findFirst({
+        where: eq(secondHandPhonesTabletsAccessories.id, req.params.id),
+      });
+
+      if (!product) {
+        return res.status(404).json({ message: "Product not found" });
+      }
+
+      res.json(product);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // CREATE new product
+  app.post("/api/admin/second-hand-phones-tablets-accessories", async (req, res) => {
+    try {
+      const [newProduct] = await db
+        .insert(secondHandPhonesTabletsAccessories)
+        .values({
+          ...req.body,
+          country: req.body.country || "India",
+        })
+        .returning();
+
+      res.status(201).json(newProduct);
+    } catch (error: any) {
+      res.status(400).json({ message: error.message });
+    }
+  });
+
+  // UPDATE product
+  app.put("/api/admin/second-hand-phones-tablets-accessories/:id", async (req, res) => {
+    try {
+      const [updatedProduct] = await db
+        .update(secondHandPhonesTabletsAccessories)
+        .set({ ...req.body, updatedAt: new Date() })
+        .where(eq(secondHandPhonesTabletsAccessories.id, req.params.id))
+        .returning();
+
+      if (!updatedProduct) {
+        return res.status(404).json({ message: "Product not found" });
+      }
+
+      res.json(updatedProduct);
+    } catch (error: any) {
+      res.status(400).json({ message: error.message });
+    }
+  });
+
+  // DELETE product
+  app.delete("/api/admin/second-hand-phones-tablets-accessories/:id", async (req, res) => {
+    try {
+      const deletedRows = await db
+        .delete(secondHandPhonesTabletsAccessories)
+        .where(eq(secondHandPhonesTabletsAccessories.id, req.params.id))
+        .returning();
+
+      if (deletedRows.length === 0) {
+        return res.status(404).json({ message: "Product not found" });
+      }
+
+      res.json({ message: "Product deleted successfully", id: req.params.id });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // PATCH - Toggle active status
+  app.patch("/api/admin/second-hand-phones-tablets-accessories/:id/toggle-active", async (req, res) => {
+    try {
+      const product = await db.query.secondHandPhonesTabletsAccessories.findFirst({
+        where: eq(secondHandPhonesTabletsAccessories.id, req.params.id),
+      });
+
+      if (!product) {
+        return res.status(404).json({ message: "Product not found" });
+      }
+
+      const [updated] = await db
+        .update(secondHandPhonesTabletsAccessories)
+        .set({ isActive: !product.isActive, updatedAt: new Date() })
+        .where(eq(secondHandPhonesTabletsAccessories.id, req.params.id))
+        .returning();
+
+      res.json(updated);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // PATCH - Toggle featured status
+  app.patch("/api/admin/second-hand-phones-tablets-accessories/:id/toggle-featured", async (req, res) => {
+    try {
+      const product = await db.query.secondHandPhonesTabletsAccessories.findFirst({
+        where: eq(secondHandPhonesTabletsAccessories.id, req.params.id),
+      });
+
+      if (!product) {
+        return res.status(404).json({ message: "Product not found" });
+      }
+
+      const [updated] = await db
+        .update(secondHandPhonesTabletsAccessories)
+        .set({ isFeatured: !product.isFeatured, updatedAt: new Date() })
+        .where(eq(secondHandPhonesTabletsAccessories.id, req.params.id))
+        .returning();
+
+      res.json(updated);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Computer, Mobile & Laptop Repair Services Routes - Full CRUD
+
+  // GET all repair services
+  app.get("/api/admin/computer-mobile-laptop-repair-services", async (_req, res) => {
+    try {
+      const services = await db.query.computerMobileLaptopRepairServices.findMany({
+        orderBy: desc(computerMobileLaptopRepairServices.createdAt),
+      });
+      res.json(services);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // GET single repair service by ID
+  app.get("/api/admin/computer-mobile-laptop-repair-services/:id", async (req, res) => {
+    try {
+      const service = await db.query.computerMobileLaptopRepairServices.findFirst({
+        where: eq(computerMobileLaptopRepairServices.id, req.params.id),
+      });
+
+      if (!service) {
+        return res.status(404).json({ message: "Repair service not found" });
+      }
+
+      res.json(service);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // CREATE new repair service
+  app.post("/api/admin/computer-mobile-laptop-repair-services", async (req, res) => {
+    try {
+      const [newService] = await db
+        .insert(computerMobileLaptopRepairServices)
+        .values({
+          ...req.body,
+          country: req.body.country || "India",
+        })
+        .returning();
+
+      res.status(201).json(newService);
+    } catch (error: any) {
+      res.status(400).json({ message: error.message });
+    }
+  });
+
+  // UPDATE repair service
+  app.put("/api/admin/computer-mobile-laptop-repair-services/:id", async (req, res) => {
+    try {
+      const [updatedService] = await db
+        .update(computerMobileLaptopRepairServices)
+        .set({ ...req.body, updatedAt: new Date() })
+        .where(eq(computerMobileLaptopRepairServices.id, req.params.id))
+        .returning();
+
+      if (!updatedService) {
+        return res.status(404).json({ message: "Repair service not found" });
+      }
+
+      res.json(updatedService);
+    } catch (error: any) {
+      res.status(400).json({ message: error.message });
+    }
+  });
+
+  // DELETE repair service
+  app.delete("/api/admin/computer-mobile-laptop-repair-services/:id", async (req, res) => {
+    try {
+      const deletedRows = await db
+        .delete(computerMobileLaptopRepairServices)
+        .where(eq(computerMobileLaptopRepairServices.id, req.params.id))
+        .returning();
+
+      if (deletedRows.length === 0) {
+        return res.status(404).json({ message: "Repair service not found" });
+      }
+
+      res.json({ message: "Repair service deleted successfully", id: req.params.id });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // PATCH - Toggle active status
+  app.patch("/api/admin/computer-mobile-laptop-repair-services/:id/toggle-active", async (req, res) => {
+    try {
+      const service = await db.query.computerMobileLaptopRepairServices.findFirst({
+        where: eq(computerMobileLaptopRepairServices.id, req.params.id),
+      });
+
+      if (!service) {
+        return res.status(404).json({ message: "Repair service not found" });
+      }
+
+      const [updated] = await db
+        .update(computerMobileLaptopRepairServices)
+        .set({ isActive: !service.isActive, updatedAt: new Date() })
+        .where(eq(computerMobileLaptopRepairServices.id, req.params.id))
+        .returning();
+
+      res.json(updated);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // PATCH - Toggle featured status
+  app.patch("/api/admin/computer-mobile-laptop-repair-services/:id/toggle-featured", async (req, res) => {
+    try {
+      const service = await db.query.computerMobileLaptopRepairServices.findFirst({
+        where: eq(computerMobileLaptopRepairServices.id, req.params.id),
+      });
+
+      if (!service) {
+        return res.status(404).json({ message: "Repair service not found" });
+      }
+
+      const [updated] = await db
+        .update(computerMobileLaptopRepairServices)
+        .set({ isFeatured: !service.isFeatured, updatedAt: new Date() })
+        .where(eq(computerMobileLaptopRepairServices.id, req.params.id))
+        .returning();
+
+      res.json(updated);
     } catch (error: any) {
       res.status(500).json({ message: error.message });
     }

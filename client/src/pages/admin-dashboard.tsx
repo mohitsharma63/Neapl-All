@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Plus,
   Edit,
@@ -58,6 +59,16 @@ import { IndustrialLandForm } from "@/components/industrial-land-form";
 import { PropertyDealsForm } from "@/components/property-deals-form";
 import { CommercialPropertiesForm } from '@/components/commercial-properties-form';
 import { CarsBikesForm } from "@/components/cars-bikes-form";
+import { HeavyEquipmentForm } from "@/components/heavy-equipment-form";
+import { ShowroomsForm } from "@/components/showrooms-form";
+import { SecondHandCarsBikesForm } from "@/components/second-hand-cars-bikes-form";
+import CarBikeRentalsForm from "@/components/car-bike-rentals-form";
+import {TransportationMovingServicesForm} from "@/components/transportation-moving-services-form";
+import VehicleLicenseClassesForm from "@/components/vehicle-license-classes-form";
+import ElectronicsGadgetsForm from "@/components/electronics-gadgets-form";
+import PhonesTabletsAccessoriesForm from "@/components/phones-tablets-accessories-form";
+import SecondHandPhonesTabletsAccessoriesForm from "@/components/second-hand-phones-tablets-accessories-form";
+import ComputerMobileLaptopRepairServicesForm from "@/components/computer-mobile-laptop-repair-services-form";
 
 
 interface AdminCategory {
@@ -403,7 +414,7 @@ function AppSidebar({ activeSection, setActiveSection }: { activeSection: string
   );
 }
 
-// Dashboard Component
+// Dashboard Section
 function DashboardSection() {
   const [stats, setStats] = useState({
     totalProperties: '0',
@@ -2842,8 +2853,37 @@ export default function AdminDashboard() {
       case "rental-–-rooms,-flats,-apartments":
       case "rental-listings":
         return <RentalListingsSection />;
+      case "cars-&-bikes":
       case "cars-bikes":
-        return <CarsBikesSection />; // Added case for Cars & Bikes
+        return <CarsBikesSection />;
+      case "heavy-equipment-for-sale":
+      case "heavy-equipment":
+        return <HeavyEquipmentSection />;
+      case "showrooms-(authorized-second-hand)":
+      case "showrooms":
+        return <ShowroomsSection />;
+      case "second-hand-cars-&-bikes":
+      case "second-hand-cars-bikes":
+        return <SecondHandCarsBikesSection />;
+      case "car-&-bike-rentals":
+      case "car-bike-rentals":
+        return <CarBikeRentalsSection />;
+      case "transportation-&-moving-services":
+      case "transportation-moving-services":
+        return <TransportationMovingServicesSection />;
+      case "vehicle-license-classes":
+        return <VehicleLicenseClassesSection />;
+      case "electronics-&-gadgets":
+      case "electronics-gadgets":
+        return <ElectronicsGadgetsSection />;
+      case "new-phones-&-tablets-&-accessories":
+      case "phones-tablets-accessories":
+        return <PhonesTabletsAccessoriesSection />;
+      case "second-hand-phones-&-tablets-&-accessories":
+      case "second-hand-phones-tablets-accessories":
+        return <SecondHandPhonesTabletsAccessoriesSection />;
+      case "computer-mobile-laptop-repair-services":
+        return <ComputerMobileLaptopRepairServicesSection />;
       default:
         return <DashboardSection />;
     }
@@ -2887,7 +2927,151 @@ export default function AdminDashboard() {
 function CarsBikesSection() {
   return (
     <div className="space-y-6">
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h2 className="text-2xl font-bold">Cars & Bikes</h2>
+          <p className="text-muted-foreground">Manage vehicle listings for cars and bikes</p>
+        </div>
+      </div>
       <CarsBikesForm />
+    </div>
+  );
+}
+
+// Heavy Equipment Section Component
+function HeavyEquipmentSection() {
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h2 className="text-2xl font-bold">Heavy Equipment for Sale</h2>
+          <p className="text-muted-foreground">Manage heavy equipment listings</p>
+        </div>
+      </div>
+      <HeavyEquipmentForm />
+    </div>
+  );
+}
+
+// Showrooms Section Component
+function ShowroomsSection() {
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h2 className="text-2xl font-bold">Showrooms (Authorized Second-hand)</h2>
+          <p className="text-muted-foreground">Manage authorized second-hand vehicle showrooms</p>
+        </div>
+      </div>
+      <ShowroomsForm />
+    </div>
+  );
+}
+
+// Second Hand Cars & Bikes Section Component
+function SecondHandCarsBikesSection() {
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h2 className="text-2xl font-bold">Second Hand Cars & Bikes</h2>
+          <p className="text-muted-foreground">Manage second-hand vehicle listings</p>
+        </div>
+      </div>
+      <SecondHandCarsBikesForm />
+    </div>
+  );
+}
+
+// Car & Bike Rentals Section Component
+function CarBikeRentalsSection() {
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h2 className="text-2xl font-bold">Car & Bike Rentals</h2>
+          <p className="text-muted-foreground">Manage vehicle rental listings</p>
+        </div>
+      </div>
+      <CarBikeRentalsForm />
+    </div>
+  );
+}
+
+// Transportation & Moving Services Section Component
+function TransportationMovingServicesSection() {
+  return (
+    <div className="space-y-6">
+      <TransportationMovingServicesForm />
+    </div>
+  );
+}
+
+// Vehicle License Classes Section Component
+function VehicleLicenseClassesSection() {
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h2 className="text-2xl font-bold">Vehicle License Classes</h2>
+          <p className="text-muted-foreground">Manage driving license training programs</p>
+        </div>
+      </div>
+      <VehicleLicenseClassesForm />
+    </div>
+  );
+}
+
+// Electronics & Gadgets Section Component
+function ElectronicsGadgetsSection() {
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h2 className="text-2xl font-bold">Electronics & Gadgets</h2>
+          <p className="text-muted-foreground">Manage electronics and gadgets listings</p>
+        </div>
+      </div>
+      <ElectronicsGadgetsForm />
+    </div>
+  );
+}
+
+// Phones, Tablets & Accessories Section Component
+function PhonesTabletsAccessoriesSection() {
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h2 className="text-2xl font-bold">New Phones, Tablets & Accessories</h2>
+          <p className="text-muted-foreground">Manage new phone, tablet and accessory listings</p>
+        </div>
+      </div>
+      <PhonesTabletsAccessoriesForm />
+    </div>
+  );
+}
+
+// Second Hand Phones, Tablets & Accessories Section Component
+function SecondHandPhonesTabletsAccessoriesSection() {
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h2 className="text-2xl font-bold">Second Hand Phones, Tablets & Accessories</h2>
+          <p className="text-muted-foreground">Manage second-hand phone, tablet and accessory listings</p>
+        </div>
+      </div>
+      <SecondHandPhonesTabletsAccessoriesForm />
+    </div>
+  );
+}
+
+// Computer, Mobile & Laptop Repair Services Section Component
+function ComputerMobileLaptopRepairServicesSection() {
+  return (
+    <div className="space-y-6">
+      <ComputerMobileLaptopRepairServicesForm />
     </div>
   );
 }
