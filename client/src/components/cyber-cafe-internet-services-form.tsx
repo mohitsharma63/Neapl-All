@@ -12,7 +12,7 @@ import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Edit, Trash2, Eye, Wifi, Monitor, Printer } from "lucide-react";
+import { Plus, Edit, Trash2, Eye, Wifi, Monitor, Printer, Clock } from "lucide-react";
 
 type CyberCafeFormData = {
   title: string;
@@ -26,24 +26,66 @@ type CyberCafeFormData = {
   scanningPrice?: number;
   photocopyingPrice?: number;
   gamingPricePerHour?: number;
+  minimumCharge?: number;
   totalComputers?: number;
   availableComputers?: number;
+  computerSpecifications?: string;
   internetSpeed?: string;
+  numberOfCabins?: number;
+  ownerName?: string;
+  licenseNumber?: string;
+  establishedYear?: number;
+  experienceYears?: number;
   contactPerson: string;
   contactPhone: string;
   contactEmail?: string;
+  alternatePhone?: string;
+  whatsappNumber?: string;
   city?: string;
+  stateProvince?: string;
+  areaName?: string;
   fullAddress: string;
+  nearbyLandmarks?: string;
   workingHours?: string;
+  workingDays?: string;
+  holidayList?: string;
+  studentDiscountPercentage?: number;
   internetBrowsing?: boolean;
   printingService?: boolean;
   scanningService?: boolean;
   photocopyingService?: boolean;
+  laminationService?: boolean;
+  bindingService?: boolean;
   gamingAvailable?: boolean;
+  videoConferencing?: boolean;
+  onlineClassesSupport?: boolean;
+  membershipAvailable?: boolean;
   wifiAvailable?: boolean;
+  privateCabins?: boolean;
   acAvailable?: boolean;
   parkingAvailable?: boolean;
+  gamingSetup?: boolean;
+  whatsappAvailable?: boolean;
   open24_7?: boolean;
+  studentDiscount?: boolean;
+  bulkPrintingDiscount?: boolean;
+  homeDelivery?: boolean;
+  pickupService?: boolean;
+  onlineBooking?: boolean;
+  prepaidPackages?: boolean;
+  cctvSurveillance?: boolean;
+  dataPrivacyEnsured?: boolean;
+  antivirusInstalled?: boolean;
+  firewallProtection?: boolean;
+  foodBeveragesAvailable?: boolean;
+  stationaryAvailable?: boolean;
+  chargingPoints?: boolean;
+  restArea?: boolean;
+  examFormFilling?: boolean;
+  resumeMaking?: boolean;
+  documentTyping?: boolean;
+  translationService?: boolean;
+  passportPhoto?: boolean;
   isActive?: boolean;
   isFeatured?: boolean;
 };
@@ -156,9 +198,11 @@ export default function CyberCafeInternetServicesForm() {
       case 'cyber_cafe':
         return <Monitor className="h-5 w-5 text-blue-600" />;
       case 'gaming_cafe':
-        return <Wifi className="h-5 w-5 text-purple-600" />;
+        return <Monitor className="h-5 w-5 text-purple-600" />;
       case 'internet_cafe':
         return <Wifi className="h-5 w-5 text-green-600" />;
+      case 'business_center':
+        return <Printer className="h-5 w-5 text-orange-600" />;
       default:
         return <Monitor className="h-5 w-5 text-gray-600" />;
     }
@@ -196,6 +240,7 @@ export default function CyberCafeInternetServicesForm() {
                           {service.acAvailable && <Badge className="bg-green-600">AC</Badge>}
                           {service.open24_7 && <Badge className="bg-purple-600">24/7</Badge>}
                           {service.gamingAvailable && <Badge className="bg-orange-600">Gaming</Badge>}
+                          {service.printingService && <Badge className="bg-cyan-600">Printing</Badge>}
                         </div>
                         <p className="text-sm text-muted-foreground mt-2">
                           ₹{Number(service.internetPricePerHour).toLocaleString()}/hour
@@ -271,6 +316,21 @@ export default function CyberCafeInternetServicesForm() {
                     </Select>
                   </div>
 
+                  <div className="space-y-2">
+                    <Label htmlFor="ownerName">Owner Name</Label>
+                    <Input id="ownerName" {...register("ownerName")} />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="licenseNumber">License Number</Label>
+                    <Input id="licenseNumber" {...register("licenseNumber")} />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="establishedYear">Established Year</Label>
+                    <Input id="establishedYear" type="number" {...register("establishedYear", { valueAsNumber: true })} />
+                  </div>
+
                   <div className="col-span-2 space-y-2">
                     <Label htmlFor="description">Description</Label>
                     <Textarea id="description" {...register("description")} rows={3} />
@@ -288,41 +348,51 @@ export default function CyberCafeInternetServicesForm() {
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="internetPricePerHour">Internet Price/Hour (₹) *</Label>
-                    <Input id="internetPricePerHour" type="number" {...register("internetPricePerHour", { required: true, valueAsNumber: true })} />
+                    <Input id="internetPricePerHour" type="number" step="0.01" {...register("internetPricePerHour", { required: true, valueAsNumber: true })} />
                   </div>
 
                   <div className="space-y-2">
                     <Label htmlFor="internetPricePerDay">Internet Price/Day (₹)</Label>
-                    <Input id="internetPricePerDay" type="number" {...register("internetPricePerDay", { valueAsNumber: true })} />
+                    <Input id="internetPricePerDay" type="number" step="0.01" {...register("internetPricePerDay", { valueAsNumber: true })} />
                   </div>
 
                   <div className="space-y-2">
                     <Label htmlFor="printingPriceBw">B&W Printing/Page (₹)</Label>
-                    <Input id="printingPriceBw" type="number" {...register("printingPriceBw", { valueAsNumber: true })} />
+                    <Input id="printingPriceBw" type="number" step="0.01" {...register("printingPriceBw", { valueAsNumber: true })} />
                   </div>
 
                   <div className="space-y-2">
                     <Label htmlFor="printingPriceColor">Color Printing/Page (₹)</Label>
-                    <Input id="printingPriceColor" type="number" {...register("printingPriceColor", { valueAsNumber: true })} />
+                    <Input id="printingPriceColor" type="number" step="0.01" {...register("printingPriceColor", { valueAsNumber: true })} />
                   </div>
 
                   <div className="space-y-2">
                     <Label htmlFor="scanningPrice">Scanning Price (₹)</Label>
-                    <Input id="scanningPrice" type="number" {...register("scanningPrice", { valueAsNumber: true })} />
+                    <Input id="scanningPrice" type="number" step="0.01" {...register("scanningPrice", { valueAsNumber: true })} />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="photocopyingPrice">Photocopying Price (₹)</Label>
+                    <Input id="photocopyingPrice" type="number" step="0.01" {...register("photocopyingPrice", { valueAsNumber: true })} />
                   </div>
 
                   <div className="space-y-2">
                     <Label htmlFor="gamingPricePerHour">Gaming Price/Hour (₹)</Label>
-                    <Input id="gamingPricePerHour" type="number" {...register("gamingPricePerHour", { valueAsNumber: true })} />
+                    <Input id="gamingPricePerHour" type="number" step="0.01" {...register("gamingPricePerHour", { valueAsNumber: true })} />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="minimumCharge">Minimum Charge (₹)</Label>
+                    <Input id="minimumCharge" type="number" step="0.01" {...register("minimumCharge", { valueAsNumber: true })} />
                   </div>
                 </div>
               </CardContent>
             </Card>
 
-            {/* Facilities */}
+            {/* Facilities & Infrastructure */}
             <Card>
               <CardHeader>
-                <CardTitle>Facilities</CardTitle>
+                <CardTitle>Facilities & Infrastructure</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
@@ -332,10 +402,27 @@ export default function CyberCafeInternetServicesForm() {
                   </div>
 
                   <div className="space-y-2">
+                    <Label htmlFor="availableComputers">Available Computers</Label>
+                    <Input id="availableComputers" type="number" {...register("availableComputers", { valueAsNumber: true })} />
+                  </div>
+
+                  <div className="space-y-2">
                     <Label htmlFor="internetSpeed">Internet Speed</Label>
                     <Input id="internetSpeed" {...register("internetSpeed")} placeholder="e.g., 100 Mbps" />
                   </div>
 
+                  <div className="space-y-2">
+                    <Label htmlFor="computerSpecifications">Computer Specifications</Label>
+                    <Input id="computerSpecifications" {...register("computerSpecifications")} placeholder="e.g., i5, 8GB RAM" />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="numberOfCabins">Number of Private Cabins</Label>
+                    <Input id="numberOfCabins" type="number" {...register("numberOfCabins", { valueAsNumber: true })} />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mt-4">
                   <div className="flex items-center space-x-2">
                     <Switch id="internetBrowsing" defaultChecked onCheckedChange={(checked) => setValue("internetBrowsing", checked)} />
                     <Label htmlFor="internetBrowsing">Internet Browsing</Label>
@@ -357,8 +444,28 @@ export default function CyberCafeInternetServicesForm() {
                   </div>
 
                   <div className="flex items-center space-x-2">
+                    <Switch id="laminationService" onCheckedChange={(checked) => setValue("laminationService", checked)} />
+                    <Label htmlFor="laminationService">Lamination</Label>
+                  </div>
+
+                  <div className="flex items-center space-x-2">
+                    <Switch id="bindingService" onCheckedChange={(checked) => setValue("bindingService", checked)} />
+                    <Label htmlFor="bindingService">Binding</Label>
+                  </div>
+
+                  <div className="flex items-center space-x-2">
                     <Switch id="gamingAvailable" onCheckedChange={(checked) => setValue("gamingAvailable", checked)} />
                     <Label htmlFor="gamingAvailable">Gaming Available</Label>
+                  </div>
+
+                  <div className="flex items-center space-x-2">
+                    <Switch id="videoConferencing" onCheckedChange={(checked) => setValue("videoConferencing", checked)} />
+                    <Label htmlFor="videoConferencing">Video Conferencing</Label>
+                  </div>
+
+                  <div className="flex items-center space-x-2">
+                    <Switch id="onlineClassesSupport" onCheckedChange={(checked) => setValue("onlineClassesSupport", checked)} />
+                    <Label htmlFor="onlineClassesSupport">Online Classes Support</Label>
                   </div>
 
                   <div className="flex items-center space-x-2">
@@ -374,6 +481,143 @@ export default function CyberCafeInternetServicesForm() {
                   <div className="flex items-center space-x-2">
                     <Switch id="parkingAvailable" onCheckedChange={(checked) => setValue("parkingAvailable", checked)} />
                     <Label htmlFor="parkingAvailable">Parking Available</Label>
+                  </div>
+
+                  <div className="flex items-center space-x-2">
+                    <Switch id="privateCabins" onCheckedChange={(checked) => setValue("privateCabins", checked)} />
+                    <Label htmlFor="privateCabins">Private Cabins</Label>
+                  </div>
+
+                  <div className="flex items-center space-x-2">
+                    <Switch id="gamingSetup" onCheckedChange={(checked) => setValue("gamingSetup", checked)} />
+                    <Label htmlFor="gamingSetup">Gaming Setup</Label>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Additional Services */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Additional Services</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                  <div className="flex items-center space-x-2">
+                    <Switch id="membershipAvailable" onCheckedChange={(checked) => setValue("membershipAvailable", checked)} />
+                    <Label htmlFor="membershipAvailable">Membership Available</Label>
+                  </div>
+
+                  <div className="flex items-center space-x-2">
+                    <Switch id="studentDiscount" onCheckedChange={(checked) => setValue("studentDiscount", checked)} />
+                    <Label htmlFor="studentDiscount">Student Discount</Label>
+                  </div>
+
+                  <div className="flex items-center space-x-2">
+                    <Switch id="bulkPrintingDiscount" onCheckedChange={(checked) => setValue("bulkPrintingDiscount", checked)} />
+                    <Label htmlFor="bulkPrintingDiscount">Bulk Printing Discount</Label>
+                  </div>
+
+                  <div className="flex items-center space-x-2">
+                    <Switch id="homeDelivery" onCheckedChange={(checked) => setValue("homeDelivery", checked)} />
+                    <Label htmlFor="homeDelivery">Home Delivery</Label>
+                  </div>
+
+                  <div className="flex items-center space-x-2">
+                    <Switch id="pickupService" onCheckedChange={(checked) => setValue("pickupService", checked)} />
+                    <Label htmlFor="pickupService">Pickup Service</Label>
+                  </div>
+
+                  <div className="flex items-center space-x-2">
+                    <Switch id="onlineBooking" onCheckedChange={(checked) => setValue("onlineBooking", checked)} />
+                    <Label htmlFor="onlineBooking">Online Booking</Label>
+                  </div>
+
+                  <div className="flex items-center space-x-2">
+                    <Switch id="prepaidPackages" onCheckedChange={(checked) => setValue("prepaidPackages", checked)} />
+                    <Label htmlFor="prepaidPackages">Prepaid Packages</Label>
+                  </div>
+
+                  <div className="flex items-center space-x-2">
+                    <Switch id="examFormFilling" onCheckedChange={(checked) => setValue("examFormFilling", checked)} />
+                    <Label htmlFor="examFormFilling">Exam Form Filling</Label>
+                  </div>
+
+                  <div className="flex items-center space-x-2">
+                    <Switch id="resumeMaking" onCheckedChange={(checked) => setValue("resumeMaking", checked)} />
+                    <Label htmlFor="resumeMaking">Resume Making</Label>
+                  </div>
+
+                  <div className="flex items-center space-x-2">
+                    <Switch id="documentTyping" onCheckedChange={(checked) => setValue("documentTyping", checked)} />
+                    <Label htmlFor="documentTyping">Document Typing</Label>
+                  </div>
+
+                  <div className="flex items-center space-x-2">
+                    <Switch id="translationService" onCheckedChange={(checked) => setValue("translationService", checked)} />
+                    <Label htmlFor="translationService">Translation Service</Label>
+                  </div>
+
+                  <div className="flex items-center space-x-2">
+                    <Switch id="passportPhoto" onCheckedChange={(checked) => setValue("passportPhoto", checked)} />
+                    <Label htmlFor="passportPhoto">Passport Photo</Label>
+                  </div>
+
+                  <div className="flex items-center space-x-2">
+                    <Switch id="foodBeveragesAvailable" onCheckedChange={(checked) => setValue("foodBeveragesAvailable", checked)} />
+                    <Label htmlFor="foodBeveragesAvailable">Food & Beverages</Label>
+                  </div>
+
+                  <div className="flex items-center space-x-2">
+                    <Switch id="stationaryAvailable" onCheckedChange={(checked) => setValue("stationaryAvailable", checked)} />
+                    <Label htmlFor="stationaryAvailable">Stationary Available</Label>
+                  </div>
+
+                  <div className="flex items-center space-x-2">
+                    <Switch id="chargingPoints" onCheckedChange={(checked) => setValue("chargingPoints", checked)} />
+                    <Label htmlFor="chargingPoints">Charging Points</Label>
+                  </div>
+
+                  <div className="flex items-center space-x-2">
+                    <Switch id="restArea" onCheckedChange={(checked) => setValue("restArea", checked)} />
+                    <Label htmlFor="restArea">Rest Area</Label>
+                  </div>
+                </div>
+
+                {watch("studentDiscount") && (
+                  <div className="space-y-2">
+                    <Label htmlFor="studentDiscountPercentage">Student Discount Percentage</Label>
+                    <Input id="studentDiscountPercentage" type="number" step="0.01" {...register("studentDiscountPercentage", { valueAsNumber: true })} placeholder="e.g., 10" />
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Security & Privacy */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Security & Privacy</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                  <div className="flex items-center space-x-2">
+                    <Switch id="cctvSurveillance" onCheckedChange={(checked) => setValue("cctvSurveillance", checked)} />
+                    <Label htmlFor="cctvSurveillance">CCTV Surveillance</Label>
+                  </div>
+
+                  <div className="flex items-center space-x-2">
+                    <Switch id="dataPrivacyEnsured" defaultChecked onCheckedChange={(checked) => setValue("dataPrivacyEnsured", checked)} />
+                    <Label htmlFor="dataPrivacyEnsured">Data Privacy Ensured</Label>
+                  </div>
+
+                  <div className="flex items-center space-x-2">
+                    <Switch id="antivirusInstalled" defaultChecked onCheckedChange={(checked) => setValue("antivirusInstalled", checked)} />
+                    <Label htmlFor="antivirusInstalled">Antivirus Installed</Label>
+                  </div>
+
+                  <div className="flex items-center space-x-2">
+                    <Switch id="firewallProtection" defaultChecked onCheckedChange={(checked) => setValue("firewallProtection", checked)} />
+                    <Label htmlFor="firewallProtection">Firewall Protection</Label>
                   </div>
                 </div>
               </CardContent>
@@ -400,6 +644,21 @@ export default function CyberCafeInternetServicesForm() {
                     <Label htmlFor="contactEmail">Contact Email</Label>
                     <Input id="contactEmail" type="email" {...register("contactEmail")} />
                   </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="alternatePhone">Alternate Phone</Label>
+                    <Input id="alternatePhone" {...register("alternatePhone")} />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="whatsappNumber">WhatsApp Number</Label>
+                    <Input id="whatsappNumber" {...register("whatsappNumber")} />
+                  </div>
+
+                  <div className="flex items-center space-x-2 pt-8">
+                    <Switch id="whatsappAvailable" onCheckedChange={(checked) => setValue("whatsappAvailable", checked)} />
+                    <Label htmlFor="whatsappAvailable">WhatsApp Available</Label>
+                  </div>
                 </div>
               </CardContent>
             </Card>
@@ -417,16 +676,51 @@ export default function CyberCafeInternetServicesForm() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="workingHours">Working Hours</Label>
-                    <Input id="workingHours" {...register("workingHours")} placeholder="e.g., 9 AM - 9 PM" />
+                    <Label htmlFor="stateProvince">State/Province</Label>
+                    <Input id="stateProvince" {...register("stateProvince")} />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="areaName">Area Name</Label>
+                    <Input id="areaName" {...register("areaName")} />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="nearbyLandmarks">Nearby Landmarks</Label>
+                    <Input id="nearbyLandmarks" {...register("nearbyLandmarks")} />
                   </div>
 
                   <div className="col-span-2 space-y-2">
                     <Label htmlFor="fullAddress">Full Address *</Label>
                     <Input id="fullAddress" {...register("fullAddress", { required: true })} />
                   </div>
+                </div>
+              </CardContent>
+            </Card>
 
-                  <div className="flex items-center space-x-2">
+            {/* Working Hours */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Working Hours</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="workingHours">Working Hours</Label>
+                    <Input id="workingHours" {...register("workingHours")} placeholder="e.g., 9 AM - 9 PM" />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="workingDays">Working Days</Label>
+                    <Input id="workingDays" {...register("workingDays")} placeholder="e.g., Monday - Saturday" />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="holidayList">Holiday List</Label>
+                    <Input id="holidayList" {...register("holidayList")} placeholder="e.g., National holidays" />
+                  </div>
+
+                  <div className="flex items-center space-x-2 pt-8">
                     <Switch id="open24_7" onCheckedChange={(checked) => setValue("open24_7", checked)} />
                     <Label htmlFor="open24_7">Open 24/7</Label>
                   </div>
@@ -469,11 +763,11 @@ export default function CyberCafeInternetServicesForm() {
       {/* View Dialog */}
       {viewingService && (
         <Dialog open={!!viewingService} onOpenChange={() => setViewingService(null)}>
-          <DialogContent className="max-w-2xl">
+          <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>{viewingService.title}</DialogTitle>
             </DialogHeader>
-            <div className="space-y-4">
+            <div className="space-y-6">
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <p className="text-sm font-medium">Café Name</p>
@@ -488,10 +782,57 @@ export default function CyberCafeInternetServicesForm() {
                   <p className="text-sm text-muted-foreground">₹{Number(viewingService.internetPricePerHour).toLocaleString()}</p>
                 </div>
                 <div>
+                  <p className="text-sm font-medium">Internet Speed</p>
+                  <p className="text-sm text-muted-foreground">{viewingService.internetSpeed || 'N/A'}</p>
+                </div>
+                <div>
                   <p className="text-sm font-medium">Contact</p>
                   <p className="text-sm text-muted-foreground">{viewingService.contactPhone}</p>
                 </div>
+                <div>
+                  <p className="text-sm font-medium">Total Computers</p>
+                  <p className="text-sm text-muted-foreground">{viewingService.totalComputers || 'N/A'}</p>
+                </div>
               </div>
+
+              {viewingService.description && (
+                <div>
+                  <p className="text-sm font-medium">Description</p>
+                  <p className="text-sm text-muted-foreground">{viewingService.description}</p>
+                </div>
+              )}
+
+              <div>
+                <p className="text-sm font-medium mb-2">Services Offered</p>
+                <div className="flex flex-wrap gap-2">
+                  {viewingService.internetBrowsing && <Badge>Internet Browsing</Badge>}
+                  {viewingService.printingService && <Badge>Printing</Badge>}
+                  {viewingService.scanningService && <Badge>Scanning</Badge>}
+                  {viewingService.photocopyingService && <Badge>Photocopying</Badge>}
+                  {viewingService.gamingAvailable && <Badge>Gaming</Badge>}
+                  {viewingService.videoConferencing && <Badge>Video Conferencing</Badge>}
+                  {viewingService.onlineClassesSupport && <Badge>Online Classes Support</Badge>}
+                </div>
+              </div>
+
+              <div>
+                <p className="text-sm font-medium mb-2">Facilities</p>
+                <div className="flex flex-wrap gap-2">
+                  {viewingService.wifiAvailable && <Badge variant="outline">WiFi</Badge>}
+                  {viewingService.acAvailable && <Badge variant="outline">AC</Badge>}
+                  {viewingService.parkingAvailable && <Badge variant="outline">Parking</Badge>}
+                  {viewingService.privateCabins && <Badge variant="outline">Private Cabins</Badge>}
+                  {viewingService.cctvSurveillance && <Badge variant="outline">CCTV</Badge>}
+                  {viewingService.open24_7 && <Badge variant="outline">24/7 Open</Badge>}
+                </div>
+              </div>
+
+              {viewingService.fullAddress && (
+                <div>
+                  <p className="text-sm font-medium">Address</p>
+                  <p className="text-sm text-muted-foreground">{viewingService.fullAddress}</p>
+                </div>
+              )}
             </div>
           </DialogContent>
         </Dialog>
