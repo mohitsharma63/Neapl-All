@@ -31,6 +31,8 @@ import {
   phonesTabletsAccessories,
   secondHandPhonesTabletsAccessories,
   computerMobileLaptopRepairServices,
+  furnitureInteriorDecor,
+  householdServices,
 } from "../shared/schema";
 import { eq, sql, desc } from "drizzle-orm";
 
@@ -3372,6 +3374,268 @@ export function registerRoutes(app: Express) {
         .update(computerMobileLaptopRepairServices)
         .set({ isFeatured: !service.isFeatured, updatedAt: new Date() })
         .where(eq(computerMobileLaptopRepairServices.id, req.params.id))
+        .returning();
+
+      res.json(updated);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Household Services Routes - Full CRUD
+
+  // GET all household services
+  app.get("/api/admin/household-services", async (_req, res) => {
+    try {
+      const services = await db.query.householdServices.findMany({
+        orderBy: desc(householdServices.createdAt),
+      });
+      res.json(services);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // GET single household service by ID
+  app.get("/api/admin/household-services/:id", async (req, res) => {
+    try {
+      const service = await db.query.householdServices.findFirst({
+        where: eq(householdServices.id, req.params.id),
+      });
+
+      if (!service) {
+        return res.status(404).json({ message: "Household service not found" });
+      }
+
+      res.json(service);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // CREATE new household service
+  app.post("/api/admin/household-services", async (req, res) => {
+    try {
+      const [newService] = await db
+        .insert(householdServices)
+        .values({
+          ...req.body,
+          country: req.body.country || "India",
+        })
+        .returning();
+
+      res.status(201).json(newService);
+    } catch (error: any) {
+      res.status(400).json({ message: error.message });
+    }
+  });
+
+  // UPDATE household service
+  app.put("/api/admin/household-services/:id", async (req, res) => {
+    try {
+      const [updatedService] = await db
+        .update(householdServices)
+        .set({ ...req.body, updatedAt: new Date() })
+        .where(eq(householdServices.id, req.params.id))
+        .returning();
+
+      if (!updatedService) {
+        return res.status(404).json({ message: "Household service not found" });
+      }
+
+      res.json(updatedService);
+    } catch (error: any) {
+      res.status(400).json({ message: error.message });
+    }
+  });
+
+  // DELETE household service
+  app.delete("/api/admin/household-services/:id", async (req, res) => {
+    try {
+      const deletedRows = await db
+        .delete(householdServices)
+        .where(eq(householdServices.id, req.params.id))
+        .returning();
+
+      if (deletedRows.length === 0) {
+        return res.status(404).json({ message: "Household service not found" });
+      }
+
+      res.json({ message: "Household service deleted successfully", id: req.params.id });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // PATCH - Toggle active status
+  app.patch("/api/admin/household-services/:id/toggle-active", async (req, res) => {
+    try {
+      const service = await db.query.householdServices.findFirst({
+        where: eq(householdServices.id, req.params.id),
+      });
+
+      if (!service) {
+        return res.status(404).json({ message: "Household service not found" });
+      }
+
+      const [updated] = await db
+        .update(householdServices)
+        .set({ isActive: !service.isActive, updatedAt: new Date() })
+        .where(eq(householdServices.id, req.params.id))
+        .returning();
+
+      res.json(updated);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // PATCH - Toggle featured status
+  app.patch("/api/admin/household-services/:id/toggle-featured", async (req, res) => {
+    try {
+      const service = await db.query.householdServices.findFirst({
+        where: eq(householdServices.id, req.params.id),
+      });
+
+      if (!service) {
+        return res.status(404).json({ message: "Household service not found" });
+      }
+
+      const [updated] = await db
+        .update(householdServices)
+        .set({ isFeatured: !service.isFeatured, updatedAt: new Date() })
+        .where(eq(householdServices.id, req.params.id))
+        .returning();
+
+      res.json(updated);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Furniture & Interior Decor Routes - Full CRUD
+
+  // GET all furniture & interior decor
+  app.get("/api/admin/furniture-interior-decor", async (_req, res) => {
+    try {
+      const items = await db.query.furnitureInteriorDecor.findMany({
+        orderBy: desc(furnitureInteriorDecor.createdAt),
+      });
+      res.json(items);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // GET single furniture item by ID
+  app.get("/api/admin/furniture-interior-decor/:id", async (req, res) => {
+    try {
+      const item = await db.query.furnitureInteriorDecor.findFirst({
+        where: eq(furnitureInteriorDecor.id, req.params.id),
+      });
+
+      if (!item) {
+        return res.status(404).json({ message: "Furniture item not found" });
+      }
+
+      res.json(item);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // CREATE new furniture item
+  app.post("/api/admin/furniture-interior-decor", async (req, res) => {
+    try {
+      const [newItem] = await db
+        .insert(furnitureInteriorDecor)
+        .values({
+          ...req.body,
+          country: req.body.country || "India",
+        })
+        .returning();
+
+      res.status(201).json(newItem);
+    } catch (error: any) {
+      res.status(400).json({ message: error.message });
+    }
+  });
+
+  // UPDATE furniture item
+  app.put("/api/admin/furniture-interior-decor/:id", async (req, res) => {
+    try {
+      const [updatedItem] = await db
+        .update(furnitureInteriorDecor)
+        .set({ ...req.body, updatedAt: new Date() })
+        .where(eq(furnitureInteriorDecor.id, req.params.id))
+        .returning();
+
+      if (!updatedItem) {
+        return res.status(404).json({ message: "Furniture item not found" });
+      }
+
+      res.json(updatedItem);
+    } catch (error: any) {
+      res.status(400).json({ message: error.message });
+    }
+  });
+
+  // DELETE furniture item
+  app.delete("/api/admin/furniture-interior-decor/:id", async (req, res) => {
+    try {
+      const deletedRows = await db
+        .delete(furnitureInteriorDecor)
+        .where(eq(furnitureInteriorDecor.id, req.params.id))
+        .returning();
+
+      if (deletedRows.length === 0) {
+        return res.status(404).json({ message: "Furniture item not found" });
+      }
+
+      res.json({ message: "Furniture item deleted successfully", id: req.params.id });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // PATCH - Toggle active status
+  app.patch("/api/admin/furniture-interior-decor/:id/toggle-active", async (req, res) => {
+    try {
+      const item = await db.query.furnitureInteriorDecor.findFirst({
+        where: eq(furnitureInteriorDecor.id, req.params.id),
+      });
+
+      if (!item) {
+        return res.status(404).json({ message: "Furniture item not found" });
+      }
+
+      const [updated] = await db
+        .update(furnitureInteriorDecor)
+        .set({ isActive: !item.isActive, updatedAt: new Date() })
+        .where(eq(furnitureInteriorDecor.id, req.params.id))
+        .returning();
+
+      res.json(updated);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // PATCH - Toggle featured status
+  app.patch("/api/admin/furniture-interior-decor/:id/toggle-featured", async (req, res) => {
+    try {
+      const item = await db.query.furnitureInteriorDecor.findFirst({
+        where: eq(furnitureInteriorDecor.id, req.params.id),
+      });
+
+      if (!item) {
+        return res.status(404).json({ message: "Furniture item not found" });
+      }
+
+      const [updated] = await db
+        .update(furnitureInteriorDecor)
+        .set({ isFeatured: !item.isFeatured, updatedAt: new Date() })
+        .where(eq(furnitureInteriorDecor.id, req.params.id))
         .returning();
 
       res.json(updated);

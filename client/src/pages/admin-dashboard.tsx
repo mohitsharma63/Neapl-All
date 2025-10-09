@@ -69,6 +69,7 @@ import ElectronicsGadgetsForm from "@/components/electronics-gadgets-form";
 import PhonesTabletsAccessoriesForm from "@/components/phones-tablets-accessories-form";
 import SecondHandPhonesTabletsAccessoriesForm from "@/components/second-hand-phones-tablets-accessories-form";
 import ComputerMobileLaptopRepairServicesForm from "@/components/computer-mobile-laptop-repair-services-form";
+import FurnitureInteriorDecorForm from "@/components/furniture-interior-decor-form";
 
 
 interface AdminCategory {
@@ -2884,6 +2885,9 @@ export default function AdminDashboard() {
         return <SecondHandPhonesTabletsAccessoriesSection />;
       case "computer-mobile-laptop-repair-services":
         return <ComputerMobileLaptopRepairServicesSection />;
+      case "furniture-&-interior-decor":
+      case "furniture-interior-decor":
+        return <FurnitureInteriorDecorSection />;
       default:
         return <DashboardSection />;
     }
@@ -3078,6 +3082,275 @@ function ComputerMobileLaptopRepairServicesSection() {
         </div>
       </div>
       <ComputerMobileLaptopRepairServicesForm />
+    </div>
+  );
+}
+
+// Furniture & Interior Decor Section Component
+function FurnitureInteriorDecorSection() {
+  const [items, setItems] = useState<any[]>([]);
+  const [showForm, setShowForm] = useState(false);
+  const [editingItem, setEditingItem] = useState(null);
+  const [viewingItem, setViewingItem] = useState<any>(null);
+  const [showDetailsDialog, setShowDetailsDialog] = useState(false);
+
+  useEffect(() => {
+    fetchItems();
+  }, []);
+
+  const fetchItems = async () => {
+    try {
+      const response = await fetch('/api/admin/furniture-interior-decor');
+      const data = await response.json();
+      setItems(Array.isArray(data) ? data : []);
+    } catch (error) {
+      console.error('Error fetching furniture items:', error);
+      setItems([]);
+    }
+  };
+
+  const handleSuccess = () => {
+    setShowForm(false);
+    setEditingItem(null);
+    fetchItems();
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!confirm('Are you sure you want to delete this item?')) return;
+    try {
+      const response = await fetch(`/api/admin/furniture-interior-decor/${id}`, {
+        method: 'DELETE',
+      });
+      if (response.ok) {
+        fetchItems();
+      }
+    } catch (error) {
+      console.error('Error deleting item:', error);
+    }
+  };
+
+  const toggleActive = async (id: string) => {
+    try {
+      const response = await fetch(`/api/admin/furniture-interior-decor/${id}/toggle-active`, {
+        method: 'PATCH',
+      });
+      if (response.ok) {
+        fetchItems();
+      }
+    } catch (error) {
+      console.error('Error toggling active status:', error);
+    }
+  };
+
+  const toggleFeatured = async (id: string) => {
+    try {
+      const response = await fetch(`/api/admin/furniture-interior-decor/${id}/toggle-featured`, {
+        method: 'PATCH',
+      });
+      if (response.ok) {
+        fetchItems();
+      }
+    } catch (error) {
+      console.error('Error toggling featured status:', error);
+    }
+  };
+
+  const handleViewDetails = (item: any) => {
+    setViewingItem(item);
+    setShowDetailsDialog(true);
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-2xl font-bold">Furniture & Interior Decor</h2>
+          <p className="text-muted-foreground">Manage furniture and interior decor listings</p>
+        </div>
+        <Button onClick={() => setShowForm(true)}>
+          <Plus className="w-4 h-4 mr-2" />
+          Add Furniture Item
+        </Button>
+      </div>
+
+      <Dialog open={showForm} onOpenChange={setShowForm}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Add New Furniture/Decor Item</DialogTitle>
+            <DialogDescription>Fill in the details to create a new furniture or decor listing</DialogDescription>
+          </DialogHeader>
+          <FurnitureInteriorDecorForm onSuccess={handleSuccess} />
+        </DialogContent>
+      </Dialog>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+        {Array.isArray(items) && items.map((item) => (
+          <Card key={item.id} className="group hover:shadow-lg transition-shadow">
+            <CardHeader>
+              <div className="flex items-start justify-between">
+                <div className="flex-1">
+                  <CardTitle className="text-lg mb-2">{item.title}</CardTitle>
+                  <div className="flex gap-2 flex-wrap">
+                    <Badge variant="secondary">{item.category}</Badge>
+                    <Badge variant="outline">{item.listingType}</Badge>
+                    {item.condition && <Badge variant="outline">{item.condition}</Badge>}
+                    {item.isFeatured && <Badge className="bg-yellow-500">Featured</Badge>}
+                  </div>
+                </div>
+                <div className="flex gap-1">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8"
+                    onClick={() => handleViewDetails(item)}
+                  >
+                    <Eye className="w-4 h-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 text-destructive"
+                    onClick={() => handleDelete(item.id)}
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                {item.description && (
+                  <p className="text-sm text-muted-foreground line-clamp-2">{item.description}</p>
+                )}
+                <div className="flex items-center justify-between">
+                  <span className="font-semibold text-lg text-primary">₹{item.price}</span>
+                  <Badge variant={item.isActive ? 'default' : 'secondary'}>
+                    {item.isActive ? 'Active' : 'Inactive'}
+                  </Badge>
+                </div>
+                {item.brand && (
+                  <div className="text-sm">
+                    <span className="font-medium">Brand: </span>
+                    <span className="text-muted-foreground">{item.brand}</span>
+                  </div>
+                )}
+                {item.material && (
+                  <div className="text-sm">
+                    <span className="font-medium">Material: </span>
+                    <span className="text-muted-foreground">{item.material}</span>
+                  </div>
+                )}
+              </div>
+            </CardContent>
+            <CardFooter className="pt-0 flex gap-2">
+              <Button
+                variant={item.isActive ? "outline" : "default"}
+                size="sm"
+                className="flex-1"
+                onClick={() => toggleActive(item.id)}
+              >
+                {item.isActive ? "Deactivate" : "Activate"}
+              </Button>
+              <Button
+                variant={item.isFeatured ? "secondary" : "outline"}
+                size="sm"
+                className="flex-1"
+                onClick={() => toggleFeatured(item.id)}
+              >
+                {item.isFeatured ? "Unfeature" : "Feature"}
+              </Button>
+            </CardFooter>
+          </Card>
+        ))}
+      </div>
+
+      {/* View Details Dialog */}
+      <Dialog open={showDetailsDialog} onOpenChange={setShowDetailsDialog}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-2xl">{viewingItem?.title}</DialogTitle>
+            <DialogDescription>Complete furniture/decor item details</DialogDescription>
+          </DialogHeader>
+          {viewingItem && (
+            <div className="space-y-6">
+              <div className="flex gap-2 flex-wrap">
+                <Badge variant="secondary">{viewingItem.category}</Badge>
+                <Badge variant="outline">{viewingItem.listingType}</Badge>
+                {viewingItem.condition && <Badge variant="outline">{viewingItem.condition}</Badge>}
+                {viewingItem.isFeatured && <Badge className="bg-yellow-500">Featured</Badge>}
+              </div>
+
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                <div className="p-4 bg-muted rounded-lg">
+                  <p className="text-sm text-muted-foreground">Price</p>
+                  <p className="text-lg font-bold text-primary">₹{viewingItem.price}</p>
+                </div>
+                {viewingItem.originalPrice && (
+                  <div className="p-4 bg-muted rounded-lg">
+                    <p className="text-sm text-muted-foreground">Original Price</p>
+                    <p className="text-lg font-bold">₹{viewingItem.originalPrice}</p>
+                  </div>
+                )}
+              </div>
+
+              {viewingItem.description && (
+                <div>
+                  <h3 className="font-semibold mb-2">Description</h3>
+                  <p className="text-muted-foreground">{viewingItem.description}</p>
+                </div>
+              )}
+
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                {viewingItem.brand && (
+                  <div>
+                    <span className="font-medium">Brand:</span>
+                    <span className="ml-2 text-muted-foreground">{viewingItem.brand}</span>
+                  </div>
+                )}
+                {viewingItem.material && (
+                  <div>
+                    <span className="font-medium">Material:</span>
+                    <span className="ml-2 text-muted-foreground">{viewingItem.material}</span>
+                  </div>
+                )}
+                {viewingItem.color && (
+                  <div>
+                    <span className="font-medium">Color:</span>
+                    <span className="ml-2 text-muted-foreground">{viewingItem.color}</span>
+                  </div>
+                )}
+                {viewingItem.dimensions && (
+                  <div>
+                    <span className="font-medium">Dimensions:</span>
+                    <span className="ml-2 text-muted-foreground">{viewingItem.dimensions}</span>
+                  </div>
+                )}
+              </div>
+
+              <div className="pt-4 border-t text-sm text-muted-foreground">
+                <p>Created: {new Date(viewingItem.createdAt).toLocaleString()}</p>
+                <p>Last Updated: {new Date(viewingItem.updatedAt).toLocaleString()}</p>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {(!items || items.length === 0) && (
+        <Card>
+          <CardContent className="py-12 text-center">
+            <Building className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
+            <h3 className="text-lg font-semibold mb-2">No Furniture Items Found</h3>
+            <p className="text-muted-foreground mb-4">Start by adding your first furniture/decor item</p>
+            <Button onClick={() => setShowForm(true)}>
+              <Plus className="w-4 h-4 mr-2" />
+              Add Furniture Item
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+
+      
     </div>
   );
 }
