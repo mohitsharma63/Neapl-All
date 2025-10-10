@@ -33,6 +33,7 @@ import {
   computerMobileLaptopRepairServices,
   furnitureInteriorDecor,
   householdServices,
+  eventPlanningServices,
 } from "../shared/schema";
 import { eq, sql, desc } from "drizzle-orm";
 
