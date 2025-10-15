@@ -34,6 +34,8 @@ import {
   furnitureInteriorDecor,
   householdServices,
   eventPlanningServices,
+  fashionBeautyProducts,
+  sareeClothingShopping,
 } from "../shared/schema";
 import { eq, sql, desc } from "drizzle-orm";
 
@@ -1454,6 +1456,141 @@ export function registerRoutes(app: Express) {
       if (deletedRows.length === 0) {
         return res.status(404).json({ message: "Commercial property not found" });
       }
+
+  // Saree/Clothing/Shopping Routes - Full CRUD
+
+  // GET all saree/clothing/shopping items
+  app.get("/api/admin/saree-clothing-shopping", async (_req, res) => {
+    try {
+      const items = await db.query.sareeClothingShopping.findMany({
+        orderBy: desc(sareeClothingShopping.createdAt),
+      });
+      res.json(items);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // GET single item by ID
+  app.get("/api/admin/saree-clothing-shopping/:id", async (req, res) => {
+    try {
+      const item = await db.query.sareeClothingShopping.findFirst({
+        where: eq(sareeClothingShopping.id, req.params.id),
+      });
+
+      if (!item) {
+        return res.status(404).json({ message: "Item not found" });
+      }
+
+      res.json(item);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // CREATE new item
+  app.post("/api/admin/saree-clothing-shopping", async (req, res) => {
+    try {
+      const [newItem] = await db
+        .insert(sareeClothingShopping)
+        .values({
+          ...req.body,
+          country: req.body.country || "India",
+        })
+        .returning();
+
+      res.status(201).json(newItem);
+    } catch (error: any) {
+      console.error("Error creating item:", error);
+      res.status(400).json({ message: error.message });
+    }
+  });
+
+  // UPDATE item
+  app.put("/api/admin/saree-clothing-shopping/:id", async (req, res) => {
+    try {
+      const [updatedItem] = await db
+        .update(sareeClothingShopping)
+        .set({ ...req.body, updatedAt: new Date() })
+        .where(eq(sareeClothingShopping.id, req.params.id))
+        .returning();
+
+      if (!updatedItem) {
+        return res.status(404).json({ message: "Item not found" });
+      }
+
+      res.json(updatedItem);
+    } catch (error: any) {
+      console.error("Error updating item:", error);
+      res.status(400).json({ message: error.message });
+    }
+  });
+
+  // DELETE item
+  app.delete("/api/admin/saree-clothing-shopping/:id", async (req, res) => {
+    try {
+      const deletedRows = await db
+        .delete(sareeClothingShopping)
+        .where(eq(sareeClothingShopping.id, req.params.id))
+        .returning();
+
+      if (deletedRows.length === 0) {
+        return res.status(404).json({ message: "Item not found" });
+      }
+
+      res.json({ message: "Item deleted successfully", id: req.params.id });
+    } catch (error: any) {
+      console.error("Error deleting item:", error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // PATCH - Toggle active status
+  app.patch("/api/admin/saree-clothing-shopping/:id/toggle-active", async (req, res) => {
+    try {
+      const item = await db.query.sareeClothingShopping.findFirst({
+        where: eq(sareeClothingShopping.id, req.params.id),
+      });
+
+      if (!item) {
+        return res.status(404).json({ message: "Item not found" });
+      }
+
+      const [updated] = await db
+        .update(sareeClothingShopping)
+        .set({ isActive: !item.isActive, updatedAt: new Date() })
+        .where(eq(sareeClothingShopping.id, req.params.id))
+        .returning();
+
+      res.json(updated);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // PATCH - Toggle featured status
+  app.patch("/api/admin/saree-clothing-shopping/:id/toggle-featured", async (req, res) => {
+    try {
+      const item = await db.query.sareeClothingShopping.findFirst({
+        where: eq(sareeClothingShopping.id, req.params.id),
+      });
+
+      if (!item) {
+        return res.status(404).json({ message: "Item not found" });
+      }
+
+      const [updated] = await db
+        .update(sareeClothingShopping)
+        .set({ isFeatured: !item.isFeatured, updatedAt: new Date() })
+        .where(eq(sareeClothingShopping.id, req.params.id))
+        .returning();
+
+      res.json(updated);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
 
       res.json({ message: "Commercial property deleted successfully", id: req.params.id });
     } catch (error: any) {
@@ -3640,6 +3777,151 @@ export function registerRoutes(app: Express) {
         .returning();
 
       res.json(updated);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Fashion & Beauty Products Routes - Full CRUD
+
+  // GET all fashion & beauty products
+  app.get("/api/admin/fashion-beauty-products", async (_req, res) => {
+    try {
+      const products = await db.query.fashionBeautyProducts.findMany({
+        orderBy: desc(fashionBeautyProducts.createdAt),
+      });
+      res.json(products);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // GET single fashion & beauty product by ID
+  app.get("/api/admin/fashion-beauty-products/:id", async (req, res) => {
+    try {
+      const product = await db.query.fashionBeautyProducts.findFirst({
+        where: eq(fashionBeautyProducts.id, req.params.id),
+      });
+
+      if (!product) {
+        return res.status(404).json({ message: "Product not found" });
+      }
+
+      res.json(product);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // CREATE new fashion & beauty product
+  app.post("/api/admin/fashion-beauty-products", async (req, res) => {
+    try {
+      const [newProduct] = await db
+        .insert(fashionBeautyProducts)
+        .values({
+          ...req.body,
+          country: req.body.country || "India",
+        })
+        .returning();
+
+      res.status(201).json(newProduct);
+    } catch (error: any) {
+      res.status(400).json({ message: error.message });
+    }
+  });
+
+  // UPDATE fashion & beauty product
+  app.put("/api/admin/fashion-beauty-products/:id", async (req, res) => {
+    try {
+      const [updatedProduct] = await db
+        .update(fashionBeautyProducts)
+        .set({ ...req.body, updatedAt: new Date() })
+        .where(eq(fashionBeautyProducts.id, req.params.id))
+        .returning();
+
+      if (!updatedProduct) {
+        return res.status(404).json({ message: "Product not found" });
+      }
+
+      res.json(updatedProduct);
+    } catch (error: any) {
+      res.status(400).json({ message: error.message });
+    }
+  });
+
+  // DELETE fashion & beauty product
+  app.delete("/api/admin/fashion-beauty-products/:id", async (req, res) => {
+    try {
+      const deletedRows = await db
+        .delete(fashionBeautyProducts)
+        .where(eq(fashionBeautyProducts.id, req.params.id))
+        .returning();
+
+      if (deletedRows.length === 0) {
+        return res.status(404).json({ message: "Product not found" });
+      }
+
+      res.json({ message: "Product deleted successfully", id: req.params.id });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // PATCH - Toggle active status
+  app.patch("/api/admin/fashion-beauty-products/:id/toggle-active", async (req, res) => {
+    try {
+      const product = await db.query.fashionBeautyProducts.findFirst({
+        where: eq(fashionBeautyProducts.id, req.params.id),
+      });
+
+      if (!product) {
+        return res.status(404).json({ message: "Product not found" });
+      }
+
+      const [updated] = await db
+        .update(fashionBeautyProducts)
+        .set({ isActive: !product.isActive, updatedAt: new Date() })
+        .where(eq(fashionBeautyProducts.id, req.params.id))
+        .returning();
+
+      res.json(updated);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // PATCH - Toggle featured status
+  app.patch("/api/admin/fashion-beauty-products/:id/toggle-featured", async (req, res) => {
+    try {
+      const product = await db.query.fashionBeautyProducts.findFirst({
+        where: eq(fashionBeautyProducts.id, req.params.id),
+      });
+
+      if (!product) {
+        return res.status(404).json({ message: "Product not found" });
+      }
+
+      const [updated] = await db
+        .update(fashionBeautyProducts)
+        .set({ isFeatured: !product.isFeatured, updatedAt: new Date() })
+        .where(eq(fashionBeautyProducts.id, req.params.id))
+        .returning();
+
+      res.json(updated);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Household Services Routes - Full CRUD
+
+  // GET all household services
+  app.get("/api/admin/household-services", async (_req, res) => {
+    try {
+      const services = await db.query.householdServices.findMany({
+        orderBy: desc(householdServices.createdAt),
+      });
+      res.json(services);
     } catch (error: any) {
       res.status(500).json({ message: error.message });
     }

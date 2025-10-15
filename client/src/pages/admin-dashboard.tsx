@@ -71,8 +71,10 @@ import SecondHandPhonesTabletsAccessoriesForm from "@/components/second-hand-pho
 import ComputerMobileLaptopRepairServicesForm from "@/components/computer-mobile-laptop-repair-services-form";
 import FurnitureInteriorDecorForm from "@/components/furniture-interior-decor-form";
 import HouseholdServicesForm from "@/components/household-services-form";
-
 import { EventDecorationServicesForm } from "@/components/event-decoration-services-form";
+import FashionBeautyProductsForm from "@/components/fashion-beauty-products-form";
+import SareeClothingShoppingForm from "@/components/saree-clothing-shopping-form"; // Assuming this component exists
+import PharmacyMedicalStoresForm from "@/components/pharmacy-medical-stores-form";
 
 function EventDecorationServicesSection() {
   return (
@@ -87,6 +89,537 @@ function EventDecorationServicesSection() {
     </div>
   );
 }
+
+// Fashion & Beauty Products Section Component
+function FashionBeautyProductsSection() {
+  const [products, setProducts] = useState<any[]>([]);
+  const [showForm, setShowForm] = useState(false);
+  const [editingProduct, setEditingProduct] = useState(null);
+
+  useEffect(() => {
+    fetchProducts();
+  }, []);
+
+  const fetchProducts = async () => {
+    try {
+      const response = await fetch('/api/admin/fashion-beauty-products');
+      const data = await response.json();
+      setProducts(Array.isArray(data) ? data : []);
+    } catch (error) {
+      console.error('Error fetching fashion & beauty products:', error);
+      setProducts([]);
+    }
+  };
+
+  const handleSuccess = () => {
+    setShowForm(false);
+    setEditingProduct(null);
+    fetchProducts();
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!confirm('Are you sure you want to delete this product?')) return;
+    try {
+      const response = await fetch(`/api/admin/fashion-beauty-products/${id}`, {
+        method: 'DELETE',
+      });
+      if (response.ok) {
+        fetchProducts();
+      }
+    } catch (error) {
+      console.error('Error deleting product:', error);
+    }
+  };
+
+  const toggleActive = async (id: string) => {
+    try {
+      const response = await fetch(`/api/admin/fashion-beauty-products/${id}/toggle-active`, {
+        method: 'PATCH',
+      });
+      if (response.ok) {
+        fetchProducts();
+      }
+    } catch (error) {
+      console.error('Error toggling active status:', error);
+    }
+  };
+
+  const toggleFeatured = async (id: string) => {
+    try {
+      const response = await fetch(`/api/admin/fashion-beauty-products/${id}/toggle-featured`, {
+        method: 'PATCH',
+      });
+      if (response.ok) {
+        fetchProducts();
+      }
+    } catch (error) {
+      console.error('Error toggling featured status:', error);
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h2 className="text-2xl font-bold">Fashion & Beauty Products</h2>
+          <p className="text-muted-foreground">Manage fashion items, clothing, accessories, and beauty products</p>
+        </div>
+        <Button onClick={() => setShowForm(true)}>
+          <Plus className="w-4 h-4 mr-2" />
+          Add Product
+        </Button>
+      </div>
+
+      <Dialog open={showForm} onOpenChange={setShowForm}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Add New Fashion & Beauty Product</DialogTitle>
+            <DialogDescription>Fill in the details to create a new fashion or beauty product listing</DialogDescription>
+          </DialogHeader>
+          <FashionBeautyProductsForm onSuccess={handleSuccess} />
+        </DialogContent>
+      </Dialog>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+        {Array.isArray(products) && products.map((product) => (
+          <Card key={product.id} className="group hover:shadow-lg transition-shadow">
+            <CardHeader>
+              <div className="flex items-start justify-between">
+                <div className="flex-1">
+                  <CardTitle className="text-lg mb-2">{product.title}</CardTitle>
+                  <div className="flex gap-2 flex-wrap">
+                    <Badge variant="secondary">{product.category}</Badge>
+                    <Badge variant="outline">{product.listingType}</Badge>
+                    {product.isFeatured && <Badge className="bg-yellow-500">Featured</Badge>}
+                  </div>
+                </div>
+                <div className="flex gap-1">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 text-destructive"
+                    onClick={() => handleDelete(product.id)}
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                {product.description && (
+                  <p className="text-sm text-muted-foreground line-clamp-2">{product.description}</p>
+                )}
+                <div className="flex items-center justify-between">
+                  <span className="font-semibold text-lg text-primary">₹{product.price}</span>
+                  <Badge variant={product.isActive ? 'default' : 'secondary'}>
+                    {product.isActive ? 'Active' : 'Inactive'}
+                  </Badge>
+                </div>
+                {product.brand && (
+                  <div className="text-sm">
+                    <span className="font-medium">Brand: </span>
+                    <span className="text-muted-foreground">{product.brand}</span>
+                  </div>
+                )}
+              </div>
+            </CardContent>
+            <CardFooter className="pt-0 flex gap-2">
+              <Button
+                variant={product.isActive ? "outline" : "default"}
+                size="sm"
+                className="flex-1"
+                onClick={() => toggleActive(product.id)}
+              >
+                {product.isActive ? "Deactivate" : "Activate"}
+              </Button>
+              <Button
+                variant={product.isFeatured ? "secondary" : "outline"}
+                size="sm"
+                className="flex-1"
+                onClick={() => toggleFeatured(product.id)}
+              >
+                {product.isFeatured ? "Unfeature" : "Feature"}
+              </Button>
+            </CardFooter>
+          </Card>
+        ))}
+      </div>
+
+      {(!products || products.length === 0) && (
+        <Card>
+          <CardContent className="py-12 text-center">
+            <Building className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
+            <h3 className="text-lg font-semibold mb-2">No Products Found</h3>
+            <p className="text-muted-foreground mb-4">Start by adding your first fashion or beauty product</p>
+            <Button onClick={() => setShowForm(true)}>
+              <Plus className="w-4 h-4 mr-2" />
+              Add Product
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+    </div>
+  );
+}
+
+// Saree/Clothing/Shopping Section Component
+function SareeClothingShoppingSection() {
+  const [products, setProducts] = useState<any[]>([]);
+  const [showForm, setShowForm] = useState(false);
+  const [editingProduct, setEditingProduct] = useState(null);
+
+  useEffect(() => {
+    fetchProducts();
+  }, []);
+
+  const fetchProducts = async () => {
+    try {
+      const response = await fetch('/api/admin/saree-clothing-shopping');
+      const data = await response.json();
+      setProducts(Array.isArray(data) ? data : []);
+    } catch (error) {
+      console.error('Error fetching saree/clothing/shopping products:', error);
+      setProducts([]);
+    }
+  };
+
+  const handleSuccess = () => {
+    setShowForm(false);
+    setEditingProduct(null);
+    fetchProducts();
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!confirm('Are you sure you want to delete this product?')) return;
+    try {
+      const response = await fetch(`/api/admin/saree-clothing-shopping/${id}`, {
+        method: 'DELETE',
+      });
+      if (response.ok) {
+        fetchProducts();
+      }
+    } catch (error) {
+      console.error('Error deleting product:', error);
+    }
+  };
+
+  const toggleActive = async (id: string) => {
+    try {
+      const response = await fetch(`/api/admin/saree-clothing-shopping/${id}/toggle-active`, {
+        method: 'PATCH',
+      });
+      if (response.ok) {
+        fetchProducts();
+      }
+    } catch (error) {
+      console.error('Error toggling active status:', error);
+    }
+  };
+
+  const toggleFeatured = async (id: string) => {
+    try {
+      const response = await fetch(`/api/admin/saree-clothing-shopping/${id}/toggle-featured`, {
+        method: 'PATCH',
+      });
+      if (response.ok) {
+        fetchProducts();
+      }
+    } catch (error) {
+      console.error('Error toggling featured status:', error);
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h2 className="text-2xl font-bold">Saree, Clothing & Shopping</h2>
+          <p className="text-muted-foreground">Manage saree, clothing, and shopping products</p>
+        </div>
+        <Button onClick={() => setShowForm(true)}>
+          <Plus className="w-4 h-4 mr-2" />
+          Add Product
+        </Button>
+      </div>
+
+      <Dialog open={showForm} onOpenChange={setShowForm}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Add New Saree/Clothing/Shopping Product</DialogTitle>
+            <DialogDescription>Fill in the details to create a new product listing</DialogDescription>
+          </DialogHeader>
+          <SareeClothingShoppingForm onSuccess={handleSuccess} />
+        </DialogContent>
+      </Dialog>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+        {Array.isArray(products) && products.map((product) => (
+          <Card key={product.id} className="group hover:shadow-lg transition-shadow">
+            <CardHeader>
+              <div className="flex items-start justify-between">
+                <div className="flex-1">
+                  <CardTitle className="text-lg mb-2">{product.title}</CardTitle>
+                  <div className="flex gap-2 flex-wrap">
+                    <Badge variant="secondary">{product.category}</Badge>
+                    <Badge variant="outline">{product.listingType}</Badge>
+                    {product.isFeatured && <Badge className="bg-yellow-500">Featured</Badge>}
+                  </div>
+                </div>
+                <div className="flex gap-1">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 text-destructive"
+                    onClick={() => handleDelete(product.id)}
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                {product.description && (
+                  <p className="text-sm text-muted-foreground line-clamp-2">{product.description}</p>
+                )}
+                <div className="flex items-center justify-between">
+                  <span className="font-semibold text-lg text-primary">₹{product.price}</span>
+                  <Badge variant={product.isActive ? 'default' : 'secondary'}>
+                    {product.isActive ? 'Active' : 'Inactive'}
+                  </Badge>
+                </div>
+                {product.brand && (
+                  <div className="text-sm">
+                    <span className="font-medium">Brand: </span>
+                    <span className="text-muted-foreground">{product.brand}</span>
+                  </div>
+                )}
+              </div>
+            </CardContent>
+            <CardFooter className="pt-0 flex gap-2">
+              <Button
+                variant={product.isActive ? "outline" : "default"}
+                size="sm"
+                className="flex-1"
+                onClick={() => toggleActive(product.id)}
+              >
+                {product.isActive ? "Deactivate" : "Activate"}
+              </Button>
+              <Button
+                variant={product.isFeatured ? "secondary" : "outline"}
+                size="sm"
+                className="flex-1"
+                onClick={() => toggleFeatured(product.id)}
+              >
+                {product.isFeatured ? "Unfeature" : "Feature"}
+              </Button>
+            </CardFooter>
+          </Card>
+        ))}
+      </div>
+
+      {(!products || products.length === 0) && (
+        <Card>
+          <CardContent className="py-12 text-center">
+            <Building className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
+            <h3 className="text-lg font-semibold mb-2">No Products Found</h3>
+            <p className="text-muted-foreground mb-4">Start by adding your first saree, clothing, or shopping product</p>
+            <Button onClick={() => setShowForm(true)}>
+              <Plus className="w-4 h-4 mr-2" />
+              Add Product
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+    </div>
+  );
+}
+
+// Pharmacy & Medical Stores Section Component
+function PharmacyMedicalStoresSection() {
+  const [stores, setStores] = useState<any[]>([]);
+  const [showForm, setShowForm] = useState(false);
+  const [editingStore, setEditingStore] = useState(null);
+
+  useEffect(() => {
+    fetchStores();
+  }, []);
+
+  const fetchStores = async () => {
+    try {
+      const response = await fetch('/api/admin/pharmacy-medical-stores');
+      const data = await response.json();
+      setStores(Array.isArray(data) ? data : []);
+    } catch (error) {
+      console.error('Error fetching pharmacy & medical stores:', error);
+      setStores([]);
+    }
+  };
+
+  const handleSuccess = () => {
+    setShowForm(false);
+    setEditingStore(null);
+    fetchStores();
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!confirm('Are you sure you want to delete this store?')) return;
+    try {
+      const response = await fetch(`/api/admin/pharmacy-medical-stores/${id}`, {
+        method: 'DELETE',
+      });
+      if (response.ok) {
+        fetchStores();
+      }
+    } catch (error) {
+      console.error('Error deleting store:', error);
+    }
+  };
+
+  const toggleActive = async (id: string) => {
+    try {
+      const response = await fetch(`/api/admin/pharmacy-medical-stores/${id}/toggle-active`, {
+        method: 'PATCH',
+      });
+      if (response.ok) {
+        fetchStores();
+      }
+    } catch (error) {
+      console.error('Error toggling active status:', error);
+    }
+  };
+
+  const toggleFeatured = async (id: string) => {
+    try {
+      const response = await fetch(`/api/admin/pharmacy-medical-stores/${id}/toggle-featured`, {
+        method: 'PATCH',
+      });
+      if (response.ok) {
+        fetchStores();
+      }
+    } catch (error) {
+      console.error('Error toggling featured status:', error);
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h2 className="text-2xl font-bold">Pharmacy & Medical Stores</h2>
+          <p className="text-muted-foreground">Manage pharmacy and medical store listings</p>
+        </div>
+        <Button onClick={() => setShowForm(true)}>
+          <Plus className="w-4 h-4 mr-2" />
+          Add Store
+        </Button>
+      </div>
+
+      <Dialog open={showForm} onOpenChange={setShowForm}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Add New Pharmacy/Medical Store</DialogTitle>
+            <DialogDescription>Fill in the details to create a new pharmacy or medical store listing</DialogDescription>
+          </DialogHeader>
+          <PharmacyMedicalStoresForm onSuccess={handleSuccess} />
+        </DialogContent>
+      </Dialog>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+        {Array.isArray(stores) && stores.map((store) => (
+          <Card key={store.id} className="group hover:shadow-lg transition-shadow">
+            <CardHeader>
+              <div className="flex items-start justify-between">
+                <div className="flex-1">
+                  <CardTitle className="text-lg mb-2">{store.storeName}</CardTitle>
+                  <div className="flex gap-2 flex-wrap">
+                    <Badge variant="secondary">{store.storeType}</Badge>
+                    {store.listingType && <Badge variant="outline">{store.listingType}</Badge>}
+                    {store.isFeatured && <Badge className="bg-yellow-500">Featured</Badge>}
+                  </div>
+                </div>
+                <div className="flex gap-1">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 text-destructive"
+                    onClick={() => handleDelete(store.id)}
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                {store.description && (
+                  <p className="text-sm text-muted-foreground line-clamp-2">{store.description}</p>
+                )}
+                <div className="flex items-center justify-between">
+                  <Badge variant={store.isActive ? 'default' : 'secondary'}>
+                    {store.isActive ? 'Active' : 'Inactive'}
+                  </Badge>
+                </div>
+                {store.ownerName && (
+                  <div className="text-sm">
+                    <span className="font-medium">Owner: </span>
+                    <span className="text-muted-foreground">{store.ownerName}</span>
+                  </div>
+                )}
+                {store.contactPhone && (
+                  <div className="text-sm">
+                    <span className="font-medium">Phone: </span>
+                    <span className="text-muted-foreground">{store.contactPhone}</span>
+                  </div>
+                )}
+                {(store.city || store.area) && (
+                  <div className="text-sm text-muted-foreground flex items-center gap-1">
+                    <MapPin className="w-3 h-3" />
+                    {[store.area, store.city].filter(Boolean).join(", ")}
+                  </div>
+                )}
+              </div>
+            </CardContent>
+            <CardFooter className="pt-0 flex gap-2">
+              <Button
+                variant={store.isActive ? "outline" : "default"}
+                size="sm"
+                className="flex-1"
+                onClick={() => toggleActive(store.id)}
+              >
+                {store.isActive ? "Deactivate" : "Activate"}
+              </Button>
+              <Button
+                variant={store.isFeatured ? "secondary" : "outline"}
+                size="sm"
+                className="flex-1"
+                onClick={() => toggleFeatured(store.id)}
+              >
+                {store.isFeatured ? "Unfeature" : "Feature"}
+              </Button>
+            </CardFooter>
+          </Card>
+        ))}
+      </div>
+
+      {(!stores || stores.length === 0) && (
+        <Card>
+          <CardContent className="py-12 text-center">
+            <Building className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
+            <h3 className="text-lg font-semibold mb-2">No Stores Found</h3>
+            <p className="text-muted-foreground mb-4">Start by adding your first pharmacy or medical store</p>
+            <Button onClick={() => setShowForm(true)}>
+              <Plus className="w-4 h-4 mr-2" />
+              Add Store
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+    </div>
+  );
+}
+
 
 interface AdminCategory {
   id: string;
@@ -2870,6 +3403,11 @@ export default function AdminDashboard() {
       case "rental-–-rooms,-flats,-apartments":
       case "rental-listings":
         return <RentalListingsSection />;
+      case "saree-clothing-shopping":
+        return <SareeClothingShoppingSection />;
+      case "fashion-&-beauty-products":
+      case "fashion-beauty-products":
+        return <FashionBeautyProductsSection />;
       case "cars-&-bikes":
       case "cars-bikes":
         return <CarsBikesSection />;
@@ -2909,6 +3447,9 @@ export default function AdminDashboard() {
       case "event-&-decoration-services":
       case "event-decoration-services":
         return <EventDecorationServicesSection />;
+      case "pharmacy-&-medical-stores":
+      case "pharmacy-medical-stores":
+        return <PharmacyMedicalStoresSection />;
       default:
         return <DashboardSection />;
     }
