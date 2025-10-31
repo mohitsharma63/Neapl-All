@@ -1925,8 +1925,18 @@ export function registerRoutes(app: Express) {
         isFeatured,
       } = req.body;
 
-      // Convert date string to Date object if provided
-      const insuranceValidUntilDate = insuranceValidUntil ? new Date(insuranceValidUntil) : null;
+      // Convert date string to Date object if provided, handle invalid dates
+      let insuranceValidUntilDate = null;
+      if (insuranceValidUntil) {
+        try {
+          insuranceValidUntilDate = new Date(insuranceValidUntil);
+          if (isNaN(insuranceValidUntilDate.getTime())) {
+            insuranceValidUntilDate = null;
+          }
+        } catch (e) {
+          insuranceValidUntilDate = null;
+        }
+      }
 
       const updateData: any = {
         updatedAt: new Date(),
@@ -1996,6 +2006,10 @@ export function registerRoutes(app: Express) {
       res.status(500).json({ message: error.message });
     }
   });
+
+
+
+  
 
   // PATCH - Toggle active status
   app.patch("/api/admin/cars-bikes/:id/toggle-active", async (req, res) => {
@@ -2575,11 +2589,47 @@ export function registerRoutes(app: Express) {
   });
 
   app.put("/api/car-bike-rentals/:id", async (req, res) => {
-    const updated = await db.update(carBikeRentals).set(req.body).where(eq(carBikeRentals.id, req.params.id)).returning();
-    if (updated.length === 0) {
-      return res.status(404).json({ error: "Rental not found" });
+    try {
+      // Sanitize the update data to ensure proper Date handling
+      const {
+        insuranceValidUntil,
+        availableFrom,
+        ...restData
+      } = req.body;
+
+      const updateData: any = {
+        ...restData,
+        updatedAt: new Date(),
+      };
+
+      // Handle timestamp fields - convert to Date if valid, otherwise set to null
+      if (insuranceValidUntil !== undefined) {
+        try {
+          const date = new Date(insuranceValidUntil);
+          updateData.insuranceValidUntil = isNaN(date.getTime()) ? null : date;
+        } catch {
+          updateData.insuranceValidUntil = null;
+        }
+      }
+
+      if (availableFrom !== undefined) {
+        try {
+          const date = new Date(availableFrom);
+          updateData.availableFrom = isNaN(date.getTime()) ? null : date;
+        } catch {
+          updateData.availableFrom = null;
+        }
+      }
+
+      const updated = await db.update(carBikeRentals).set(updateData).where(eq(carBikeRentals.id, req.params.id)).returning();
+      if (updated.length === 0) {
+        return res.status(404).json({ error: "Rental not found" });
+      }
+      res.json(updated[0]);
+    } catch (error: any) {
+      console.error("Error updating car-bike rental:", error);
+      res.status(500).json({ error: error.message });
     }
-    res.json(updated[0]);
   });
 
   app.delete("/api/car-bike-rentals/:id", async (req, res) => {
