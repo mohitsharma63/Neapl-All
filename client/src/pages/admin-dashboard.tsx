@@ -4290,12 +4290,7 @@ function SecondHandCarsBikesSection() {
 function CarBikeRentalsSection() {
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h2 className="text-2xl font-bold">Car & Bike Rentals</h2>
-          <p className="text-muted-foreground">Manage vehicle rental listings</p>
-        </div>
-      </div>
+     
       <CarBikeRentalsForm />
     </div>
   );
