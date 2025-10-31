@@ -75,6 +75,184 @@ import { EventDecorationServicesForm } from "@/components/event-decoration-servi
 import FashionBeautyProductsForm from "@/components/fashion-beauty-products-form";
 import SareeClothingShoppingForm from "@/components/saree-clothing-shopping-form"; // Assuming this component exists
 import PharmacyMedicalStoresForm from "@/components/pharmacy-medical-stores-form";
+import EbooksOnlineCoursesForm from "@/components/ebooks-online-courses-form";
+import CricketSportsTrainingForm from "@/components/cricket-sports-training-form"; // Assuming this component exists
+
+// Educational Consultancy - Study Abroad Admissions Section Component
+function EducationalConsultancyStudyAbroadSection() {
+  const [consultancies, setConsultancies] = useState<any[]>([]);
+  const [showForm, setShowForm] = useState(false);
+  const [editingConsultancy, setEditingConsultancy] = useState(null);
+
+  useEffect(() => {
+    fetchConsultancies();
+  }, []);
+
+  const fetchConsultancies = async () => {
+    try {
+      const response = await fetch('/api/admin/educational-consultancy-study-abroad');
+      const data = await response.json();
+      setConsultancies(Array.isArray(data) ? data : []);
+    } catch (error) {
+      console.error('Error fetching educational consultancies:', error);
+      setConsultancies([]);
+    }
+  };
+
+  const handleSuccess = () => {
+    setShowForm(false);
+    setEditingConsultancy(null);
+    fetchConsultancies();
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!confirm('Are you sure you want to delete this consultancy?')) return;
+    try {
+      const response = await fetch(`/api/admin/educational-consultancy-study-abroad/${id}`, {
+        method: 'DELETE',
+      });
+      if (response.ok) {
+        fetchConsultancies();
+      }
+    } catch (error) {
+      console.error('Error deleting consultancy:', error);
+    }
+  };
+
+  const toggleActive = async (id: string) => {
+    try {
+      const response = await fetch(`/api/admin/educational-consultancy-study-abroad/${id}/toggle-active`, {
+        method: 'PATCH',
+      });
+      if (response.ok) {
+        fetchConsultancies();
+      }
+    } catch (error) {
+      console.error('Error toggling active status:', error);
+    }
+  };
+
+  const toggleFeatured = async (id: string) => {
+    try {
+      const response = await fetch(`/api/admin/educational-consultancy-study-abroad/${id}/toggle-featured`, {
+        method: 'PATCH',
+      });
+      if (response.ok) {
+        fetchConsultancies();
+      }
+    } catch (error) {
+      console.error('Error toggling featured status:', error);
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-2xl font-bold">Educational Consultancy & Study Abroad Admissions</h2>
+          <p className="text-muted-foreground">Manage educational consultancy and study abroad admissions</p>
+        </div>
+        <Button onClick={() => setShowForm(true)}>
+          <Plus className="w-4 h-4 mr-2" />
+          Add Consultancy
+        </Button>
+      </div>
+
+      <Dialog open={showForm} onOpenChange={setShowForm}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Add New Educational Consultancy/Study Abroad Listing</DialogTitle>
+            <DialogDescription>Fill in the details to create a new listing</DialogDescription>
+          </DialogHeader>
+          {/* Assuming EducationalConsultancyStudyAbroadForm exists, similar to other form components */}
+          {/* <EducationalConsultancyStudyAbroadForm onSuccess={handleSuccess} /> */}
+          <p>Educational Consultancy Study Abroad Form Placeholder</p>
+        </DialogContent>
+      </Dialog>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+        {Array.isArray(consultancies) && consultancies.map((consultancy) => (
+          <Card key={consultancy.id} className="group hover:shadow-lg transition-shadow">
+            <CardHeader>
+              <div className="flex items-start justify-between">
+                <div className="flex-1">
+                  <CardTitle className="text-lg mb-2">{consultancy.name}</CardTitle>
+                  <div className="flex gap-2 flex-wrap">
+                    <Badge variant="secondary">{consultancy.specialization}</Badge>
+                    <Badge variant="outline">{consultancy.country}</Badge>
+                    {consultancy.isFeatured && <Badge className="bg-yellow-500">Featured</Badge>}
+                  </div>
+                </div>
+                <div className="flex gap-1">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 text-destructive"
+                    onClick={() => handleDelete(consultancy.id)}
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                {consultancy.description && (
+                  <p className="text-sm text-muted-foreground line-clamp-2">{consultancy.description}</p>
+                )}
+                <div className="flex items-center justify-between">
+                  <span className="font-semibold text-lg text-primary">Contact: {consultancy.contactPhone || consultancy.contactEmail}</span>
+                  <Badge variant={consultancy.isActive ? 'default' : 'secondary'}>
+                    {consultancy.isActive ? 'Active' : 'Inactive'}
+                  </Badge>
+                </div>
+                {consultancy.city && (
+                  <div className="text-sm text-muted-foreground flex items-center gap-1">
+                    <MapPin className="w-3 h-3" />
+                    {consultancy.city}, {consultancy.country}
+                  </div>
+                )}
+              </div>
+            </CardContent>
+            <CardFooter className="pt-0 flex gap-2">
+              <Button
+                variant={consultancy.isActive ? "outline" : "default"}
+                size="sm"
+                className="flex-1"
+                onClick={() => toggleActive(consultancy.id)}
+              >
+                {consultancy.isActive ? "Deactivate" : "Activate"}
+              </Button>
+              <Button
+                variant={consultancy.isFeatured ? "secondary" : "outline"}
+                size="sm"
+                className="flex-1"
+                onClick={() => toggleFeatured(consultancy.id)}
+              >
+                {consultancy.isFeatured ? "Unfeature" : "Feature"}
+              </Button>
+            </CardFooter>
+          </Card>
+        ))}
+      </div>
+
+      {(!consultancies || consultancies.length === 0) && (
+        <Card>
+          <CardContent className="py-12 text-center">
+            <Building className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
+            <h3 className="text-lg font-semibold mb-2">No Consultancies Found</h3>
+            <p className="text-muted-foreground mb-4">Start by adding your first educational consultancy/study abroad listing</p>
+            <Button onClick={() => setShowForm(true)}>
+              <Plus className="w-4 h-4 mr-2" />
+              Add Consultancy
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+    </div>
+  );
+}
+
 
 function EventDecorationServicesSection() {
   return (
@@ -612,6 +790,612 @@ function PharmacyMedicalStoresSection() {
             <Button onClick={() => setShowForm(true)}>
               <Plus className="w-4 h-4 mr-2" />
               Add Store
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+    </div>
+  );
+}
+
+// E-Books & Online Courses Section Component
+function EbooksOnlineCoursesSection() {
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h2 className="text-2xl font-bold">E-Books & Online Courses</h2>
+          <p className="text-muted-foreground">Manage digital educational content and online learning resources</p>
+        </div>
+      </div>
+      <EbooksOnlineCoursesForm />
+    </div>
+  );
+}
+
+// Cricket Sports Training Section Component
+function CricketSportsTrainingSection() {
+  const [training, setTraining] = useState<any[]>([]);
+  const [showForm, setShowForm] = useState(false);
+  const [editingTraining, setEditingTraining] = useState(null);
+
+  useEffect(() => {
+    fetchTraining();
+  }, []);
+
+  const fetchTraining = async () => {
+    try {
+      const response = await fetch('/api/admin/cricket-sports-training');
+      const data = await response.json();
+      setTraining(Array.isArray(data) ? data : []);
+    } catch (error) {
+      console.error('Error fetching cricket sports training:', error);
+      setTraining([]);
+    }
+  };
+
+  const handleSuccess = () => {
+    setShowForm(false);
+    setEditingTraining(null);
+    fetchTraining();
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!confirm('Are you sure you want to delete this training program?')) return;
+    try {
+      const response = await fetch(`/api/admin/cricket-sports-training/${id}`, {
+        method: 'DELETE',
+      });
+      if (response.ok) {
+        fetchTraining();
+      }
+    } catch (error) {
+      console.error('Error deleting training program:', error);
+    }
+  };
+
+  const toggleActive = async (id: string) => {
+    try {
+      const response = await fetch(`/api/admin/cricket-sports-training/${id}/toggle-active`, {
+        method: 'PATCH',
+      });
+      if (response.ok) {
+        fetchTraining();
+      }
+    } catch (error) {
+      console.error('Error toggling active status:', error);
+    }
+  };
+
+  const toggleFeatured = async (id: string) => {
+    try {
+      const response = await fetch(`/api/admin/cricket-sports-training/${id}/toggle-featured`, {
+        method: 'PATCH',
+      });
+      if (response.ok) {
+        fetchTraining();
+      }
+    } catch (error) {
+      console.error('Error toggling featured status:', error);
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h2 className="text-2xl font-bold">Cricket Sports Training</h2>
+          <p className="text-muted-foreground">Manage cricket coaching and training programs</p>
+        </div>
+        <Button onClick={() => setShowForm(true)}>
+          <Plus className="w-4 h-4 mr-2" />
+          Add Training Program
+        </Button>
+      </div>
+
+      <Dialog open={showForm} onOpenChange={setShowForm}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Add New Cricket Sports Training Program</DialogTitle>
+            <DialogDescription>Fill in the details to create a new training program listing</DialogDescription>
+          </DialogHeader>
+          <CricketSportsTrainingForm onSuccess={handleSuccess} />
+        </DialogContent>
+      </Dialog>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+        {Array.isArray(training) && training.map((program) => (
+          <Card key={program.id} className="group hover:shadow-lg transition-shadow">
+            <CardHeader>
+              <div className="flex items-start justify-between">
+                <div className="flex-1">
+                  <CardTitle className="text-lg mb-2">{program.title}</CardTitle>
+                  <div className="flex gap-2 flex-wrap">
+                    <Badge variant="secondary">{program.level}</Badge>
+                    <Badge variant="outline">{program.duration}</Badge>
+                    {program.isFeatured && <Badge className="bg-yellow-500">Featured</Badge>}
+                  </div>
+                </div>
+                <div className="flex gap-1">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 text-destructive"
+                    onClick={() => handleDelete(program.id)}
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                {program.description && (
+                  <p className="text-sm text-muted-foreground line-clamp-2">{program.description}</p>
+                )}
+                <div className="flex items-center justify-between">
+                  <span className="font-semibold text-lg text-primary">₹{program.price}</span>
+                  <Badge variant={program.isActive ? 'default' : 'secondary'}>
+                    {program.isActive ? 'Active' : 'Inactive'}
+                  </Badge>
+                </div>
+                {program.coachName && (
+                  <div className="text-sm">
+                    <span className="font-medium">Coach: </span>
+                    <span className="text-muted-foreground">{program.coachName}</span>
+                  </div>
+                )}
+              </div>
+            </CardContent>
+            <CardFooter className="pt-0 flex gap-2">
+              <Button
+                variant={program.isActive ? "outline" : "default"}
+                size="sm"
+                className="flex-1"
+                onClick={() => toggleActive(program.id)}
+              >
+                {program.isActive ? "Deactivate" : "Activate"}
+              </Button>
+              <Button
+                variant={program.isFeatured ? "secondary" : "outline"}
+                size="sm"
+                className="flex-1"
+                onClick={() => toggleFeatured(program.id)}
+              >
+                {program.isFeatured ? "Unfeature" : "Feature"}
+              </Button>
+            </CardFooter>
+          </Card>
+        ))}
+      </div>
+
+      {(!training || training.length === 0) && (
+        <Card>
+          <CardContent className="py-12 text-center">
+            <Building className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
+            <h3 className="text-lg font-semibold mb-2">No Training Programs Found</h3>
+            <p className="text-muted-foreground mb-4">Start by adding your first cricket sports training program</p>
+            <Button onClick={() => setShowForm(true)}>
+              <Plus className="w-4 h-4 mr-2" />
+              Add Training Program
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+    </div>
+  );
+}
+
+
+// Household Services Section Component
+function HouseholdServicesSection() {
+  const [services, setServices] = useState<any[]>([]);
+  const [showForm, setShowForm] = useState(false);
+  const [viewingService, setViewingService] = useState<any>(null);
+  const [showDetailsDialog, setShowDetailsDialog] = useState(false);
+
+  useEffect(() => {
+    fetchServices();
+  }, []);
+
+  const fetchServices = async () => {
+    try {
+      const response = await fetch('/api/admin/household-services');
+      const data = await response.json();
+      setServices(Array.isArray(data) ? data : []);
+    } catch (error) {
+      console.error('Error fetching household services:', error);
+      setServices([]);
+    }
+  };
+
+  const handleSuccess = () => {
+    setShowForm(false);
+    fetchServices();
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!confirm('Are you sure you want to delete this service?')) return;
+    try {
+      const response = await fetch(`/api/admin/household-services/${id}`, {
+        method: 'DELETE',
+      });
+      if (response.ok) {
+        fetchServices();
+      }
+    } catch (error) {
+      console.error('Error deleting service:', error);
+    }
+  };
+
+  const toggleActive = async (id: string) => {
+    try {
+      const response = await fetch(`/api/admin/household-services/${id}/toggle-active`, {
+        method: 'PATCH',
+      });
+      if (response.ok) {
+        fetchServices();
+      }
+    } catch (error) {
+      console.error('Error toggling active status:', error);
+    }
+  };
+
+  const toggleFeatured = async (id: string) => {
+    try {
+      const response = await fetch(`/api/admin/household-services/${id}/toggle-featured`, {
+        method: 'PATCH',
+      });
+      if (response.ok) {
+        fetchServices();
+      }
+    } catch (error) {
+      console.error('Error toggling featured status:', error);
+    }
+  };
+
+  const handleViewDetails = (service: any) => {
+    setViewingService(service);
+    setShowDetailsDialog(true);
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-2xl font-bold">Household Services</h2>
+          <p className="text-muted-foreground">Manage household service providers</p>
+        </div>
+        <Button onClick={() => setShowForm(true)}>
+          <Plus className="w-4 h-4 mr-2" />
+          Add Service
+        </Button>
+      </div>
+
+      <Dialog open={showForm} onOpenChange={setShowForm}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Add New Household Service</DialogTitle>
+            <DialogDescription>Fill in the details to create a new household service listing</DialogDescription>
+          </DialogHeader>
+          <HouseholdServicesForm onSuccess={handleSuccess} />
+        </DialogContent>
+      </Dialog>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+        {Array.isArray(services) && services.map((service) => (
+          <Card key={service.id} className="group hover:shadow-lg transition-shadow">
+            <CardHeader>
+              <div className="flex items-start justify-between">
+                <div className="flex-1">
+                  <CardTitle className="text-lg mb-2">{service.title}</CardTitle>
+                  <div className="flex gap-2 flex-wrap">
+                    <Badge variant="secondary">{service.serviceType}</Badge>
+                    {service.serviceCategory && <Badge variant="outline">{service.serviceCategory}</Badge>}
+                    {service.isFeatured && <Badge className="bg-yellow-500">Featured</Badge>}
+                  </div>
+                </div>
+                <div className="flex gap-1">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8"
+                    onClick={() => handleViewDetails(service)}
+                  >
+                    <Eye className="w-4 h-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 text-destructive"
+                    onClick={() => handleDelete(service.id)}
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                {service.description && (
+                  <p className="text-sm text-muted-foreground line-clamp-2">{service.description}</p>
+                )}
+                <div className="flex items-center justify-between">
+                  <div>
+                    <span className="font-semibold text-lg text-primary">₹{service.baseServiceCharge}</span>
+                    {service.hourlyRate && (
+                      <span className="text-sm text-muted-foreground ml-2">| ₹{service.hourlyRate}/hr</span>
+                    )}
+                  </div>
+                  <Badge variant={service.isActive ? 'default' : 'secondary'}>
+                    {service.isActive ? 'Active' : 'Inactive'}
+                  </Badge>
+                </div>
+
+                <div className="flex flex-wrap gap-1">
+                  {service.emergencyService && <Badge variant="destructive" className="text-xs">Emergency</Badge>}
+                  {service.sameDayService && <Badge variant="default" className="text-xs">Same Day</Badge>}
+                  {service.available24_7 && <Badge variant="default" className="text-xs">24/7</Badge>}
+                  {service.freeEstimate && <Badge variant="outline" className="text-xs">Free Estimate</Badge>}
+                  {service.warrantyProvided && <Badge variant="outline" className="text-xs">Warranty</Badge>}
+                  {service.certifiedProfessional && <Badge variant="secondary" className="text-xs">Certified</Badge>}
+                </div>
+
+                {service.businessName && (
+                  <div className="text-sm">
+                    <span className="font-medium">Business: </span>
+                    <span className="text-muted-foreground">{service.businessName}</span>
+                  </div>
+                )}
+                {service.contactPerson && (
+                  <div className="text-sm">
+                    <span className="font-medium">Contact: </span>
+                    <span className="text-muted-foreground">{service.contactPerson}</span>
+                    {service.contactPhone && (
+                      <span className="text-muted-foreground ml-1">• {service.contactPhone}</span>
+                    )}
+                  </div>
+                )}
+                {service.workingHours && (
+                  <div className="text-sm">
+                    <span className="font-medium">Hours: </span>
+                    <span className="text-muted-foreground">{service.workingHours}</span>
+                  </div>
+                )}
+                {(service.city || service.areaName) && (
+                  <div className="text-sm text-muted-foreground flex items-center gap-1">
+                    <MapPin className="w-3 h-3" />
+                    {[service.areaName, service.city].filter(Boolean).join(", ")}
+                  </div>
+                )}
+              </div>
+            </CardContent>
+            <CardFooter className="pt-0 flex gap-2">
+              <Button
+                variant={service.isActive ? "outline" : "default"}
+                size="sm"
+                className="flex-1"
+                onClick={() => toggleActive(service.id)}
+              >
+                {service.isActive ? "Deactivate" : "Activate"}
+              </Button>
+              <Button
+                variant={service.isFeatured ? "secondary" : "outline"}
+                size="sm"
+                className="flex-1"
+                onClick={() => toggleFeatured(service.id)}
+              >
+                {service.isFeatured ? "Unfeature" : "Feature"}
+              </Button>
+            </CardFooter>
+          </Card>
+        ))}
+      </div>
+
+      {/* View Details Dialog */}
+      <Dialog open={showDetailsDialog} onOpenChange={setShowDetailsDialog}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-2xl">{viewingService?.title}</DialogTitle>
+            <DialogDescription>Complete service details</DialogDescription>
+          </DialogHeader>
+          {viewingService && (
+            <div className="space-y-6">
+              <div className="flex gap-2 flex-wrap">
+                <Badge variant="secondary">{viewingService.serviceType}</Badge>
+                {viewingService.serviceCategory && <Badge variant="outline">{viewingService.serviceCategory}</Badge>}
+                {viewingService.isFeatured && <Badge className="bg-yellow-500">Featured</Badge>}
+              </div>
+
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="p-4 bg-muted rounded-lg">
+                  <p className="text-sm text-muted-foreground">Base Charge</p>
+                  <p className="text-lg font-bold text-primary">₹{viewingService.baseServiceCharge}</p>
+                </div>
+                {viewingService.hourlyRate && (
+                  <div className="p-4 bg-muted rounded-lg">
+                    <p className="text-sm text-muted-foreground">Hourly Rate</p>
+                    <p className="text-lg font-bold">₹{viewingService.hourlyRate}/hr</p>
+                  </div>
+                )}
+                {viewingService.minimumCharge && (
+                  <div className="p-4 bg-muted rounded-lg">
+                    <p className="text-sm text-muted-foreground">Min. Charge</p>
+                    <p className="text-lg font-bold">₹{viewingService.minimumCharge}</p>
+                  </div>
+                )}
+                {viewingService.emergencyCharges && (
+                  <div className="p-4 bg-muted rounded-lg">
+                    <p className="text-sm text-muted-foreground">Emergency Charge</p>
+                    <p className="text-lg font-bold text-red-600">₹{viewingService.emergencyCharges}</p>
+                  </div>
+                )}
+              </div>
+
+              {/* Service Features */}
+              <div>
+                <h3 className="font-semibold mb-2">Service Features</h3>
+                <div className="flex flex-wrap gap-2">
+                  {viewingService.emergencyService && <Badge variant="destructive">Emergency Service</Badge>}
+                  {viewingService.sameDayService && <Badge variant="default">Same Day Service</Badge>}
+                  {viewingService.available24_7 && <Badge variant="default">24/7 Available</Badge>}
+                  {viewingService.freeInspection && <Badge variant="outline">Free Inspection</Badge>}
+                  {viewingService.freeEstimate && <Badge variant="outline">Free Estimate</Badge>}
+                  {viewingService.warrantyProvided && <Badge variant="outline">Warranty: {viewingService.warrantyPeriod || 'Yes'}</Badge>}
+                  {viewingService.certifiedProfessional && <Badge variant="secondary">Certified Professional</Badge>}
+                  {viewingService.equipmentProvided && <Badge variant="outline">Equipment Provided</Badge>}
+                  {viewingService.materialsIncluded && <Badge variant="outline">Materials Included</Badge>}
+                  {viewingService.homeVisitAvailable && <Badge variant="outline">Home Visit</Badge>}
+                  {viewingService.consultationAvailable && <Badge variant="outline">Consultation</Badge>}
+                </div>
+              </div>
+
+              {/* Service Type & Pricing */}
+              <div>
+                <h3 className="font-semibold mb-2">Service Details</h3>
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <span className="font-medium">Pricing Type:</span>
+                    <span className="ml-2 text-muted-foreground capitalize">{viewingService.pricingType?.replace('_', ' ')}</span>
+                  </div>
+                  {viewingService.workingHours && (
+                    <div>
+                      <span className="font-medium">Working Hours:</span>
+                      <span className="ml-2 text-muted-foreground">{viewingService.workingHours}</span>
+                    </div>
+                  )}
+                  {viewingService.workingDays && (
+                    <div>
+                      <span className="font-medium">Working Days:</span>
+                      <span className="ml-2 text-muted-foreground">{viewingService.workingDays}</span>
+                    </div>
+                  )}
+                  {viewingService.serviceRadiusKm && (
+                    <div>
+                      <span className="font-medium">Service Radius:</span>
+                      <span className="ml-2 text-muted-foreground">{viewingService.serviceRadiusKm} km</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {viewingService.description && (
+                <div>
+                  <h3 className="font-semibold mb-2">Description</h3>
+                  <p className="text-muted-foreground">{viewingService.description}</p>
+                </div>
+              )}
+
+              {viewingService.businessName && (
+                <div>
+                  <h3 className="font-semibold mb-2">Business Information</h3>
+                  <div className="grid grid-cols-2 gap-4 text-sm">
+                    <div>
+                      <span className="font-medium">Business Name:</span>
+                      <span className="ml-2 text-muted-foreground">{viewingService.businessName}</span>
+                    </div>
+                    {viewingService.ownerName && (
+                      <div>
+                        <span className="font-medium">Owner:</span>
+                        <span className="ml-2 text-muted-foreground">{viewingService.ownerName}</span>
+                      </div>
+                    )}
+                    {viewingService.experienceYears && (
+                      <div>
+                        <span className="font-medium">Experience:</span>
+                        <span className="ml-2 text-muted-foreground">{viewingService.experienceYears} years</span>
+                      </div>
+                    )}
+                    {viewingService.teamSize && (
+                      <div>
+                        <span className="font-medium">Team Size:</span>
+                        <span className="ml-2 text-muted-foreground">{viewingService.teamSize} members</span>
+                      </div>
+                    )}
+                  </div>
+                  <div className="mt-2 flex gap-2">
+                    {viewingService.residentialService && <Badge variant="outline">Residential</Badge>}
+                    {viewingService.commercialService && <Badge variant="outline">Commercial</Badge>}
+                    {viewingService.contractAvailable && <Badge variant="outline">Contract Available</Badge>}
+                    {viewingService.amcAvailable && <Badge variant="outline">AMC Available</Badge>}
+                  </div>
+                </div>
+              )}
+
+              {viewingService.contactPerson && (
+                <div>
+                  <h3 className="font-semibold mb-2">Contact Information</h3>
+                  <div className="grid grid-cols-2 gap-4 text-sm">
+                    <div>
+                      <span className="font-medium">Contact Person:</span>
+                      <span className="ml-2 text-muted-foreground">{viewingService.contactPerson}</span>
+                    </div>
+                    {viewingService.contactPhone && (
+                      <div>
+                        <span className="font-medium">Phone:</span>
+                        <span className="ml-2 text-muted-foreground">{viewingService.contactPhone}</span>
+                      </div>
+                    )}
+                    {viewingService.contactEmail && (
+                      <div>
+                        <span className="font-medium">Email:</span>
+                        <span className="ml-2 text-muted-foreground">{viewingService.contactEmail}</span>
+                      </div>
+                    )}
+                    {viewingService.whatsappAvailable && (
+                      <div className="col-span-2">
+                        <Badge variant="outline" className="bg-green-50">WhatsApp Available</Badge>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Location Information */}
+              {viewingService.fullAddress && (
+                <div>
+                  <h3 className="font-semibold mb-2 flex items-center gap-2">
+                    <MapPin className="w-4 h-4" />
+                    Location & Service Area
+                  </h3>
+                  <div className="space-y-2 text-sm">
+                    <p><span className="font-medium">Address:</span> {viewingService.fullAddress}</p>
+                    {viewingService.areaName && <p><span className="font-medium">Area:</span> {viewingService.areaName}</p>}
+                    {viewingService.city && <p><span className="font-medium">City:</span> {viewingService.city}</p>}
+                    {viewingService.stateProvince && <p><span className="font-medium">State:</span> {viewingService.stateProvince}</p>}
+                    {viewingService.serviceRadiusKm && <p><span className="font-medium">Service Radius:</span> {viewingService.serviceRadiusKm} km</p>}
+                  </div>
+                </div>
+              )}
+
+              {/* Payment & Discounts */}
+              <div>
+                <h3 className="font-semibold mb-2">Payment & Offers</h3>
+                <div className="flex flex-wrap gap-2">
+                  {viewingService.cashOnDelivery && <Badge variant="outline">Cash Payment</Badge>}
+                  {viewingService.digitalPayment && <Badge variant="outline">Digital Payment</Badge>}
+                  {viewingService.seniorCitizenDiscount && <Badge variant="default">Senior Citizen Discount</Badge>}
+                </div>
+              </div>
+
+              <div className="pt-4 border-t text-sm text-muted-foreground">
+                <p>Created: {new Date(viewingService.createdAt).toLocaleString()}</p>
+                <p>Last Updated: {new Date(viewingService.updatedAt).toLocaleString()}</p>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {(!services || services.length === 0) && (
+        <Card>
+          <CardContent className="py-12 text-center">
+            <Building className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
+            <h3 className="text-lg font-semibold mb-2">No Household Services Found</h3>
+            <p className="text-muted-foreground mb-4">Start by adding your first household service</p>
+            <Button onClick={() => setShowForm(true)}>
+              <Plus className="w-4 h-4 mr-2" />
+              Add Service
             </Button>
           </CardContent>
         </Card>
@@ -3367,7 +4151,7 @@ export default function AdminDashboard() {
   const renderSection = () => {
     // Normalize the active section to handle different slug formats
     const normalizedSection = activeSection.toLowerCase().replace(/\s+/g, '-');
-
+console.log("AAAAAAAAAAAAA",normalizedSection)
     switch (normalizedSection) {
       case "dashboard":
         return <DashboardSection />;
@@ -3388,7 +4172,6 @@ export default function AdminDashboard() {
       case "construction-&-building-materials":
       case "construction-materials":
         return <ConstructionMaterialsSection />;
-      case "property-deals-(buy/sell)":
       case "property-deals":
         return <PropertyDealsSection />;
       case "local-market-commercial-property":
@@ -3403,7 +4186,7 @@ export default function AdminDashboard() {
       case "rental-–-rooms,-flats,-apartments":
       case "rental-listings":
         return <RentalListingsSection />;
-      case "saree-clothing-shopping":
+      case "saree-shopping-clothing":
         return <SareeClothingShoppingSection />;
       case "fashion-&-beauty-products":
       case "fashion-beauty-products":
@@ -3412,7 +4195,6 @@ export default function AdminDashboard() {
       case "cars-bikes":
         return <CarsBikesSection />;
       case "heavy-equipment-for-sale":
-      case "heavy-equipment":
         return <HeavyEquipmentSection />;
       case "showrooms-(authorized-second-hand)":
       case "showrooms":
@@ -3423,7 +4205,6 @@ export default function AdminDashboard() {
       case "car-&-bike-rentals":
       case "car-bike-rentals":
         return <CarBikeRentalsSection />;
-      case "transportation-&-moving-services":
       case "transportation-moving-services":
         return <TransportationMovingServicesSection />;
       case "vehicle-license-classes":
@@ -3437,19 +4218,24 @@ export default function AdminDashboard() {
       case "second-hand-phones-&-tablets-&-accessories":
       case "second-hand-phones-tablets-accessories":
         return <SecondHandPhonesTabletsAccessoriesSection />;
-      case "computer-mobile-laptop-repair-services":
+      case "computer,-mobile-&-laptop-repair-services":
         return <ComputerMobileLaptopRepairServicesSection />;
       case "furniture-&-interior-decor":
       case "furniture-interior-decor":
         return <FurnitureInteriorDecorSection />;
       case "household-services":
         return <HouseholdServicesSection />;
-      case "event-&-decoration-services":
-      case "event-decoration-services":
+      case "event-&-decoration-services-(marriage-halls,-parties,-café-setup,-decoration-materials)":
         return <EventDecorationServicesSection />;
       case "pharmacy-&-medical-stores":
-      case "pharmacy-medical-stores":
         return <PharmacyMedicalStoresSection />;
+      case "e-books-&-online-courses":
+      case "ebooks-online-courses":
+        return <EbooksOnlineCoursesSection />;
+      case "cricket-sports-training":
+        return <CricketSportsTrainingSection />;
+      case "educational-consultancy-study-abroad":
+        return <EducationalConsultancyStudyAbroadSection />;
       default:
         return <DashboardSection />;
     }
@@ -3907,425 +4693,6 @@ function FurnitureInteriorDecorSection() {
             <Button onClick={() => setShowForm(true)}>
               <Plus className="w-4 h-4 mr-2" />
               Add Furniture Item
-            </Button>
-          </CardContent>
-        </Card>
-      )}
-
-
-    </div>
-  );
-}
-
-// Household Services Section Component
-function HouseholdServicesSection() {
-  const [services, setServices] = useState<any[]>([]);
-  const [showForm, setShowForm] = useState(false);
-  const [viewingService, setViewingService] = useState<any>(null);
-  const [showDetailsDialog, setShowDetailsDialog] = useState(false);
-
-  useEffect(() => {
-    fetchServices();
-  }, []);
-
-  const fetchServices = async () => {
-    try {
-      const response = await fetch('/api/admin/household-services');
-      const data = await response.json();
-      setServices(Array.isArray(data) ? data : []);
-    } catch (error) {
-      console.error('Error fetching household services:', error);
-      setServices([]);
-    }
-  };
-
-  const handleSuccess = () => {
-    setShowForm(false);
-    fetchServices();
-  };
-
-  const handleDelete = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this service?')) return;
-    try {
-      const response = await fetch(`/api/admin/household-services/${id}`, {
-        method: 'DELETE',
-      });
-      if (response.ok) {
-        fetchServices();
-      }
-    } catch (error) {
-      console.error('Error deleting service:', error);
-    }
-  };
-
-  const toggleActive = async (id: string) => {
-    try {
-      const response = await fetch(`/api/admin/household-services/${id}/toggle-active`, {
-        method: 'PATCH',
-      });
-      if (response.ok) {
-        fetchServices();
-      }
-    } catch (error) {
-      console.error('Error toggling active status:', error);
-    }
-  };
-
-  const toggleFeatured = async (id: string) => {
-    try {
-      const response = await fetch(`/api/admin/household-services/${id}/toggle-featured`, {
-        method: 'PATCH',
-      });
-      if (response.ok) {
-        fetchServices();
-      }
-    } catch (error) {
-      console.error('Error toggling featured status:', error);
-    }
-  };
-
-  const handleViewDetails = (service: any) => {
-    setViewingService(service);
-    setShowDetailsDialog(true);
-  };
-
-  return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold">Household Services</h2>
-          <p className="text-muted-foreground">Manage household service providers</p>
-        </div>
-        <Button onClick={() => setShowForm(true)}>
-          <Plus className="w-4 h-4 mr-2" />
-          Add Service
-        </Button>
-      </div>
-
-      <Dialog open={showForm} onOpenChange={setShowForm}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Add New Household Service</DialogTitle>
-            <DialogDescription>Fill in the details to create a new household service listing</DialogDescription>
-          </DialogHeader>
-          <HouseholdServicesForm onSuccess={handleSuccess} />
-        </DialogContent>
-      </Dialog>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-        {Array.isArray(services) && services.map((service) => (
-          <Card key={service.id} className="group hover:shadow-lg transition-shadow">
-            <CardHeader>
-              <div className="flex items-start justify-between">
-                <div className="flex-1">
-                  <CardTitle className="text-lg mb-2">{service.title}</CardTitle>
-                  <div className="flex gap-2 flex-wrap">
-                    <Badge variant="secondary">{service.serviceType}</Badge>
-                    {service.serviceCategory && <Badge variant="outline">{service.serviceCategory}</Badge>}
-                    {service.isFeatured && <Badge className="bg-yellow-500">Featured</Badge>}
-                  </div>
-                </div>
-                <div className="flex gap-1">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8"
-                    onClick={() => handleViewDetails(service)}
-                  >
-                    <Eye className="w-4 h-4" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8 text-destructive"
-                    onClick={() => handleDelete(service.id)}
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                {service.description && (
-                  <p className="text-sm text-muted-foreground line-clamp-2">{service.description}</p>
-                )}
-                <div className="flex items-center justify-between">
-                  <div>
-                    <span className="font-semibold text-lg text-primary">₹{service.baseServiceCharge}</span>
-                    {service.hourlyRate && (
-                      <span className="text-sm text-muted-foreground ml-2">| ₹{service.hourlyRate}/hr</span>
-                    )}
-                  </div>
-                  <Badge variant={service.isActive ? 'default' : 'secondary'}>
-                    {service.isActive ? 'Active' : 'Inactive'}
-                  </Badge>
-                </div>
-
-                <div className="flex flex-wrap gap-1">
-                  {service.emergencyService && <Badge variant="destructive" className="text-xs">Emergency</Badge>}
-                  {service.sameDayService && <Badge variant="default" className="text-xs">Same Day</Badge>}
-                  {service.available24_7 && <Badge variant="default" className="text-xs">24/7</Badge>}
-                  {service.freeEstimate && <Badge variant="outline" className="text-xs">Free Estimate</Badge>}
-                  {service.warrantyProvided && <Badge variant="outline" className="text-xs">Warranty</Badge>}
-                  {service.certifiedProfessional && <Badge variant="secondary" className="text-xs">Certified</Badge>}
-                </div>
-
-                {service.businessName && (
-                  <div className="text-sm">
-                    <span className="font-medium">Business: </span>
-                    <span className="text-muted-foreground">{service.businessName}</span>
-                  </div>
-                )}
-                {service.contactPerson && (
-                  <div className="text-sm">
-                    <span className="font-medium">Contact: </span>
-                    <span className="text-muted-foreground">{service.contactPerson}</span>
-                    {service.contactPhone && (
-                      <span className="text-muted-foreground ml-1">• {service.contactPhone}</span>
-                    )}
-                  </div>
-                )}
-                {service.workingHours && (
-                  <div className="text-sm">
-                    <span className="font-medium">Hours: </span>
-                    <span className="text-muted-foreground">{service.workingHours}</span>
-                  </div>
-                )}
-                {(service.city || service.areaName) && (
-                  <div className="text-sm text-muted-foreground flex items-center gap-1">
-                    <MapPin className="w-3 h-3" />
-                    {[service.areaName, service.city].filter(Boolean).join(", ")}
-                  </div>
-                )}
-              </div>
-            </CardContent>
-            <CardFooter className="pt-0 flex gap-2">
-              <Button
-                variant={service.isActive ? "outline" : "default"}
-                size="sm"
-                className="flex-1"
-                onClick={() => toggleActive(service.id)}
-              >
-                {service.isActive ? "Deactivate" : "Activate"}
-              </Button>
-              <Button
-                variant={service.isFeatured ? "secondary" : "outline"}
-                size="sm"
-                className="flex-1"
-                onClick={() => toggleFeatured(service.id)}
-              >
-                {service.isFeatured ? "Unfeature" : "Feature"}
-              </Button>
-            </CardFooter>
-          </Card>
-        ))}
-      </div>
-
-      {/* View Details Dialog */}
-      <Dialog open={showDetailsDialog} onOpenChange={setShowDetailsDialog}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="text-2xl">{viewingService?.title}</DialogTitle>
-            <DialogDescription>Complete service details</DialogDescription>
-          </DialogHeader>
-          {viewingService && (
-            <div className="space-y-6">
-              <div className="flex gap-2 flex-wrap">
-                <Badge variant="secondary">{viewingService.serviceType}</Badge>
-                {viewingService.serviceCategory && <Badge variant="outline">{viewingService.serviceCategory}</Badge>}
-                {viewingService.isFeatured && <Badge className="bg-yellow-500">Featured</Badge>}
-              </div>
-
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div className="p-4 bg-muted rounded-lg">
-                  <p className="text-sm text-muted-foreground">Base Charge</p>
-                  <p className="text-lg font-bold text-primary">₹{viewingService.baseServiceCharge}</p>
-                </div>
-                {viewingService.hourlyRate && (
-                  <div className="p-4 bg-muted rounded-lg">
-                    <p className="text-sm text-muted-foreground">Hourly Rate</p>
-                    <p className="text-lg font-bold">₹{viewingService.hourlyRate}/hr</p>
-                  </div>
-                )}
-                {viewingService.minimumCharge && (
-                  <div className="p-4 bg-muted rounded-lg">
-                    <p className="text-sm text-muted-foreground">Min. Charge</p>
-                    <p className="text-lg font-bold">₹{viewingService.minimumCharge}</p>
-                  </div>
-                )}
-                {viewingService.emergencyCharges && (
-                  <div className="p-4 bg-muted rounded-lg">
-                    <p className="text-sm text-muted-foreground">Emergency Charge</p>
-                    <p className="text-lg font-bold text-red-600">₹{viewingService.emergencyCharges}</p>
-                  </div>
-                )}
-              </div>
-
-              {/* Service Features */}
-              <div>
-                <h3 className="font-semibold mb-2">Service Features</h3>
-                <div className="flex flex-wrap gap-2">
-                  {viewingService.emergencyService && <Badge variant="destructive">Emergency Service</Badge>}
-                  {viewingService.sameDayService && <Badge variant="default">Same Day Service</Badge>}
-                  {viewingService.available24_7 && <Badge variant="default">24/7 Available</Badge>}
-                  {viewingService.freeInspection && <Badge variant="outline">Free Inspection</Badge>}
-                  {viewingService.freeEstimate && <Badge variant="outline">Free Estimate</Badge>}
-                  {viewingService.warrantyProvided && <Badge variant="outline">Warranty: {viewingService.warrantyPeriod || 'Yes'}</Badge>}
-                  {viewingService.certifiedProfessional && <Badge variant="secondary">Certified Professional</Badge>}
-                  {viewingService.equipmentProvided && <Badge variant="outline">Equipment Provided</Badge>}
-                  {viewingService.materialsIncluded && <Badge variant="outline">Materials Included</Badge>}
-                  {viewingService.homeVisitAvailable && <Badge variant="outline">Home Visit</Badge>}
-                  {viewingService.consultationAvailable && <Badge variant="outline">Consultation</Badge>}
-                </div>
-              </div>
-
-              {/* Service Type & Pricing */}
-              <div>
-                <h3 className="font-semibold mb-2">Service Details</h3>
-                <div className="grid grid-cols-2 gap-4 text-sm">
-                  <div>
-                    <span className="font-medium">Pricing Type:</span>
-                    <span className="ml-2 text-muted-foreground capitalize">{viewingService.pricingType?.replace('_', ' ')}</span>
-                  </div>
-                  {viewingService.workingHours && (
-                    <div>
-                      <span className="font-medium">Working Hours:</span>
-                      <span className="ml-2 text-muted-foreground">{viewingService.workingHours}</span>
-                    </div>
-                  )}
-                  {viewingService.workingDays && (
-                    <div>
-                      <span className="font-medium">Working Days:</span>
-                      <span className="ml-2 text-muted-foreground">{viewingService.workingDays}</span>
-                    </div>
-                  )}
-                  {viewingService.serviceRadiusKm && (
-                    <div>
-                      <span className="font-medium">Service Radius:</span>
-                      <span className="ml-2 text-muted-foreground">{viewingService.serviceRadiusKm} km</span>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {viewingService.description && (
-                <div>
-                  <h3 className="font-semibold mb-2">Description</h3>
-                  <p className="text-muted-foreground">{viewingService.description}</p>
-                </div>
-              )}
-
-              {viewingService.businessName && (
-                <div>
-                  <h3 className="font-semibold mb-2">Business Information</h3>
-                  <div className="grid grid-cols-2 gap-4 text-sm">
-                    <div>
-                      <span className="font-medium">Business Name:</span>
-                      <span className="ml-2 text-muted-foreground">{viewingService.businessName}</span>
-                    </div>
-                    {viewingService.ownerName && (
-                      <div>
-                        <span className="font-medium">Owner:</span>
-                        <span className="ml-2 text-muted-foreground">{viewingService.ownerName}</span>
-                      </div>
-                    )}
-                    {viewingService.experienceYears && (
-                      <div>
-                        <span className="font-medium">Experience:</span>
-                        <span className="ml-2 text-muted-foreground">{viewingService.experienceYears} years</span>
-                      </div>
-                    )}
-                    {viewingService.teamSize && (
-                      <div>
-                        <span className="font-medium">Team Size:</span>
-                        <span className="ml-2 text-muted-foreground">{viewingService.teamSize} members</span>
-                      </div>
-                    )}
-                  </div>
-                  <div className="mt-2 flex gap-2">
-                    {viewingService.residentialService && <Badge variant="outline">Residential</Badge>}
-                    {viewingService.commercialService && <Badge variant="outline">Commercial</Badge>}
-                    {viewingService.contractAvailable && <Badge variant="outline">Contract Available</Badge>}
-                    {viewingService.amcAvailable && <Badge variant="outline">AMC Available</Badge>}
-                  </div>
-                </div>
-              )}
-
-              {viewingService.contactPerson && (
-                <div>
-                  <h3 className="font-semibold mb-2">Contact Information</h3>
-                  <div className="grid grid-cols-2 gap-4 text-sm">
-                    <div>
-                      <span className="font-medium">Contact Person:</span>
-                      <span className="ml-2 text-muted-foreground">{viewingService.contactPerson}</span>
-                    </div>
-                    {viewingService.contactPhone && (
-                      <div>
-                        <span className="font-medium">Phone:</span>
-                        <span className="ml-2 text-muted-foreground">{viewingService.contactPhone}</span>
-                      </div>
-                    )}
-                    {viewingService.contactEmail && (
-                      <div>
-                        <span className="font-medium">Email:</span>
-                        <span className="ml-2 text-muted-foreground">{viewingService.contactEmail}</span>
-                      </div>
-                    )}
-                    {viewingService.whatsappAvailable && (
-                      <div className="col-span-2">
-                        <Badge variant="outline" className="bg-green-50">WhatsApp Available</Badge>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
-
-              {/* Location Information */}
-              {viewingService.fullAddress && (
-                <div>
-                  <h3 className="font-semibold mb-2 flex items-center gap-2">
-                    <MapPin className="w-4 h-4" />
-                    Location & Service Area
-                  </h3>
-                  <div className="space-y-2 text-sm">
-                    <p><span className="font-medium">Address:</span> {viewingService.fullAddress}</p>
-                    {viewingService.areaName && <p><span className="font-medium">Area:</span> {viewingService.areaName}</p>}
-                    {viewingService.city && <p><span className="font-medium">City:</span> {viewingService.city}</p>}
-                    {viewingService.stateProvince && <p><span className="font-medium">State:</span> {viewingService.stateProvince}</p>}
-                    {viewingService.serviceRadiusKm && <p><span className="font-medium">Service Radius:</span> {viewingService.serviceRadiusKm} km</p>}
-                  </div>
-                </div>
-              )}
-
-              {/* Payment & Discounts */}
-              <div>
-                <h3 className="font-semibold mb-2">Payment & Offers</h3>
-                <div className="flex flex-wrap gap-2">
-                  {viewingService.cashOnDelivery && <Badge variant="outline">Cash Payment</Badge>}
-                  {viewingService.digitalPayment && <Badge variant="outline">Digital Payment</Badge>}
-                  {viewingService.seniorCitizenDiscount && <Badge variant="default">Senior Citizen Discount</Badge>}
-                </div>
-              </div>
-
-              <div className="pt-4 border-t text-sm text-muted-foreground">
-                <p>Created: {new Date(viewingService.createdAt).toLocaleString()}</p>
-                <p>Last Updated: {new Date(viewingService.updatedAt).toLocaleString()}</p>
-              </div>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
-
-      {(!services || services.length === 0) && (
-        <Card>
-          <CardContent className="py-12 text-center">
-            <Building className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
-            <h3 className="text-lg font-semibold mb-2">No Household Services Found</h3>
-            <p className="text-muted-foreground mb-4">Start by adding your first household service</p>
-            <Button onClick={() => setShowForm(true)}>
-              <Plus className="w-4 h-4 mr-2" />
-              Add Service
             </Button>
           </CardContent>
         </Card>

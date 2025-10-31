@@ -244,35 +244,6 @@ export const insertFaqSchema = createInsertSchema(faqs).omit({
   id: true,
 });
 
-export const userRelations = relations(users, ({ many }) => ({
-  categoryPreferences: many(userCategoryPreferences),
-  documents: many(userDocuments),
-}));
-
-export const userCategoryPreferencesRelations = relations(userCategoryPreferences, ({ one }) => ({
-  user: one(users, {
-    fields: [userCategoryPreferences.userId],
-    references: [users.id],
-  }),
-}));
-
-export const userDocumentsRelations = relations(userDocuments, ({ one }) => ({
-  user: one(users, {
-    fields: [userDocuments.userId],
-    references: [users.id],
-  }),
-}));
-
-export const insertUserCategoryPreferenceSchema = createInsertSchema(userCategoryPreferences).omit({
-  id: true,
-  createdAt: true,
-});
-
-export const insertUserDocumentSchema = createInsertSchema(userDocuments).omit({
-  id: true,
-  uploadedAt: true,
-});
-
 export const insertAdminCategorySchema = createInsertSchema(adminCategories).omit({
   id: true,
   createdAt: true,
@@ -492,7 +463,7 @@ export const fashionBeautyProducts = pgTable("fashion_beauty_products", {
   category: text("category").notNull(),
   subcategory: text("subcategory"),
   productType: text("product_type"),
-  
+
   // Product Details
   brand: text("brand"),
   productName: text("product_name"),
@@ -502,7 +473,7 @@ export const fashionBeautyProducts = pgTable("fashion_beauty_products", {
   pattern: text("pattern"),
   style: text("style"),
   occasion: text("occasion"),
-  
+
   // Fashion Specific
   gender: text("gender"),
   ageGroup: text("age_group"),
@@ -512,7 +483,7 @@ export const fashionBeautyProducts = pgTable("fashion_beauty_products", {
   length: text("length"),
   waistSize: text("waist_size"),
   inseam: text("inseam"),
-  
+
   // Beauty Products Specific
   productVolume: text("product_volume"),
   skinType: text("skin_type"),
@@ -522,7 +493,7 @@ export const fashionBeautyProducts = pgTable("fashion_beauty_products", {
   expiryDate: text("expiry_date"),
   manufacturingDate: text("manufacturing_date"),
   shelfLife: text("shelf_life"),
-  
+
   // Pricing
   price: decimal("price", { precision: 12, scale: 2 }).notNull(),
   mrp: decimal("mrp", { precision: 12, scale: 2 }),
@@ -533,27 +504,27 @@ export const fashionBeautyProducts = pgTable("fashion_beauty_products", {
   minimumRentalPeriod: integer("minimum_rental_period"),
   rentalPeriodUnit: text("rental_period_unit"),
   securityDeposit: decimal("security_deposit", { precision: 10, scale: 2 }),
-  
+
   // Condition & Quality
   condition: text("condition"),
   usageDuration: text("usage_duration"),
   purchaseDate: text("purchase_date"),
   ageInMonths: integer("age_in_months"),
   qualityGrade: text("quality_grade"),
-  
+
   // Authenticity & Certification
   isOriginal: boolean("is_original").default(true),
   brandAuthorized: boolean("brand_authorized").default(false),
   certificateAvailable: boolean("certificate_available").default(false),
   authenticationProof: jsonb("authentication_proof").$type<string[]>().default([]),
-  
+
   // Fashion Care
   careInstructions: text("care_instructions"),
   washingInstructions: text("washing_instructions"),
   dryCleanOnly: boolean("dry_clean_only").default(false),
   ironSafe: boolean("iron_safe").default(true),
   fabricCare: jsonb("fabric_care").$type<string[]>().default([]),
-  
+
   // Beauty Product Safety
   dermatologicallyTested: boolean("dermatologically_tested").default(false),
   crueltyFree: boolean("cruelty_free").default(false),
@@ -562,40 +533,40 @@ export const fashionBeautyProducts = pgTable("fashion_beauty_products", {
   parabenFree: boolean("paraben_free").default(false),
   sulfateFree: boolean("sulfate_free").default(false),
   allergenInfo: text("allergen_info"),
-  
+
   // Stock & Availability
   inStock: boolean("in_stock").default(true),
   stockQuantity: integer("stock_quantity"),
   sizesAvailable: jsonb("sizes_available").$type<string[]>().default([]),
   colorsAvailable: jsonb("colors_available").$type<string[]>().default([]),
   variantOptions: jsonb("variant_options").$type<string[]>().default([]),
-  
+
   // Customization
   customizationAvailable: boolean("customization_available").default(false),
   customSizing: boolean("custom_sizing").default(false),
   personalizationOptions: jsonb("personalization_options").$type<string[]>().default([]),
   tailoringIncluded: boolean("tailoring_included").default(false),
-  
+
   // Media
   images: jsonb("images").$type<string[]>().default([]),
   videos: jsonb("videos").$type<string[]>().default([]),
   sizeChart: text("size_chart"),
   productBrochure: text("product_brochure"),
-  
+
   // Features
   keyFeatures: jsonb("key_features").$type<string[]>().default([]),
   fabricFeatures: jsonb("fabric_features").$type<string[]>().default([]),
   specialFeatures: jsonb("special_features").$type<string[]>().default([]),
   includedItems: jsonb("included_items").$type<string[]>().default([]),
   boxContents: jsonb("box_contents").$type<string[]>().default([]),
-  
+
   // Offers & Deals
   isOnSale: boolean("is_on_sale").default(false),
   saleEndDate: timestamp("sale_end_date"),
   bankOffers: jsonb("bank_offers").$type<string[]>().default([]),
   comboOffers: jsonb("combo_offers").$type<string[]>().default([]),
   bulkDiscountAvailable: boolean("bulk_discount_available").default(false),
-  
+
   // Warranty & Returns
   returnPolicy: text("return_policy"),
   returnPeriodDays: integer("return_period_days"),
@@ -604,7 +575,7 @@ export const fashionBeautyProducts = pgTable("fashion_beauty_products", {
   refundAvailable: boolean("refund_available").default(true),
   warrantyAvailable: boolean("warranty_available").default(false),
   warrantyPeriod: text("warranty_period"),
-  
+
   // Seller Information
   sellerId: varchar("seller_id").references(() => users.id, { onDelete: "set null" }),
   sellerType: text("seller_type"),
@@ -617,7 +588,7 @@ export const fashionBeautyProducts = pgTable("fashion_beauty_products", {
   alternatePhone: text("alternate_phone"),
   whatsappAvailable: boolean("whatsapp_available").default(false),
   whatsappNumber: text("whatsapp_number"),
-  
+
   // Location
   country: text("country").notNull().default("India"),
   stateProvince: text("state_province"),
@@ -625,7 +596,7 @@ export const fashionBeautyProducts = pgTable("fashion_beauty_products", {
   areaName: text("area_name"),
   fullAddress: text("full_address"),
   locationId: varchar("location_id").references(() => locations.id, { onDelete: "set null" }),
-  
+
   // Delivery
   deliveryAvailable: boolean("delivery_available").default(false),
   deliveryCharges: decimal("delivery_charges", { precision: 8, scale: 2 }),
@@ -636,7 +607,7 @@ export const fashionBeautyProducts = pgTable("fashion_beauty_products", {
   deliveryAreas: jsonb("delivery_areas").$type<string[]>().default([]),
   shippingOptions: jsonb("shipping_options").$type<string[]>().default([]),
   codAvailable: boolean("cod_available").default(true),
-  
+
   // Additional Info
   occasionSuitable: jsonb("occasion_suitable").$type<string[]>().default([]),
   season: text("season"),
@@ -647,19 +618,19 @@ export const fashionBeautyProducts = pgTable("fashion_beauty_products", {
   madeIn: text("made_in"),
   ecoFriendly: boolean("eco_friendly").default(false),
   sustainableFashion: boolean("sustainable_fashion").default(false),
-  
+
   // Reviews & Stats
   rating: decimal("rating", { precision: 3, scale: 2 }),
   reviewCount: integer("review_count").default(0),
   totalSales: integer("total_sales").default(0),
-  
+
   // Status
   isActive: boolean("is_active").default(true),
   isFeatured: boolean("is_featured").default(false),
   isVerified: boolean("is_verified").default(false),
   availabilityStatus: text("availability_status").default("available"),
   viewCount: integer("view_count").default(0),
-  
+
   // Timestamps
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
@@ -1484,6 +1455,88 @@ export const insertSecondHandPhonesTabletsAccessoriesSchema = createInsertSchema
 export type InsertSecondHandPhonesTabletsAccessories = z.infer<typeof insertSecondHandPhonesTabletsAccessoriesSchema>;
 export type SecondHandPhonesTabletsAccessories = typeof secondHandPhonesTabletsAccessories.$inferSelect;
 
+// Cricket Sports Training
+export const cricketSportsTraining = pgTable("cricket_sports_training", {
+  id: varchar("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  title: text("title").notNull(),
+  description: text("description"),
+  listingType: text("listing_type").notNull(),
+  trainingCategory: text("training_category").notNull(),
+  academyName: text("academy_name"),
+  coachName: text("coach_name").notNull(),
+  coachExperienceYears: integer("coach_experience_years"),
+  coachCertifications: text("coach_certifications"),
+  coachAchievements: text("coach_achievements"),
+  pricePerSession: decimal("price_per_session", { precision: 10, scale: 2 }),
+  pricePerMonth: decimal("price_per_month", { precision: 10, scale: 2 }),
+  pricePerQuarter: decimal("price_per_quarter", { precision: 10, scale: 2 }),
+  currency: text("currency").default("INR"),
+  discountPercentage: decimal("discount_percentage", { precision: 5, scale: 2 }),
+  trainingLevel: text("training_level"),
+  ageGroup: text("age_group"),
+  minAge: integer("min_age"),
+  maxAge: integer("max_age"),
+  batchSize: integer("batch_size"),
+  sessionDurationMinutes: integer("session_duration_minutes"),
+  sessionsPerWeek: integer("sessions_per_week"),
+  indoorFacility: boolean("indoor_facility").default(false),
+  outdoorFacility: boolean("outdoor_facility").default(false),
+  netPracticeAvailable: boolean("net_practice_available").default(false),
+  pitchAvailable: boolean("pitch_available").default(false),
+  equipmentProvided: boolean("equipment_provided").default(false),
+  facilities: jsonb("facilities").$type<string[]>().default([]),
+  equipmentList: jsonb("equipment_list").$type<string[]>().default([]),
+  trainingModules: jsonb("training_modules").$type<string[]>().default([]),
+  specializations: jsonb("specializations").$type<string[]>().default([]),
+  tournamentPreparation: boolean("tournament_preparation").default(false),
+  matchPractice: boolean("match_practice").default(false),
+  videoAnalysis: boolean("video_analysis").default(false),
+  fitnessTraining: boolean("fitness_training").default(false),
+  mentalConditioning: boolean("mental_conditioning").default(false),
+  trainingDays: jsonb("training_days").$type<string[]>().default([]),
+  morningBatch: boolean("morning_batch").default(false),
+  eveningBatch: boolean("evening_batch").default(false),
+  weekendBatch: boolean("weekend_batch").default(false),
+  flexibleTiming: boolean("flexible_timing").default(false),
+  certificateProvided: boolean("certificate_provided").default(false),
+  successStories: text("success_stories"),
+  studentsTrained: integer("students_trained"),
+  professionalPlayersProduced: integer("professional_players_produced"),
+  freeTrialAvailable: boolean("free_trial_available").default(false),
+  trialSessions: integer("trial_sessions"),
+  registrationFee: decimal("registration_fee", { precision: 10, scale: 2 }),
+  admissionProcess: text("admission_process"),
+  contactPerson: text("contact_person").notNull(),
+  contactPhone: text("contact_phone").notNull(),
+  contactEmail: text("contact_email"),
+  alternatePhone: text("alternate_phone"),
+  whatsappAvailable: boolean("whatsapp_available").default(false),
+  whatsappNumber: text("whatsapp_number"),
+  websiteUrl: text("website_url"),
+  city: text("city"),
+  stateProvince: text("state_province"),
+  areaName: text("area_name"),
+  fullAddress: text("full_address"),
+  country: text("country").default("India"),
+  images: jsonb("images").$type<string[]>().default([]),
+  videos: jsonb("videos").$type<string[]>().default([]),
+  brochureUrl: text("brochure_url"),
+  hostelFacility: boolean("hostel_facility").default(false),
+  transportFacility: boolean("transport_facility").default(false),
+  dietPlanIncluded: boolean("diet_plan_included").default(false),
+  scholarshipAvailable: boolean("scholarship_available").default(false),
+  internationalExposure: boolean("international_exposure").default(false),
+  isActive: boolean("is_active").default(true),
+  isFeatured: boolean("is_featured").default(false),
+  isVerified: boolean("is_verified").default(false),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const insertCricketSportsTrainingSchema = createInsertSchema(cricketSportsTraining).omit({ id: true, createdAt: true, updatedAt: true });
+export type InsertCricketSportsTraining = z.infer<typeof insertCricketSportsTrainingSchema>;
+export type CricketSportsTraining = typeof cricketSportsTraining.$inferSelect;
+
 // Computer, Mobile & Laptop Repair Services
 export const computerMobileLaptopRepairServices = pgTable("computer_mobile_laptop_repair_services", {
   id: varchar("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
@@ -1636,8 +1689,8 @@ export const cyberCafeInternetServices = pgTable("cyber_cafe_internet_services",
   contactPhone: text("contact_phone").notNull(),
   contactEmail: text("contact_email"),
   alternatePhone: text("alternate_phone"),
-  whatsappAvailable: boolean("whatsapp_available").default(false),
   whatsappNumber: text("whatsapp_number"),
+  whatsappAvailable: boolean("whatsapp_available").default(false),
   country: text("country").notNull().default("India"),
   stateProvince: text("state_province"),
   city: text("city"),
@@ -2213,3 +2266,183 @@ export const sareeClothingShopping = pgTable("saree_clothing_shopping", {
 export const insertSareeClothingShoppingSchema = createInsertSchema(sareeClothingShopping).omit({ id: true, createdAt: true, updatedAt: true });
 export type InsertSareeClothingShopping = z.infer<typeof insertSareeClothingShoppingSchema>;
 export type SareeClothingShopping = typeof sareeClothingShopping.$inferSelect;
+
+// E-Books & Online Courses
+export const ebooksOnlineCourses = pgTable("ebooks_online_courses", {
+  id: varchar("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  title: text("title").notNull(),
+  description: text("description"),
+  listingType: text("listing_type").notNull(),
+  category: text("category").notNull(),
+  subcategory: text("subcategory"),
+
+  // E-Book Specific
+  bookTitle: text("book_title"),
+  author: text("author"),
+  publisher: text("publisher"),
+  isbn: text("isbn"),
+  publicationYear: integer("publication_year"),
+  edition: text("edition"),
+  language: text("language"),
+  pageCount: integer("page_count"),
+  fileFormat: text("file_format"),
+  fileSizeMb: decimal("file_size_mb", { precision: 8, scale: 2 }),
+
+  // Course Specific
+  courseTitle: text("course_title"),
+  instructorName: text("instructor_name"),
+  instructorCredentials: text("instructor_credentials"),
+  coursePlatform: text("course_platform"),
+  courseDurationHours: decimal("course_duration_hours", { precision: 6, scale: 2 }),
+  totalLectures: integer("total_lectures"),
+  courseLevel: text("course_level"),
+  courseLanguage: text("course_language"),
+  subtitlesAvailable: jsonb("subtitles_available").$type<string[]>().default([]),
+
+  // Content
+  topicsCovered: jsonb("topics_covered").$type<string[]>().default([]),
+  learningOutcomes: jsonb("learning_outcomes").$type<string[]>().default([]),
+  prerequisites: jsonb("prerequisites").$type<string[]>().default([]),
+  targetAudience: text("target_audience"),
+  contentType: text("content_type"),
+
+  // Pricing
+  price: decimal("price", { precision: 12, scale: 2 }).notNull(),
+  originalPrice: decimal("original_price", { precision: 12, scale: 2 }),
+  discountPercentage: decimal("discount_percentage", { precision: 5, scale: 2 }),
+  isFree: boolean("is_free").default(false),
+  lifetimeAccess: boolean("lifetime_access").default(true),
+  subscriptionBased: boolean("subscription_based").default(false),
+  subscriptionPriceMonthly: decimal("subscription_price_monthly", { precision: 10, scale: 2 }),
+  subscriptionPriceYearly: decimal("subscription_price_yearly", { precision: 10, scale: 2 }),
+
+  // Features
+  videoQuality: text("video_quality"),
+  downloadableResources: boolean("downloadable_resources").default(false),
+  assignmentsIncluded: boolean("assignments_included").default(false),
+  quizzesIncluded: boolean("quizzes_included").default(false),
+  certificateProvided: boolean("certificate_provided").default(false),
+  certificateType: text("certificate_type"),
+  liveSessions: boolean("live_sessions").default(false),
+  recordedSessions: boolean("recorded_sessions").default(true),
+  oneOnOneSupport: boolean("one_on_one_support").default(false),
+  groupDiscussions: boolean("group_discussions").default(false),
+
+  // Access
+  instantAccess: boolean("instant_access").default(true),
+  accessDurationDays: integer("access_duration_days"),
+  downloadAllowed: boolean("download_allowed").default(true),
+  downloadLimit: integer("download_limit"),
+  streamingAllowed: boolean("streaming_allowed").default(true),
+  offlineAccess: boolean("offline_access").default(false),
+  mobileAppAccess: boolean("mobile_app_access").default(false),
+
+  // Stats
+  totalStudents: integer("total_students").default(0),
+  totalReaders: integer("total_readers").default(0),
+  rating: decimal("rating", { precision: 3, scale: 2 }),
+  reviewCount: integer("review_count").default(0),
+  completionRate: decimal("completion_rate", { precision: 5, scale: 2 }),
+
+  // Materials
+  includesEbook: boolean("includes_ebook").default(false),
+  includesWorksheets: boolean("includes_worksheets").default(false),
+  includesTemplates: boolean("includes_templates").default(false),
+  includesCodeSamples: boolean("includes_code_samples").default(false),
+  bonusContent: jsonb("bonus_content").$type<string[]>().default([]),
+
+  // Media
+  coverImage: text("cover_image"),
+  previewImages: jsonb("preview_images").$type<string[]>().default([]),
+  previewVideoUrl: text("preview_video_url"),
+  sampleChapters: jsonb("sample_chapters").$type<string[]>().default([]),
+  demoLectureUrl: text("demo_lecture_url"),
+
+  // Instructor/Author
+  instructorBio: text("instructor_bio"),
+  instructorRating: decimal("instructor_rating", { precision: 3, scale: 2 }),
+  instructorStudentsCount: integer("instructor_students_count"),
+  instructorCoursesCount: integer("instructor_courses_count"),
+  authorBio: text("author_bio"),
+  authorWebsite: text("author_website"),
+  authorSocialLinks: jsonb("author_social_links").$type<string[]>().default([]),
+
+  // Requirements
+  systemRequirements: text("system_requirements"),
+  softwareNeeded: jsonb("software_needed").$type<string[]>().default([]),
+  hardwareRequirements: text("hardware_requirements"),
+  internetRequired: boolean("internet_required").default(true),
+  minimumBandwidth: text("minimum_bandwidth"),
+
+  // Updates & Support
+  lastUpdated: timestamp("last_updated"),
+  contentUpdates: boolean("content_updates").default(true),
+  supportAvailable: boolean("support_available").default(false),
+  supportType: text("support_type"),
+  responseTime: text("response_time"),
+  moneyBackGuarantee: boolean("money_back_guarantee").default(false),
+  guaranteeDays: integer("guarantee_days"),
+
+  // Seller
+  sellerId: varchar("seller_id").references(() => users.id, { onDelete: "set null" }),
+  sellerType: text("seller_type"),
+  institutionName: text("institution_name"),
+  contactPerson: text("contact_person"),
+  contactPhone: text("contact_phone").notNull(),
+  contactEmail: text("contact_email"),
+  alternatePhone: text("alternate_phone"),
+  whatsappAvailable: boolean("whatsapp_available").default(false),
+  whatsappNumber: text("whatsapp_number"),
+
+  // Location
+  country: text("country").notNull().default("India"),
+  stateProvince: text("state_province"),
+  city: text("city"),
+  areaName: text("area_name"),
+  fullAddress: text("full_address"),
+  locationId: varchar("location_id").references(() => locations.id, { onDelete: "set null" }),
+
+  // Delivery & Payment
+  deliveryMethod: text("delivery_method"),
+  paymentMethods: jsonb("payment_methods").$type<string[]>().default([]),
+  installmentAvailable: boolean("installment_available").default(false),
+  installmentPlans: jsonb("installment_plans").$type<string[]>().default([]),
+  refundPolicy: text("refund_policy"),
+  refundPeriodDays: integer("refund_period_days"),
+
+  // SEO & Marketing
+  keywords: jsonb("keywords").$type<string[]>().default([]),
+  metaDescription: text("meta_description"),
+  promotionalVideoUrl: text("promotional_video_url"),
+  testimonials: jsonb("testimonials").$type<string[]>().default([]),
+
+  // Legal
+  copyrightNotice: text("copyright_notice"),
+  termsOfUse: text("terms_of_use"),
+  privacyPolicy: text("privacy_policy"),
+  drmProtected: boolean("drm_protected").default(false),
+  plagiarismFree: boolean("plagiarism_free").default(true),
+
+  // Status
+  availabilityStatus: text("availability_status").default("available"),
+  isActive: boolean("is_active").default(true),
+  isFeatured: boolean("is_featured").default(false),
+  isVerified: boolean("is_verified").default(false),
+  isBestseller: boolean("is_bestseller").default(false),
+  isTrending: boolean("is_trending").default(false),
+  isNewRelease: boolean("is_new_release").default(false),
+
+  // Analytics
+  viewCount: integer("view_count").default(0),
+  inquiryCount: integer("inquiry_count").default(0),
+  enrollmentCount: integer("enrollment_count").default(0),
+  downloadCount: integer("download_count").default(0),
+
+  // Timestamps
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const insertEbooksOnlineCoursesSchema = createInsertSchema(ebooksOnlineCourses).omit({ id: true, createdAt: true, updatedAt: true });
+export type InsertEbooksOnlineCourses = z.infer<typeof insertEbooksOnlineCoursesSchema>;
+export type EbooksOnlineCourses = typeof ebooksOnlineCourses.$inferSelect;

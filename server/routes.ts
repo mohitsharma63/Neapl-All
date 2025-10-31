@@ -33,9 +33,12 @@ import {
   computerMobileLaptopRepairServices,
   furnitureInteriorDecor,
   householdServices,
-  eventPlanningServices,
+  // eventPlanningServices,
   fashionBeautyProducts,
   sareeClothingShopping,
+  ebooksOnlineCourses,
+  cricketSportsTraining,
+  // educationalConsultancyStudyAbroad,
 } from "../shared/schema";
 import { eq, sql, desc } from "drizzle-orm";
 
@@ -387,7 +390,7 @@ export function registerRoutes(app: Express) {
 
           // Filter subcategories that belong to this category and are selected
           const categorySubcategories = subcategoryIds && Array.isArray(subcategoryIds)
-            ? subcategoryIds.filter((subId: string) => 
+            ? subcategoryIds.filter((subId: string) =>
                 category?.subcategories.some(sub => sub.id === subId)
               )
             : [];
@@ -895,17 +898,17 @@ export function registerRoutes(app: Express) {
       } = req.body;
 
       // Validate required fields
-      if (!name || !pricePerMonth || !hostelType || !roomType || !totalBeds || 
+      if (!name || !pricePerMonth || !hostelType || !roomType || !totalBeds ||
           !availableBeds || !country || !city || !fullAddress) {
-        return res.status(400).json({ 
-          message: "Missing required fields: name, pricePerMonth, hostelType, roomType, totalBeds, availableBeds, country, city, fullAddress" 
+        return res.status(400).json({
+          message: "Missing required fields: name, pricePerMonth, hostelType, roomType, totalBeds, availableBeds, country, city, fullAddress"
         });
       }
 
       // Validate availableBeds <= totalBeds
       if (parseInt(availableBeds) > parseInt(totalBeds)) {
-        return res.status(400).json({ 
-          message: "Available beds cannot exceed total beds" 
+        return res.status(400).json({
+          message: "Available beds cannot exceed total beds"
         });
       }
 
@@ -952,8 +955,8 @@ export function registerRoutes(app: Express) {
       // Validate availableBeds <= totalBeds if both are provided
       if (updateData.availableBeds !== undefined && updateData.totalBeds !== undefined) {
         if (parseInt(updateData.availableBeds) > parseInt(updateData.totalBeds)) {
-          return res.status(400).json({ 
-            message: "Available beds cannot exceed total beds" 
+          return res.status(400).json({
+            message: "Available beds cannot exceed total beds"
           });
         }
       }
@@ -1120,8 +1123,8 @@ export function registerRoutes(app: Express) {
 
       // Validate required fields
       if (!name || !category || !price || !unit) {
-        return res.status(400).json({ 
-          message: "Missing required fields: name, category, price, unit" 
+        return res.status(400).json({
+          message: "Missing required fields: name, category, price, unit"
         });
       }
 
@@ -1456,141 +1459,6 @@ export function registerRoutes(app: Express) {
       if (deletedRows.length === 0) {
         return res.status(404).json({ message: "Commercial property not found" });
       }
-
-  // Saree/Clothing/Shopping Routes - Full CRUD
-
-  // GET all saree/clothing/shopping items
-  app.get("/api/admin/saree-clothing-shopping", async (_req, res) => {
-    try {
-      const items = await db.query.sareeClothingShopping.findMany({
-        orderBy: desc(sareeClothingShopping.createdAt),
-      });
-      res.json(items);
-    } catch (error: any) {
-      res.status(500).json({ message: error.message });
-    }
-  });
-
-  // GET single item by ID
-  app.get("/api/admin/saree-clothing-shopping/:id", async (req, res) => {
-    try {
-      const item = await db.query.sareeClothingShopping.findFirst({
-        where: eq(sareeClothingShopping.id, req.params.id),
-      });
-
-      if (!item) {
-        return res.status(404).json({ message: "Item not found" });
-      }
-
-      res.json(item);
-    } catch (error: any) {
-      res.status(500).json({ message: error.message });
-    }
-  });
-
-  // CREATE new item
-  app.post("/api/admin/saree-clothing-shopping", async (req, res) => {
-    try {
-      const [newItem] = await db
-        .insert(sareeClothingShopping)
-        .values({
-          ...req.body,
-          country: req.body.country || "India",
-        })
-        .returning();
-
-      res.status(201).json(newItem);
-    } catch (error: any) {
-      console.error("Error creating item:", error);
-      res.status(400).json({ message: error.message });
-    }
-  });
-
-  // UPDATE item
-  app.put("/api/admin/saree-clothing-shopping/:id", async (req, res) => {
-    try {
-      const [updatedItem] = await db
-        .update(sareeClothingShopping)
-        .set({ ...req.body, updatedAt: new Date() })
-        .where(eq(sareeClothingShopping.id, req.params.id))
-        .returning();
-
-      if (!updatedItem) {
-        return res.status(404).json({ message: "Item not found" });
-      }
-
-      res.json(updatedItem);
-    } catch (error: any) {
-      console.error("Error updating item:", error);
-      res.status(400).json({ message: error.message });
-    }
-  });
-
-  // DELETE item
-  app.delete("/api/admin/saree-clothing-shopping/:id", async (req, res) => {
-    try {
-      const deletedRows = await db
-        .delete(sareeClothingShopping)
-        .where(eq(sareeClothingShopping.id, req.params.id))
-        .returning();
-
-      if (deletedRows.length === 0) {
-        return res.status(404).json({ message: "Item not found" });
-      }
-
-      res.json({ message: "Item deleted successfully", id: req.params.id });
-    } catch (error: any) {
-      console.error("Error deleting item:", error);
-      res.status(500).json({ message: error.message });
-    }
-  });
-
-  // PATCH - Toggle active status
-  app.patch("/api/admin/saree-clothing-shopping/:id/toggle-active", async (req, res) => {
-    try {
-      const item = await db.query.sareeClothingShopping.findFirst({
-        where: eq(sareeClothingShopping.id, req.params.id),
-      });
-
-      if (!item) {
-        return res.status(404).json({ message: "Item not found" });
-      }
-
-      const [updated] = await db
-        .update(sareeClothingShopping)
-        .set({ isActive: !item.isActive, updatedAt: new Date() })
-        .where(eq(sareeClothingShopping.id, req.params.id))
-        .returning();
-
-      res.json(updated);
-    } catch (error: any) {
-      res.status(500).json({ message: error.message });
-    }
-  });
-
-  // PATCH - Toggle featured status
-  app.patch("/api/admin/saree-clothing-shopping/:id/toggle-featured", async (req, res) => {
-    try {
-      const item = await db.query.sareeClothingShopping.findFirst({
-        where: eq(sareeClothingShopping.id, req.params.id),
-      });
-
-      if (!item) {
-        return res.status(404).json({ message: "Item not found" });
-      }
-
-      const [updated] = await db
-        .update(sareeClothingShopping)
-        .set({ isFeatured: !item.isFeatured, updatedAt: new Date() })
-        .where(eq(sareeClothingShopping.id, req.params.id))
-        .returning();
-
-      res.json(updated);
-    } catch (error: any) {
-      res.status(500).json({ message: error.message });
-    }
-  });
-
 
       res.json({ message: "Commercial property deleted successfully", id: req.params.id });
     } catch (error: any) {
@@ -1973,8 +1841,8 @@ export function registerRoutes(app: Express) {
 
       // Validate required fields
       if (!title || !listingType || !vehicleType || !brand || !model || !year || !price) {
-        return res.status(400).json({ 
-          message: "Missing required fields: title, listingType, vehicleType, brand, model, year, price" 
+        return res.status(400).json({
+          message: "Missing required fields: title, listingType, vehicleType, brand, model, year, price"
         });
       }
 
@@ -2381,8 +2249,8 @@ export function registerRoutes(app: Express) {
       } = req.body;
 
       if (!title || !listingType || !equipmentType || !category || !price) {
-        return res.status(400).json({ 
-          message: "Missing required fields: title, listingType, equipmentType, category, price" 
+        return res.status(400).json({
+          message: "Missing required fields: title, listingType, equipmentType, category, price"
         });
       }
 
@@ -3913,6 +3781,405 @@ export function registerRoutes(app: Express) {
     }
   });
 
+  // Cricket Sports Training Routes - Full CRUD
+
+  // GET all cricket training programs
+  app.get("/api/admin/cricket-sports-training", async (_req, res) => {
+    try {
+      const programs = await db.query.cricketSportsTraining.findMany({
+        orderBy: desc(cricketSportsTraining.createdAt),
+      });
+      res.json(programs);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // GET single program by ID
+  app.get("/api/admin/cricket-sports-training/:id", async (req, res) => {
+    try {
+      const program = await db.query.cricketSportsTraining.findFirst({
+        where: eq(cricketSportsTraining.id, req.params.id),
+      });
+
+      if (!program) {
+        return res.status(404).json({ message: "Training program not found" });
+      }
+
+      res.json(program);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // CREATE new program
+  app.post("/api/admin/cricket-sports-training", async (req, res) => {
+    try {
+      const [newProgram] = await db
+        .insert(cricketSportsTraining)
+        .values({
+          ...req.body,
+          country: req.body.country || "India",
+        })
+        .returning();
+
+      res.status(201).json(newProgram);
+    } catch (error: any) {
+      res.status(400).json({ message: error.message });
+    }
+  });
+
+  // UPDATE program
+  app.put("/api/admin/cricket-sports-training/:id", async (req, res) => {
+    try {
+      const [updatedProgram] = await db
+        .update(cricketSportsTraining)
+        .set({ ...req.body, updatedAt: new Date() })
+        .where(eq(cricketSportsTraining.id, req.params.id))
+        .returning();
+
+      if (!updatedProgram) {
+        return res.status(404).json({ message: "Training program not found" });
+      }
+
+      res.json(updatedProgram);
+    } catch (error: any) {
+      res.status(400).json({ message: error.message });
+    }
+  });
+
+  // DELETE program
+  app.delete("/api/admin/cricket-sports-training/:id", async (req, res) => {
+    try {
+      const deletedRows = await db
+        .delete(cricketSportsTraining)
+        .where(eq(cricketSportsTraining.id, req.params.id))
+        .returning();
+
+      if (deletedRows.length === 0) {
+        return res.status(404).json({ message: "Training program not found" });
+      }
+
+      res.json({ message: "Training program deleted successfully", id: req.params.id });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // PATCH - Toggle active status
+  app.patch("/api/admin/cricket-sports-training/:id/toggle-active", async (req, res) => {
+    try {
+      const program = await db.query.cricketSportsTraining.findFirst({
+        where: eq(cricketSportsTraining.id, req.params.id),
+      });
+
+      if (!program) {
+        return res.status(404).json({ message: "Training program not found" });
+      }
+
+      const [updated] = await db
+        .update(cricketSportsTraining)
+        .set({ isActive: !program.isActive, updatedAt: new Date() })
+        .where(eq(cricketSportsTraining.id, req.params.id))
+        .returning();
+
+      res.json(updated);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // PATCH - Toggle featured status
+  app.patch("/api/admin/cricket-sports-training/:id/toggle-featured", async (req, res) => {
+    try {
+      const program = await db.query.cricketSportsTraining.findFirst({
+        where: eq(cricketSportsTraining.id, req.params.id),
+      });
+
+      if (!program) {
+        return res.status(404).json({ message: "Training program not found" });
+      }
+
+      const [updated] = await db
+        .update(cricketSportsTraining)
+        .set({ isFeatured: !program.isFeatured, updatedAt: new Date() })
+        .where(eq(cricketSportsTraining.id, req.params.id))
+        .returning();
+
+      res.json(updated);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // E-Books & Online Courses Routes - Full CRUD
+
+  // GET all ebooks & online courses
+  app.get("/api/admin/ebooks-online-courses", async (_req, res) => {
+    try {
+      const items = await db.query.ebooksOnlineCourses.findMany({
+        orderBy: desc(ebooksOnlineCourses.createdAt),
+      });
+      res.json(items);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // GET single item by ID
+  app.get("/api/admin/ebooks-online-courses/:id", async (req, res) => {
+    try {
+      const item = await db.query.ebooksOnlineCourses.findFirst({
+        where: eq(ebooksOnlineCourses.id, req.params.id),
+      });
+
+      if (!item) {
+        return res.status(404).json({ message: "Item not found" });
+      }
+
+      res.json(item);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // CREATE new item
+  app.post("/api/admin/ebooks-online-courses", async (req, res) => {
+    try {
+      const [newItem] = await db
+        .insert(ebooksOnlineCourses)
+        .values({
+          ...req.body,
+          country: req.body.country || "India",
+        })
+        .returning();
+
+      res.status(201).json(newItem);
+    } catch (error: any) {
+      console.error("Error creating ebook/course:", error);
+      res.status(400).json({ message: error.message });
+    }
+  });
+
+  // UPDATE item
+  app.put("/api/admin/ebooks-online-courses/:id", async (req, res) => {
+    try {
+      const [updatedItem] = await db
+        .update(ebooksOnlineCourses)
+        .set({ ...req.body, updatedAt: new Date() })
+        .where(eq(ebooksOnlineCourses.id, req.params.id))
+        .returning();
+
+      if (!updatedItem) {
+        return res.status(404).json({ message: "Item not found" });
+      }
+
+      res.json(updatedItem);
+    } catch (error: any) {
+      console.error("Error updating ebook/course:", error);
+      res.status(400).json({ message: error.message });
+    }
+  });
+
+  // DELETE item
+  app.delete("/api/admin/ebooks-online-courses/:id", async (req, res) => {
+    try {
+      const deletedRows = await db
+        .delete(ebooksOnlineCourses)
+        .where(eq(ebooksOnlineCourses.id, req.params.id))
+        .returning();
+
+      if (deletedRows.length === 0) {
+        return res.status(404).json({ message: "Item not found" });
+      }
+
+      res.json({ message: "Item deleted successfully", id: req.params.id });
+    } catch (error: any) {
+      console.error("Error deleting ebook/course:", error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // PATCH - Toggle active status
+  app.patch("/api/admin/ebooks-online-courses/:id/toggle-active", async (req, res) => {
+    try {
+      const item = await db.query.ebooksOnlineCourses.findFirst({
+        where: eq(ebooksOnlineCourses.id, req.params.id),
+      });
+
+      if (!item) {
+        return res.status(404).json({ message: "Item not found" });
+      }
+
+      const [updated] = await db
+        .update(ebooksOnlineCourses)
+        .set({ isActive: !item.isActive, updatedAt: new Date() })
+        .where(eq(ebooksOnlineCourses.id, req.params.id))
+        .returning();
+
+      res.json(updated);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // PATCH - Toggle featured status
+  app.patch("/api/admin/ebooks-online-courses/:id/toggle-featured", async (req, res) => {
+    try {
+      const item = await db.query.ebooksOnlineCourses.findFirst({
+        where: eq(ebooksOnlineCourses.id, req.params.id),
+      });
+
+      if (!item) {
+        return res.status(404).json({ message: "Item not found" });
+      }
+
+      const [updated] = await db
+        .update(ebooksOnlineCourses)
+        .set({ isFeatured: !item.isFeatured, updatedAt: new Date() })
+        .where(eq(ebooksOnlineCourses.id, req.params.id))
+        .returning();
+
+      res.json(updated);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Saree/Clothing/Shopping Routes - Full CRUD
+
+  // GET all saree/clothing/shopping items
+  app.get("/api/admin/saree-clothing-shopping", async (_req, res) => {
+    try {
+      const items = await db.query.sareeClothingShopping.findMany({
+        orderBy: desc(sareeClothingShopping.createdAt),
+      });
+      res.json(items);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // GET single item by ID
+  app.get("/api/admin/saree-clothing-shopping/:id", async (req, res) => {
+    try {
+      const item = await db.query.sareeClothingShopping.findFirst({
+        where: eq(sareeClothingShopping.id, req.params.id),
+      });
+
+      if (!item) {
+        return res.status(404).json({ message: "Item not found" });
+      }
+
+      res.json(item);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // CREATE new item
+  app.post("/api/admin/saree-clothing-shopping", async (req, res) => {
+    try {
+      const [newItem] = await db
+        .insert(sareeClothingShopping)
+        .values({
+          ...req.body,
+          country: req.body.country || "India",
+        })
+        .returning();
+
+      res.status(201).json(newItem);
+    } catch (error: any) {
+      console.error("Error creating item:", error);
+      res.status(400).json({ message: error.message });
+    }
+  });
+
+  // UPDATE item
+  app.put("/api/admin/saree-clothing-shopping/:id", async (req, res) => {
+    try {
+      const [updatedItem] = await db
+        .update(sareeClothingShopping)
+        .set({ ...req.body, updatedAt: new Date() })
+        .where(eq(sareeClothingShopping.id, req.params.id))
+        .returning();
+
+      if (!updatedItem) {
+        return res.status(404).json({ message: "Item not found" });
+      }
+
+      res.json(updatedItem);
+    } catch (error: any) {
+      console.error("Error updating item:", error);
+      res.status(400).json({ message: error.message });
+    }
+  });
+
+  // DELETE item
+  app.delete("/api/admin/saree-clothing-shopping/:id", async (req, res) => {
+    try {
+      const deletedRows = await db
+        .delete(sareeClothingShopping)
+        .where(eq(sareeClothingShopping.id, req.params.id))
+        .returning();
+
+      if (deletedRows.length === 0) {
+        return res.status(404).json({ message: "Item not found" });
+      }
+
+      res.json({ message: "Item deleted successfully", id: req.params.id });
+    } catch (error: any) {
+      console.error("Error deleting item:", error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // PATCH - Toggle active status
+  app.patch("/api/admin/saree-clothing-shopping/:id/toggle-active", async (req, res) => {
+    try {
+      const item = await db.query.sareeClothingShopping.findFirst({
+        where: eq(sareeClothingShopping.id, req.params.id),
+      });
+
+      if (!item) {
+        return res.status(404).json({ message: "Item not found" });
+      }
+
+      const [updated] = await db
+        .update(sareeClothingShopping)
+        .set({ isActive: !item.isActive, updatedAt: new Date() })
+        .where(eq(sareeClothingShopping.id, req.params.id))
+        .returning();
+
+      res.json(updated);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // PATCH - Toggle featured status
+  app.patch("/api/admin/saree-clothing-shopping/:id/toggle-featured", async (req, res) => {
+    try {
+      const item = await db.query.sareeClothingShopping.findFirst({
+        where: eq(sareeClothingShopping.id, req.params.id),
+      });
+
+      if (!item) {
+        return res.status(404).json({ message: "Item not found" });
+      }
+
+      const [updated] = await db
+        .update(sareeClothingShopping)
+        .set({ isFeatured: !item.isFeatured, updatedAt: new Date() })
+        .where(eq(sareeClothingShopping.id, req.params.id))
+        .returning();
+
+      res.json(updated);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
   // Household Services Routes - Full CRUD
 
   // GET all household services
@@ -3922,6 +4189,137 @@ export function registerRoutes(app: Express) {
         orderBy: desc(householdServices.createdAt),
       });
       res.json(services);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Educational Consultancy Study Abroad Routes - Full CRUD
+
+  // GET all educational consultancy services
+  app.get("/api/admin/educational-consultancy-study-abroad", async (_req, res) => {
+    try {
+      const services = await db.query.educationalConsultancyStudyAbroad.findMany({
+        orderBy: desc(educationalConsultancyStudyAbroad.createdAt),
+      });
+      res.json(services);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // GET single service by ID
+  app.get("/api/admin/educational-consultancy-study-abroad/:id", async (req, res) => {
+    try {
+      const service = await db.query.educationalConsultancyStudyAbroad.findFirst({
+        where: eq(educationalConsultancyStudyAbroad.id, req.params.id),
+      });
+
+      if (!service) {
+        return res.status(404).json({ message: "Service not found" });
+      }
+
+      res.json(service);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // CREATE new service
+  app.post("/api/admin/educational-consultancy-study-abroad", async (req, res) => {
+    try {
+      const [newService] = await db
+        .insert(educationalConsultancyStudyAbroad)
+        .values({
+          ...req.body,
+          country: req.body.country || "India",
+        })
+        .returning();
+
+      res.status(201).json(newService);
+    } catch (error: any) {
+      res.status(400).json({ message: error.message });
+    }
+  });
+
+  // UPDATE service
+  app.put("/api/admin/educational-consultancy-study-abroad/:id", async (req, res) => {
+    try {
+      const [updatedService] = await db
+        .update(educationalConsultancyStudyAbroad)
+        .set({ ...req.body, updatedAt: new Date() })
+        .where(eq(educationalConsultancyStudyAbroad.id, req.params.id))
+        .returning();
+
+      if (!updatedService) {
+        return res.status(404).json({ message: "Service not found" });
+      }
+
+      res.json(updatedService);
+    } catch (error: any) {
+      res.status(400).json({ message: error.message });
+    }
+  });
+
+  // DELETE service
+  app.delete("/api/admin/educational-consultancy-study-abroad/:id", async (req, res) => {
+    try {
+      const deletedRows = await db
+        .delete(educationalConsultancyStudyAbroad)
+        .where(eq(educationalConsultancyStudyAbroad.id, req.params.id))
+        .returning();
+
+      if (deletedRows.length === 0) {
+        return res.status(404).json({ message: "Service not found" });
+      }
+
+      res.json({ message: "Service deleted successfully", id: req.params.id });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // PATCH - Toggle active status
+  app.patch("/api/admin/educational-consultancy-study-abroad/:id/toggle-active", async (req, res) => {
+    try {
+      const service = await db.query.educationalConsultancyStudyAbroad.findFirst({
+        where: eq(educationalConsultancyStudyAbroad.id, req.params.id),
+      });
+
+      if (!service) {
+        return res.status(404).json({ message: "Service not found" });
+      }
+
+      const [updated] = await db
+        .update(educationalConsultancyStudyAbroad)
+        .set({ isActive: !service.isActive, updatedAt: new Date() })
+        .where(eq(educationalConsultancyStudyAbroad.id, req.params.id))
+        .returning();
+
+      res.json(updated);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // PATCH - Toggle featured status
+  app.patch("/api/admin/educational-consultancy-study-abroad/:id/toggle-featured", async (req, res) => {
+    try {
+      const service = await db.query.educationalConsultancyStudyAbroad.findFirst({
+        where: eq(educationalConsultancyStudyAbroad.id, req.params.id),
+      });
+
+      if (!service) {
+        return res.status(404).json({ message: "Service not found" });
+      }
+
+      const [updated] = await db
+        .update(educationalConsultancyStudyAbroad)
+        .set({ isFeatured: !service.isFeatured, updatedAt: new Date() })
+        .where(eq(educationalConsultancyStudyAbroad.id, req.params.id))
+        .returning();
+
+      res.json(updated);
     } catch (error: any) {
       res.status(500).json({ message: error.message });
     }

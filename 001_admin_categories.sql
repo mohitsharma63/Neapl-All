@@ -24,6 +24,912 @@ CREATE TABLE IF NOT EXISTS public.users
     CONSTRAINT users_username_key UNIQUE (username)
 )
 TABLESPACE pg_default;
+
+CREATE TABLE IF NOT EXISTS ebooks_online_courses (
+  id VARCHAR PRIMARY KEY DEFAULT gen_random_uuid(),
+  title TEXT NOT NULL,
+  description TEXT,
+  listing_type TEXT NOT NULL, -- 'ebook', 'online_course', 'both'
+  category TEXT NOT NULL, -- 'academic', 'professional', 'skill_development', 'hobby', 'language', 'technology', 'business', 'health', 'creative'
+  subcategory TEXT,
+  
+  -- E-Book Specific Fields
+  book_title TEXT,
+  author TEXT,
+  publisher TEXT,
+  isbn TEXT,
+  publication_year INTEGER,
+  edition TEXT,
+  language TEXT,
+  page_count INTEGER,
+  file_format TEXT, -- 'pdf', 'epub', 'mobi', 'azw3', 'txt'
+  file_size_mb NUMERIC(8,2),
+  
+  -- Course Specific Fields
+  course_title TEXT,
+  instructor_name TEXT,
+  instructor_credentials TEXT,
+  course_platform TEXT, -- 'udemy', 'coursera', 'custom', 'zoom', 'google_meet'
+  course_duration_hours NUMERIC(6,2),
+  total_lectures INTEGER,
+  course_level TEXT, -- 'beginner', 'intermediate', 'advanced', 'all_levels'
+  course_language TEXT,
+  subtitles_available JSONB DEFAULT '[]',
+  
+  -- Content Details
+  topics_covered JSONB DEFAULT '[]',
+  learning_outcomes JSONB DEFAULT '[]',
+  prerequisites JSONB DEFAULT '[]',
+  target_audience TEXT,
+  content_type TEXT, -- 'video', 'text', 'mixed', 'interactive'
+  
+  -- Pricing
+  price NUMERIC(12,2) NOT NULL,
+  original_price NUMERIC(12,2),
+  discount_percentage NUMERIC(5,2),
+  is_free BOOLEAN DEFAULT false,
+  lifetime_access BOOLEAN DEFAULT true,
+  subscription_based BOOLEAN DEFAULT false,
+  subscription_price_monthly NUMERIC(10,2),
+  subscription_price_yearly NUMERIC(10,2),
+  
+  -- Course Features
+  video_quality TEXT, -- '720p', '1080p', '4k'
+  downloadable_resources BOOLEAN DEFAULT false,
+  assignments_included BOOLEAN DEFAULT false,
+  quizzes_included BOOLEAN DEFAULT false,
+  certificate_provided BOOLEAN DEFAULT false,
+  certificate_type TEXT, -- 'completion', 'verified', 'professional'
+  live_sessions BOOLEAN DEFAULT false,
+  recorded_sessions BOOLEAN DEFAULT true,
+  one_on_one_support BOOLEAN DEFAULT false,
+  group_discussions BOOLEAN DEFAULT false,
+  
+  -- Access & Delivery
+  instant_access BOOLEAN DEFAULT true,
+  access_duration_days INTEGER,
+  download_allowed BOOLEAN DEFAULT true,
+  download_limit INTEGER,
+  streaming_allowed BOOLEAN DEFAULT true,
+  offline_access BOOLEAN DEFAULT false,
+  mobile_app_access BOOLEAN DEFAULT false,
+  
+  -- Reviews & Ratings
+  total_students INTEGER DEFAULT 0,
+  total_readers INTEGER DEFAULT 0,
+  rating NUMERIC(3,2),
+  review_count INTEGER DEFAULT 0,
+  completion_rate NUMERIC(5,2),
+  
+  -- Additional Materials
+  includes_ebook BOOLEAN DEFAULT false,
+  includes_worksheets BOOLEAN DEFAULT false,
+  includes_templates BOOLEAN DEFAULT false,
+  includes_code_samples BOOLEAN DEFAULT false,
+  bonus_content JSONB DEFAULT '[]',
+  
+  -- Media
+  cover_image TEXT,
+  preview_images JSONB DEFAULT '[]',
+  preview_video_url TEXT,
+  sample_chapters JSONB DEFAULT '[]',
+  demo_lecture_url TEXT,
+  
+  -- Instructor/Author Info
+  instructor_bio TEXT,
+  instructor_rating NUMERIC(3,2),
+  instructor_students_count INTEGER,
+  instructor_courses_count INTEGER,
+  author_bio TEXT,
+  author_website TEXT,
+  author_social_links JSONB DEFAULT '[]',
+  
+  -- Requirements & System
+  system_requirements TEXT,
+  software_needed JSONB DEFAULT '[]',
+  hardware_requirements TEXT,
+  internet_required BOOLEAN DEFAULT true,
+  minimum_bandwidth TEXT,
+  
+  -- Updates & Support
+  last_updated TIMESTAMP,
+  content_updates BOOLEAN DEFAULT true,
+  support_available BOOLEAN DEFAULT false,
+  support_type TEXT, -- 'email', 'chat', 'forum', 'all'
+  response_time TEXT,
+  money_back_guarantee BOOLEAN DEFAULT false,
+  guarantee_days INTEGER,
+  
+  -- Seller Information
+  seller_id VARCHAR REFERENCES users(id) ON DELETE SET NULL,
+  seller_type TEXT, -- 'individual', 'institution', 'publisher', 'platform'
+  institution_name TEXT,
+  contact_person TEXT,
+  contact_phone TEXT NOT NULL,
+  contact_email TEXT,
+  alternate_phone TEXT,
+  whatsapp_available BOOLEAN DEFAULT false,
+  whatsapp_number TEXT,
+  
+  -- Location
+  country TEXT NOT NULL DEFAULT 'India',
+  state_province TEXT,
+  city TEXT,
+  area_name TEXT,
+  full_address TEXT,
+  location_id VARCHAR ,
+  
+  -- Delivery & Payment
+  delivery_method TEXT, -- 'instant_download', 'email', 'cloud_link', 'physical_copy'
+  payment_methods JSONB DEFAULT '[]',
+  installment_available BOOLEAN DEFAULT false,
+  installment_plans JSONB DEFAULT '[]',
+  refund_policy TEXT,
+  refund_period_days INTEGER,
+  
+  -- SEO & Marketing
+  keywords JSONB DEFAULT '[]',
+  meta_description TEXT,
+  promotional_video_url TEXT,
+  testimonials JSONB DEFAULT '[]',
+  
+  -- Compliance & Legal
+  copyright_notice TEXT,
+  terms_of_use TEXT,
+  privacy_policy TEXT,
+  drm_protected BOOLEAN DEFAULT false,
+  plagiarism_free BOOLEAN DEFAULT true,
+  
+  -- Status & Flags
+  availability_status TEXT DEFAULT 'available',
+  is_active BOOLEAN DEFAULT true,
+  is_featured BOOLEAN DEFAULT false,
+  is_verified BOOLEAN DEFAULT false,
+  is_bestseller BOOLEAN DEFAULT false,
+  is_trending BOOLEAN DEFAULT false,
+  is_new_release BOOLEAN DEFAULT false,
+  
+  -- Analytics
+  view_count INTEGER DEFAULT 0,
+  inquiry_count INTEGER DEFAULT 0,
+  enrollment_count INTEGER DEFAULT 0,
+  download_count INTEGER DEFAULT 0,
+  
+  -- Timestamps
+  created_at TIMESTAMP DEFAULT NOW(),
+  updated_at TIMESTAMP DEFAULT NOW()
+);
+
+-- Create indexes for better query performance
+CREATE INDEX IF NOT EXISTS idx_ebooks_online_courses_listing_type ON ebooks_online_courses(listing_type);
+CREATE INDEX IF NOT EXISTS idx_ebooks_online_courses_category ON ebooks_online_courses(category);
+CREATE INDEX IF NOT EXISTS idx_ebooks_online_courses_city ON ebooks_online_courses(city);
+CREATE INDEX IF NOT EXISTS idx_ebooks_online_courses_is_active ON ebooks_online_courses(is_active);
+CREATE INDEX IF NOT EXISTS idx_ebooks_online_courses_is_featured ON ebooks_online_courses(is_featured);
+CREATE INDEX IF NOT EXISTS idx_ebooks_online_courses_seller_id ON ebooks_online_courses(seller_id);
+CREATE TABLE IF NOT EXISTS cricket_sports_training (
+  id TEXT PRIMARY KEY,
+  title TEXT NOT NULL,
+  description TEXT,
+  listing_type TEXT NOT NULL CHECK(listing_type IN ('individual', 'group', 'academy', 'coaching_camp')),
+  training_category TEXT NOT NULL CHECK(training_category IN ('batting', 'bowling', 'wicket_keeping', 'fielding', 'all_rounder', 'fitness')),
+  
+  -- Training Details
+  academy_name TEXT,
+  coach_name TEXT NOT NULL,
+  coach_experience_years INTEGER,
+  coach_certifications TEXT,
+  coach_achievements TEXT,
+  
+  -- Pricing
+  price_per_session REAL,
+  price_per_month REAL,
+  price_per_quarter REAL,
+  currency TEXT DEFAULT 'INR',
+  discount_percentage REAL,
+  
+  -- Training Information
+  training_level TEXT CHECK(training_level IN ('beginner', 'intermediate', 'advanced', 'professional', 'all_levels')),
+  age_group TEXT,
+  min_age INTEGER,
+  max_age INTEGER,
+  batch_size INTEGER,
+  session_duration_minutes INTEGER,
+  sessions_per_week INTEGER,
+  
+  -- Facilities & Equipment
+  indoor_facility BOOLEAN DEFAULT FALSE,
+  outdoor_facility BOOLEAN DEFAULT FALSE,
+  net_practice_available BOOLEAN DEFAULT FALSE,
+  pitch_available BOOLEAN DEFAULT FALSE,
+  equipment_provided BOOLEAN DEFAULT FALSE,
+  facilities TEXT, -- JSON array
+  equipment_list TEXT, -- JSON array
+  
+  -- Training Programs
+  training_modules TEXT, -- JSON array
+  specializations TEXT, -- JSON array
+  tournament_preparation BOOLEAN DEFAULT FALSE,
+  match_practice BOOLEAN DEFAULT FALSE,
+  video_analysis BOOLEAN DEFAULT FALSE,
+  fitness_training BOOLEAN DEFAULT FALSE,
+  mental_conditioning BOOLEAN DEFAULT FALSE,
+  
+  -- Schedule
+  training_days TEXT, -- JSON array
+  morning_batch BOOLEAN DEFAULT FALSE,
+  evening_batch BOOLEAN DEFAULT FALSE,
+  weekend_batch BOOLEAN DEFAULT FALSE,
+  flexible_timing BOOLEAN DEFAULT FALSE,
+  
+  -- Certification & Success
+  certificate_provided BOOLEAN DEFAULT FALSE,
+  success_stories TEXT,
+  students_trained INTEGER,
+  professional_players_produced INTEGER,
+  
+  -- Trial & Registration
+  free_trial_available BOOLEAN DEFAULT FALSE,
+  trial_sessions INTEGER,
+  registration_fee REAL,
+  admission_process TEXT,
+  
+  -- Contact Information
+  contact_person TEXT NOT NULL,
+  contact_phone TEXT NOT NULL,
+  contact_email TEXT,
+  alternate_phone TEXT,
+  whatsapp_available BOOLEAN DEFAULT FALSE,
+  whatsapp_number TEXT,
+  website_url TEXT,
+  
+  -- Location
+  city TEXT,
+  state_province TEXT,
+  area_name TEXT,
+  full_address TEXT,
+  country TEXT DEFAULT 'India',
+  
+  -- Media
+  images TEXT, -- JSON array
+  videos TEXT, -- JSON array
+  brochure_url TEXT,
+  
+  -- Additional Info
+  hostel_facility BOOLEAN DEFAULT FALSE,
+  transport_facility BOOLEAN DEFAULT FALSE,
+  diet_plan_included BOOLEAN DEFAULT FALSE,
+  scholarship_available BOOLEAN DEFAULT FALSE,
+  international_exposure BOOLEAN DEFAULT FALSE,
+  
+  -- Status
+  is_active BOOLEAN DEFAULT TRUE,
+  is_featured BOOLEAN DEFAULT FALSE,
+  is_verified BOOLEAN DEFAULT FALSE,
+  
+  -- Timestamps
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Create indexes for faster queries
+CREATE INDEX IF NOT EXISTS idx_cricket_training_listing_type ON cricket_sports_training(listing_type);
+CREATE INDEX IF NOT EXISTS idx_cricket_training_category ON cricket_sports_training(training_category);
+CREATE INDEX IF NOT EXISTS idx_cricket_training_level ON cricket_sports_training(training_level);
+CREATE INDEX IF NOT EXISTS idx_cricket_training_city ON cricket_sports_training(city);
+CREATE INDEX IF NOT EXISTS idx_cricket_training_is_active ON cricket_sports_training(is_active);
+CREATE INDEX IF NOT EXISTS idx_cricket_training_is_featured ON cricket_sports_training(is_featured);
+
+CREATE TABLE IF NOT EXISTS schools_colleges_coaching_institutes (
+  id VARCHAR PRIMARY KEY DEFAULT gen_random_uuid(),
+  title TEXT NOT NULL,
+  description TEXT,
+  listing_type TEXT NOT NULL, -- 'school', 'college', 'coaching_institute', 'university', 'training_center'
+  institution_category TEXT NOT NULL, -- 'primary_school', 'secondary_school', 'higher_secondary', 'engineering_college', 'medical_college', 'management_college', 'competitive_exams', 'skill_development', etc.
+  institution_name TEXT NOT NULL,
+  institution_type TEXT, -- 'government', 'private', 'aided', 'autonomous'
+  affiliation TEXT, -- Board/University affiliation
+  accreditation TEXT, -- NAAC, NBA, ISO, etc.
+  establishment_year INTEGER,
+  recognition_details TEXT,
+  
+  -- Academic Details
+  courses_offered JSONB DEFAULT '[]',
+  streams_available JSONB DEFAULT '[]',
+  specializations JSONB DEFAULT '[]',
+  medium_of_instruction JSONB DEFAULT '[]',
+  board_affiliation TEXT, -- CBSE, ICSE, State Board, etc.
+  university_affiliation TEXT,
+  
+  -- Admission Details
+  admission_process TEXT,
+  admission_criteria TEXT,
+  entrance_exam_required BOOLEAN DEFAULT false,
+  entrance_exam_name TEXT,
+  minimum_percentage_required DECIMAL(5,2),
+  age_criteria TEXT,
+  eligibility_criteria TEXT,
+  
+  -- Fee Structure
+  admission_fee DECIMAL(12,2),
+  annual_tuition_fee DECIMAL(12,2),
+  course_fee DECIMAL(12,2),
+  registration_fee DECIMAL(12,2),
+  examination_fee DECIMAL(12,2),
+  development_fee DECIMAL(12,2),
+  other_fees DECIMAL(12,2),
+  total_fee_per_year DECIMAL(12,2),
+  fee_payment_mode TEXT, -- 'yearly', 'semester', 'quarterly', 'monthly'
+  scholarship_available BOOLEAN DEFAULT false,
+  scholarship_details TEXT,
+  fee_concession_available BOOLEAN DEFAULT false,
+  installment_facility BOOLEAN DEFAULT false,
+  
+  -- Infrastructure
+  total_area DECIMAL(10,2),
+  area_unit TEXT DEFAULT 'acres',
+  number_of_classrooms INTEGER,
+  classroom_capacity INTEGER,
+  laboratory_facilities JSONB DEFAULT '[]',
+  library_available BOOLEAN DEFAULT false,
+  library_books_count INTEGER,
+  computer_lab BOOLEAN DEFAULT false,
+  number_of_computers INTEGER,
+  sports_facilities JSONB DEFAULT '[]',
+  playground_available BOOLEAN DEFAULT false,
+  auditorium_available BOOLEAN DEFAULT false,
+  auditorium_capacity INTEGER,
+  cafeteria_available BOOLEAN DEFAULT false,
+  hostel_facility BOOLEAN DEFAULT false,
+  hostel_capacity INTEGER,
+  transport_facility BOOLEAN DEFAULT false,
+  medical_facility BOOLEAN DEFAULT false,
+  wi_fi_available BOOLEAN DEFAULT false,
+  smart_classrooms BOOLEAN DEFAULT false,
+  
+  -- Faculty
+  total_faculty INTEGER,
+  phd_faculty INTEGER,
+  postgraduate_faculty INTEGER,
+  experienced_faculty INTEGER,
+  student_teacher_ratio TEXT,
+  faculty_qualifications TEXT,
+  guest_faculty_available BOOLEAN DEFAULT false,
+  
+  -- Students
+  total_students INTEGER,
+  current_batch_strength INTEGER,
+  batch_size INTEGER,
+  student_capacity INTEGER,
+  co_education BOOLEAN DEFAULT true,
+  
+  -- Results & Achievements
+  pass_percentage DECIMAL(5,2),
+  board_exam_results TEXT,
+  university_exam_results TEXT,
+  placement_percentage DECIMAL(5,2),
+  average_package DECIMAL(12,2),
+  highest_package DECIMAL(12,2),
+  top_recruiters JSONB DEFAULT '[]',
+  awards_achievements TEXT,
+  notable_alumni TEXT,
+  
+  -- Coaching Specific
+  coaching_subjects JSONB DEFAULT '[]',
+  exam_preparation_for JSONB DEFAULT '[]', -- 'JEE', 'NEET', 'UPSC', 'Banking', etc.
+  batch_timings TEXT,
+  weekend_batches BOOLEAN DEFAULT false,
+  online_classes_available BOOLEAN DEFAULT false,
+  offline_classes_available BOOLEAN DEFAULT true,
+  hybrid_mode BOOLEAN DEFAULT false,
+  study_material_provided BOOLEAN DEFAULT false,
+  mock_tests_provided BOOLEAN DEFAULT false,
+  doubt_clearing_sessions BOOLEAN DEFAULT false,
+  personal_mentoring BOOLEAN DEFAULT false,
+  course_duration TEXT,
+  
+  -- Facilities & Amenities
+  ac_classrooms BOOLEAN DEFAULT false,
+  cctv_surveillance BOOLEAN DEFAULT false,
+  security_guard BOOLEAN DEFAULT false,
+  biometric_attendance BOOLEAN DEFAULT false,
+  parent_teacher_meetings BOOLEAN DEFAULT false,
+  extra_curricular_activities JSONB DEFAULT '[]',
+  counseling_services BOOLEAN DEFAULT false,
+  career_guidance BOOLEAN DEFAULT false,
+  placement_assistance BOOLEAN DEFAULT false,
+  internship_opportunities BOOLEAN DEFAULT false,
+  
+  -- Timing & Schedule
+  working_hours TEXT,
+  working_days TEXT,
+  holiday_list TEXT,
+  academic_calendar TEXT,
+  
+  -- Contact Information
+  principal_name TEXT,
+  director_name TEXT,
+  head_of_institution TEXT,
+  contact_person TEXT NOT NULL,
+  contact_phone TEXT NOT NULL,
+  contact_email TEXT,
+  alternate_phone TEXT,
+  whatsapp_available BOOLEAN DEFAULT false,
+  whatsapp_number TEXT,
+  website_url TEXT,
+  
+  -- Location
+  country TEXT NOT NULL DEFAULT 'India',
+  state_province TEXT,
+  city TEXT,
+  area_name TEXT,
+  full_address TEXT NOT NULL,
+  landmark TEXT,
+  pincode TEXT,
+  location_id VARCHAR REFERENCES locations(id) ON DELETE SET NULL,
+  
+  -- Additional Details
+  prospectus_url TEXT,
+  brochure_url TEXT,
+  virtual_tour_url TEXT,
+  video_url TEXT,
+  images JSONB DEFAULT '[]',
+  documents JSONB DEFAULT '[]',
+  certifications JSONB DEFAULT '[]',
+  
+  -- Policies
+  admission_policy TEXT,
+  refund_policy TEXT,
+  cancellation_policy TEXT,
+  terms_and_conditions TEXT,
+  
+  -- Status & Metadata
+  rating DECIMAL(3,2),
+  review_count INTEGER DEFAULT 0,
+  total_enrollments INTEGER DEFAULT 0,
+  availability_status TEXT DEFAULT 'accepting_admissions',
+  is_active BOOLEAN DEFAULT true,
+  is_featured BOOLEAN DEFAULT false,
+  is_verified BOOLEAN DEFAULT false,
+  is_premium BOOLEAN DEFAULT false,
+  owner_id VARCHAR REFERENCES users(id) ON DELETE SET NULL,
+  view_count INTEGER DEFAULT 0,
+  inquiry_count INTEGER DEFAULT 0,
+  created_at TIMESTAMP DEFAULT NOW(),
+  updated_at TIMESTAMP DEFAULT NOW()
+);
+
+
+-- Educational Consultancy, Study Abroad & Admissions Table
+CREATE TABLE IF NOT EXISTS educational_consultancy_study_abroad (
+  id TEXT PRIMARY KEY,
+  title TEXT NOT NULL,
+  description TEXT,
+  listing_type TEXT NOT NULL CHECK(listing_type IN ('consultancy', 'admission_service', 'visa_assistance', 'complete_package')),
+  
+  -- Service Provider Details
+  company_name TEXT NOT NULL,
+  company_type TEXT CHECK(company_type IN ('consultancy', 'education_agent', 'visa_consultant', 'university_representative')),
+  registration_number TEXT,
+  license_number TEXT,
+  established_year INTEGER,
+  accreditation TEXT,
+  affiliated_universities TEXT, -- JSON array
+  partner_institutions TEXT, -- JSON array
+  
+  -- Services Offered
+  services_offered TEXT, -- JSON array
+  admission_assistance BOOLEAN DEFAULT TRUE,
+  visa_assistance BOOLEAN DEFAULT TRUE,
+  document_preparation BOOLEAN DEFAULT TRUE,
+  application_processing BOOLEAN DEFAULT TRUE,
+  scholarship_guidance BOOLEAN DEFAULT TRUE,
+  loan_assistance BOOLEAN DEFAULT TRUE,
+  pre_departure_orientation BOOLEAN DEFAULT TRUE,
+  accommodation_assistance BOOLEAN DEFAULT TRUE,
+  career_counseling BOOLEAN DEFAULT TRUE,
+  language_training BOOLEAN DEFAULT FALSE,
+  test_preparation BOOLEAN DEFAULT FALSE,
+  interview_preparation BOOLEAN DEFAULT TRUE,
+  
+  -- Countries & Destinations
+  countries_covered TEXT, -- JSON array
+  popular_destinations TEXT, -- JSON array
+  university_partnerships INTEGER,
+  
+  -- Study Programs
+  programs_offered TEXT, -- JSON array
+  undergraduate_programs BOOLEAN DEFAULT TRUE,
+  postgraduate_programs BOOLEAN DEFAULT TRUE,
+  doctoral_programs BOOLEAN DEFAULT FALSE,
+  diploma_courses BOOLEAN DEFAULT TRUE,
+  certificate_courses BOOLEAN DEFAULT TRUE,
+  professional_courses BOOLEAN DEFAULT TRUE,
+  foundation_programs BOOLEAN DEFAULT TRUE,
+  pathway_programs BOOLEAN DEFAULT TRUE,
+  
+  -- Fields of Study
+  engineering BOOLEAN DEFAULT FALSE,
+  medicine BOOLEAN DEFAULT FALSE,
+  business_management BOOLEAN DEFAULT FALSE,
+  computer_science BOOLEAN DEFAULT FALSE,
+  arts_humanities BOOLEAN DEFAULT FALSE,
+  sciences BOOLEAN DEFAULT FALSE,
+  law BOOLEAN DEFAULT FALSE,
+  architecture BOOLEAN DEFAULT FALSE,
+  design BOOLEAN DEFAULT FALSE,
+  hospitality BOOLEAN DEFAULT FALSE,
+  
+  -- Pricing
+  consultation_fee REAL,
+  service_charge REAL,
+  application_fee REAL,
+  visa_processing_fee REAL,
+  package_price REAL,
+  currency TEXT DEFAULT 'INR',
+  free_consultation BOOLEAN DEFAULT FALSE,
+  refundable_deposit REAL,
+  
+  -- Success Metrics
+  success_rate_percentage REAL,
+  students_placed INTEGER,
+  universities_tied_up INTEGER,
+  countries_served INTEGER,
+  years_of_experience INTEGER,
+  visa_success_rate REAL,
+  
+  -- Eligibility & Requirements
+  minimum_qualification TEXT,
+  age_criteria TEXT,
+  language_requirements TEXT,
+  test_scores_required TEXT, -- JSON array (IELTS, TOEFL, GRE, GMAT, etc.)
+  minimum_score_requirements TEXT,
+  work_experience_required BOOLEAN DEFAULT FALSE,
+  
+  -- Timeline & Process
+  processing_time TEXT,
+  application_deadline_assistance BOOLEAN DEFAULT TRUE,
+  intake_seasons TEXT, -- JSON array
+  average_processing_days INTEGER,
+  
+  -- Support & Assistance
+  counselor_name TEXT,
+  counselor_qualification TEXT,
+  counselor_experience_years INTEGER,
+  dedicated_counselor BOOLEAN DEFAULT TRUE,
+  group_counseling BOOLEAN DEFAULT FALSE,
+  online_counseling BOOLEAN DEFAULT TRUE,
+  in_person_counseling BOOLEAN DEFAULT TRUE,
+  phone_support BOOLEAN DEFAULT TRUE,
+  email_support BOOLEAN DEFAULT TRUE,
+  whatsapp_support BOOLEAN DEFAULT TRUE,
+  
+  -- Additional Services
+  mock_interviews BOOLEAN DEFAULT FALSE,
+  sop_writing BOOLEAN DEFAULT TRUE,
+  lor_assistance BOOLEAN DEFAULT TRUE,
+  resume_building BOOLEAN DEFAULT TRUE,
+  portfolio_development BOOLEAN DEFAULT FALSE,
+  english_proficiency_training BOOLEAN DEFAULT FALSE,
+  aptitude_test_coaching BOOLEAN DEFAULT FALSE,
+  
+  -- Documentation
+  documents_required TEXT, -- JSON array
+  document_verification BOOLEAN DEFAULT TRUE,
+  document_translation BOOLEAN DEFAULT FALSE,
+  attestation_services BOOLEAN DEFAULT FALSE,
+  
+  -- Financial Guidance
+  scholarship_database_access BOOLEAN DEFAULT FALSE,
+  education_loan_tie_ups TEXT, -- JSON array
+  financial_planning BOOLEAN DEFAULT FALSE,
+  part_time_job_guidance BOOLEAN DEFAULT FALSE,
+  
+  -- Post-Landing Services
+  airport_pickup BOOLEAN DEFAULT FALSE,
+  temporary_accommodation BOOLEAN DEFAULT FALSE,
+  bank_account_opening_help BOOLEAN DEFAULT FALSE,
+  sim_card_assistance BOOLEAN DEFAULT FALSE,
+  university_orientation BOOLEAN DEFAULT FALSE,
+  
+  -- Contact Information
+  contact_person TEXT NOT NULL,
+  contact_phone TEXT NOT NULL,
+  contact_email TEXT,
+  alternate_phone TEXT,
+  whatsapp_number TEXT,
+  website_url TEXT,
+  social_media_links TEXT, -- JSON array
+  
+  -- Office Details
+  branch_locations TEXT, -- JSON array
+  head_office_address TEXT,
+  consultation_mode TEXT, -- 'online', 'offline', 'both'
+  appointment_required BOOLEAN DEFAULT TRUE,
+  walk_in_allowed BOOLEAN DEFAULT FALSE,
+  
+  -- Location
+  country TEXT NOT NULL DEFAULT 'India',
+  state_province TEXT,
+  city TEXT,
+  area_name TEXT,
+  full_address TEXT,
+  location_id TEXT REFERENCES locations(id) ON DELETE SET NULL,
+  
+  -- Working Hours
+  working_hours TEXT,
+  working_days TEXT,
+  available_24_7 BOOLEAN DEFAULT FALSE,
+  emergency_support BOOLEAN DEFAULT FALSE,
+  
+  -- Media & Testimonials
+  images TEXT, -- JSON array
+  videos TEXT, -- JSON array
+  brochures TEXT, -- JSON array
+  testimonials TEXT, -- JSON array
+  case_studies TEXT, -- JSON array
+  
+  -- Certifications & Memberships
+  certifications TEXT, -- JSON array
+  professional_memberships TEXT, -- JSON array
+  awards_recognition TEXT, -- JSON array
+  
+  -- Payment & Refund
+  payment_methods TEXT, -- JSON array
+  installment_available BOOLEAN DEFAULT FALSE,
+  refund_policy TEXT,
+  terms_and_conditions TEXT,
+  cancellation_policy TEXT,
+  
+  -- Reviews & Rating
+  rating REAL,
+  review_count INTEGER DEFAULT 0,
+  total_consultations INTEGER DEFAULT 0,
+  
+  -- Special Features
+  free_seminar BOOLEAN DEFAULT FALSE,
+  webinar_available BOOLEAN DEFAULT FALSE,
+  study_material_provided BOOLEAN DEFAULT FALSE,
+  mobile_app_available BOOLEAN DEFAULT FALSE,
+  virtual_tour BOOLEAN DEFAULT FALSE,
+  
+  -- Status
+  is_active BOOLEAN DEFAULT TRUE,
+  is_featured BOOLEAN DEFAULT FALSE,
+  is_verified BOOLEAN DEFAULT FALSE,
+  verification_date TIMESTAMP,
+  
+  -- Seller Information
+  owner_id TEXT REFERENCES users(id) ON DELETE SET NULL,
+  
+  -- Timestamps
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Create indexes for faster queries
+CREATE INDEX IF NOT EXISTS idx_edu_consultancy_listing_type ON educational_consultancy_study_abroad(listing_type);
+CREATE INDEX IF NOT EXISTS idx_edu_consultancy_company_type ON educational_consultancy_study_abroad(company_type);
+CREATE INDEX IF NOT EXISTS idx_edu_consultancy_city ON educational_consultancy_study_abroad(city);
+CREATE INDEX IF NOT EXISTS idx_edu_consultancy_is_active ON educational_consultancy_study_abroad(is_active);
+CREATE INDEX IF NOT EXISTS idx_edu_consultancy_is_featured ON educational_consultancy_study_abroad(is_featured);
+CREATE INDEX IF NOT EXISTS idx_edu_consultancy_is_verified ON educational_consultancy_study_abroad(is_verified);
+
+-- Educational Consultancy, Study Abroad & Admissions Table
+CREATE TABLE IF NOT EXISTS educational_consultancy_study_abroad (
+  id TEXT PRIMARY KEY,
+  title TEXT NOT NULL,
+  description TEXT,
+  listing_type TEXT NOT NULL CHECK(listing_type IN ('consultancy', 'admission_service', 'visa_assistance', 'complete_package')),
+  
+  -- Service Provider Details
+  company_name TEXT NOT NULL,
+  company_type TEXT CHECK(company_type IN ('consultancy', 'education_agent', 'visa_consultant', 'university_representative')),
+  registration_number TEXT,
+  license_number TEXT,
+  established_year INTEGER,
+  accreditation TEXT,
+  affiliated_universities TEXT, -- JSON array
+  partner_institutions TEXT, -- JSON array
+  
+  -- Services Offered
+  services_offered TEXT, -- JSON array
+  admission_assistance BOOLEAN DEFAULT TRUE,
+  visa_assistance BOOLEAN DEFAULT TRUE,
+  document_preparation BOOLEAN DEFAULT TRUE,
+  application_processing BOOLEAN DEFAULT TRUE,
+  scholarship_guidance BOOLEAN DEFAULT TRUE,
+  loan_assistance BOOLEAN DEFAULT TRUE,
+  pre_departure_orientation BOOLEAN DEFAULT TRUE,
+  accommodation_assistance BOOLEAN DEFAULT TRUE,
+  career_counseling BOOLEAN DEFAULT TRUE,
+  language_training BOOLEAN DEFAULT FALSE,
+  test_preparation BOOLEAN DEFAULT FALSE,
+  interview_preparation BOOLEAN DEFAULT TRUE,
+  
+  -- Countries & Destinations
+  countries_covered TEXT, -- JSON array
+  popular_destinations TEXT, -- JSON array
+  university_partnerships INTEGER,
+  
+  -- Study Programs
+  programs_offered TEXT, -- JSON array
+  undergraduate_programs BOOLEAN DEFAULT TRUE,
+  postgraduate_programs BOOLEAN DEFAULT TRUE,
+  doctoral_programs BOOLEAN DEFAULT FALSE,
+  diploma_courses BOOLEAN DEFAULT TRUE,
+  certificate_courses BOOLEAN DEFAULT TRUE,
+  professional_courses BOOLEAN DEFAULT TRUE,
+  foundation_programs BOOLEAN DEFAULT TRUE,
+  pathway_programs BOOLEAN DEFAULT TRUE,
+  
+  -- Fields of Study
+  engineering BOOLEAN DEFAULT FALSE,
+  medicine BOOLEAN DEFAULT FALSE,
+  business_management BOOLEAN DEFAULT FALSE,
+  computer_science BOOLEAN DEFAULT FALSE,
+  arts_humanities BOOLEAN DEFAULT FALSE,
+  sciences BOOLEAN DEFAULT FALSE,
+  law BOOLEAN DEFAULT FALSE,
+  architecture BOOLEAN DEFAULT FALSE,
+  design BOOLEAN DEFAULT FALSE,
+  hospitality BOOLEAN DEFAULT FALSE,
+  
+  -- Pricing
+  consultation_fee REAL,
+  service_charge REAL,
+  application_fee REAL,
+  visa_processing_fee REAL,
+  package_price REAL,
+  currency TEXT DEFAULT 'INR',
+  free_consultation BOOLEAN DEFAULT FALSE,
+  refundable_deposit REAL,
+  
+  -- Success Metrics
+  success_rate_percentage REAL,
+  students_placed INTEGER,
+  universities_tied_up INTEGER,
+  countries_served INTEGER,
+  years_of_experience INTEGER,
+  visa_success_rate REAL,
+  
+  -- Eligibility & Requirements
+  minimum_qualification TEXT,
+  age_criteria TEXT,
+  language_requirements TEXT,
+  test_scores_required TEXT, -- JSON array (IELTS, TOEFL, GRE, GMAT, etc.)
+  minimum_score_requirements TEXT,
+  work_experience_required BOOLEAN DEFAULT FALSE,
+  
+  -- Timeline & Process
+  processing_time TEXT,
+  application_deadline_assistance BOOLEAN DEFAULT TRUE,
+  intake_seasons TEXT, -- JSON array
+  average_processing_days INTEGER,
+  
+  -- Support & Assistance
+  counselor_name TEXT,
+  counselor_qualification TEXT,
+  counselor_experience_years INTEGER,
+  dedicated_counselor BOOLEAN DEFAULT TRUE,
+  group_counseling BOOLEAN DEFAULT FALSE,
+  online_counseling BOOLEAN DEFAULT TRUE,
+  in_person_counseling BOOLEAN DEFAULT TRUE,
+  phone_support BOOLEAN DEFAULT TRUE,
+  email_support BOOLEAN DEFAULT TRUE,
+  whatsapp_support BOOLEAN DEFAULT TRUE,
+  
+  -- Additional Services
+  mock_interviews BOOLEAN DEFAULT FALSE,
+  sop_writing BOOLEAN DEFAULT TRUE,
+  lor_assistance BOOLEAN DEFAULT TRUE,
+  resume_building BOOLEAN DEFAULT TRUE,
+  portfolio_development BOOLEAN DEFAULT FALSE,
+  english_proficiency_training BOOLEAN DEFAULT FALSE,
+  aptitude_test_coaching BOOLEAN DEFAULT FALSE,
+  
+  -- Documentation
+  documents_required TEXT, -- JSON array
+  document_verification BOOLEAN DEFAULT TRUE,
+  document_translation BOOLEAN DEFAULT FALSE,
+  attestation_services BOOLEAN DEFAULT FALSE,
+  
+  -- Financial Guidance
+  scholarship_database_access BOOLEAN DEFAULT FALSE,
+  education_loan_tie_ups TEXT, -- JSON array
+  financial_planning BOOLEAN DEFAULT FALSE,
+  part_time_job_guidance BOOLEAN DEFAULT FALSE,
+  
+  -- Post-Landing Services
+  airport_pickup BOOLEAN DEFAULT FALSE,
+  temporary_accommodation BOOLEAN DEFAULT FALSE,
+  bank_account_opening_help BOOLEAN DEFAULT FALSE,
+  sim_card_assistance BOOLEAN DEFAULT FALSE,
+  university_orientation BOOLEAN DEFAULT FALSE,
+  
+  -- Contact Information
+  contact_person TEXT NOT NULL,
+  contact_phone TEXT NOT NULL,
+  contact_email TEXT,
+  alternate_phone TEXT,
+  whatsapp_number TEXT,
+  website_url TEXT,
+  social_media_links TEXT, -- JSON array
+  
+  -- Office Details
+  branch_locations TEXT, -- JSON array
+  head_office_address TEXT,
+  consultation_mode TEXT, -- 'online', 'offline', 'both'
+  appointment_required BOOLEAN DEFAULT TRUE,
+  walk_in_allowed BOOLEAN DEFAULT FALSE,
+  
+  -- Location
+  country TEXT NOT NULL DEFAULT 'India',
+  state_province TEXT,
+  city TEXT,
+  area_name TEXT,
+  full_address TEXT,
+  location_id TEXT,
+  
+  -- Working Hours
+  working_hours TEXT,
+  working_days TEXT,
+  available_24_7 BOOLEAN DEFAULT FALSE,
+  emergency_support BOOLEAN DEFAULT FALSE,
+  
+  -- Media & Testimonials
+  images TEXT, -- JSON array
+  videos TEXT, -- JSON array
+  brochures TEXT, -- JSON array
+  testimonials TEXT, -- JSON array
+  case_studies TEXT, -- JSON array
+  
+  -- Certifications & Memberships
+  certifications TEXT, -- JSON array
+  professional_memberships TEXT, -- JSON array
+  awards_recognition TEXT, -- JSON array
+  
+  -- Payment & Refund
+  payment_methods TEXT, -- JSON array
+  installment_available BOOLEAN DEFAULT FALSE,
+  refund_policy TEXT,
+  terms_and_conditions TEXT,
+  cancellation_policy TEXT,
+  
+  -- Reviews & Rating
+  rating REAL,
+  review_count INTEGER DEFAULT 0,
+  total_consultations INTEGER DEFAULT 0,
+  
+  -- Special Features
+  free_seminar BOOLEAN DEFAULT FALSE,
+  webinar_available BOOLEAN DEFAULT FALSE,
+  study_material_provided BOOLEAN DEFAULT FALSE,
+  mobile_app_available BOOLEAN DEFAULT FALSE,
+  virtual_tour BOOLEAN DEFAULT FALSE,
+  
+  -- Status
+  is_active BOOLEAN DEFAULT TRUE,
+  is_featured BOOLEAN DEFAULT FALSE,
+  is_verified BOOLEAN DEFAULT FALSE,
+  verification_date TIMESTAMP,
+  
+  -- Seller Information
+  owner_id TEXT REFERENCES users(id) ON DELETE SET NULL,
+  
+  -- Timestamps
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Create indexes for faster queries
+CREATE INDEX IF NOT EXISTS idx_edu_consultancy_listing_type ON educational_consultancy_study_abroad(listing_type);
+CREATE INDEX IF NOT EXISTS idx_edu_consultancy_company_type ON educational_consultancy_study_abroad(company_type);
+CREATE INDEX IF NOT EXISTS idx_edu_consultancy_city ON educational_consultancy_study_abroad(city);
+CREATE INDEX IF NOT EXISTS idx_edu_consultancy_is_active ON educational_consultancy_study_abroad(is_active);
+CREATE INDEX IF NOT EXISTS idx_edu_consultancy_is_featured ON educational_consultancy_study_abroad(is_featured);
+CREATE INDEX IF NOT EXISTS idx_edu_consultancy_is_verified ON educational_consultancy_study_abroad(is_verified);
+
 CREATE TABLE IF NOT EXISTS public.user_documents
 (
     id character varying COLLATE pg_catalog."default" NOT NULL DEFAULT gen_random_uuid(),
