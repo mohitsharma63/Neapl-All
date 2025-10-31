@@ -2397,56 +2397,7 @@ function AgenciesSection() {
         </Dialog>
       )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-        {agencies.map((agency) => (
-          <Card key={agency.id}>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle className="text-lg">{agency.name}</CardTitle>
-                  <div className="text-sm text-muted-foreground mt-1">
-                    {agency.propertyCount} properties
-                  </div>
-                </div>
-                <div className="flex gap-2">
-                  <Button variant="ghost" size="icon" onClick={() => handleEdit(agency)}>
-                    <Edit className="w-4 h-4" />
-                  </Button>
-                  <Button variant="ghost" size="icon" className="text-destructive" onClick={() => handleDelete(agency.id)}>
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-2">
-                {agency.description && (
-                  <p className="text-sm text-muted-foreground">{agency.description}</p>
-                )}
-                <div className="flex items-center space-x-2 text-sm">
-                  {agency.phone && (
-                    <div className="flex items-center space-x-1">
-                      <Phone className="w-3 h-3" />
-                      <span>{agency.phone}</span>
-                    </div>
-                  )}
-                </div>
-                <div className="flex items-center space-x-2 text-sm">
-                  {agency.email && (
-                    <div className="flex items-center space-x-1">
-                      <Mail className="w-3 h-3" />
-                      <span>{agency.email}</span>
-                    </div>
-                  )}
-                </div>
-                <div className="text-sm text-muted-foreground pt-2">
-                  Created: {new Date(agency.createdAt).toLocaleDateString()}
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+     
     </div>
   );
 }
@@ -4363,12 +4314,7 @@ function TransportationMovingServicesSection() {
 function VehicleLicenseClassesSection() {
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h2 className="text-2xl font-bold">Vehicle License Classes</h2>
-          <p className="text-muted-foreground">Manage driving license training programs</p>
-        </div>
-      </div>
+  
       <VehicleLicenseClassesForm />
     </div>
   );

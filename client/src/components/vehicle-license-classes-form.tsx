@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -114,6 +113,8 @@ export default function VehicleLicenseClassesForm() {
   const [showViewDialog, setShowViewDialog] = useState(false);
   const [editingClass, setEditingClass] = useState<VehicleLicenseClassFormData | null>(null);
   const [viewingClass, setViewingClass] = useState<VehicleLicenseClassFormData | null>(null);
+  const [uploadedImages, setUploadedImages] = useState<string[]>([]);
+  const [isUploading, setIsUploading] = useState(false);
 
   const { register, handleSubmit, setValue, watch, reset } = useForm<VehicleLicenseClassFormData>({
     defaultValues: {
@@ -171,6 +172,7 @@ export default function VehicleLicenseClassesForm() {
           documentsRequired,
           trainingVehicles,
           languageOptions,
+          images: uploadedImages,
         }),
       });
 
@@ -214,6 +216,46 @@ export default function VehicleLicenseClassesForm() {
     },
   });
 
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    setIsUploading(true);
+    const formData = new FormData();
+
+    Array.from(files).forEach((file) => {
+      formData.append('images', file);
+    });
+
+    try {
+      const response = await fetch('/api/upload/images', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) throw new Error('Failed to upload images');
+
+      const data = await response.json();
+      setUploadedImages([...uploadedImages, ...data.urls]);
+      toast({
+        title: "Success",
+        description: `${data.urls.length} image(s) uploaded successfully`,
+      });
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const handleRemoveImage = (index: number) => {
+    setUploadedImages(uploadedImages.filter((_, i) => i !== index));
+  };
+
   const handleCloseDialog = () => {
     setShowDialog(false);
     setEditingClass(null);
@@ -223,6 +265,7 @@ export default function VehicleLicenseClassesForm() {
     setDocumentsRequired([]);
     setTrainingVehicles([]);
     setLanguageOptions([]);
+    setUploadedImages([]);
   };
 
   const handleEdit = (licenseClass: any) => {
@@ -235,6 +278,7 @@ export default function VehicleLicenseClassesForm() {
     setDocumentsRequired(licenseClass.documentsRequired || []);
     setTrainingVehicles(licenseClass.trainingVehicles || []);
     setLanguageOptions(licenseClass.languageOptions || []);
+    setUploadedImages(licenseClass.images || []);
     setShowDialog(true);
   };
 
@@ -248,6 +292,7 @@ export default function VehicleLicenseClassesForm() {
     const sanitizedData = {
       ...data,
       nextBatchStartDate: data.nextBatchStartDate || null,
+      images: uploadedImages,
     };
     createMutation.mutate(sanitizedData);
   };
@@ -704,6 +749,50 @@ export default function VehicleLicenseClassesForm() {
               </CardContent>
             </Card>
 
+            {/* Images */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Images</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div>
+                  <Label htmlFor="images">Upload Images</Label>
+                  <Input
+                    id="images"
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    onChange={handleImageUpload}
+                    disabled={isUploading}
+                  />
+                  {isUploading && <p className="text-sm text-muted-foreground mt-2">Uploading...</p>}
+                </div>
+
+                {uploadedImages.length > 0 && (
+                  <div className="grid grid-cols-4 gap-4">
+                    {uploadedImages.map((url, idx) => (
+                      <div key={idx} className="relative group">
+                        <img
+                          src={url}
+                          alt={`Upload ${idx + 1}`}
+                          className="w-full h-32 object-cover rounded-lg"
+                        />
+                        <Button
+                          type="button"
+                          variant="destructive"
+                          size="icon"
+                          className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity h-6 w-6"
+                          onClick={() => handleRemoveImage(idx)}
+                        >
+                          <X className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
             {/* Contact & Location */}
             <Card>
               <CardHeader>
@@ -887,6 +976,22 @@ export default function VehicleLicenseClassesForm() {
                 <div>
                   <h3 className="font-semibold mb-2">Success Rate</h3>
                   <p>{viewingClass.successRatePercentage}%</p>
+                </div>
+              )}
+
+              {viewingClass.images && viewingClass.images.length > 0 && (
+                <div>
+                  <h3 className="font-semibold mb-2">Images</h3>
+                  <div className="grid grid-cols-3 gap-4">
+                    {viewingClass.images.map((url, idx) => (
+                      <img
+                        key={idx}
+                        src={url}
+                        alt={`Image ${idx + 1}`}
+                        className="w-full h-48 object-cover rounded-lg"
+                      />
+                    ))}
+                  </div>
                 </div>
               )}
             </div>

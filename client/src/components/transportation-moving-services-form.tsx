@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
@@ -22,30 +21,30 @@ interface TransportationService {
   vehicleType?: string;
   vehicleCapacity?: string;
   priceType: string;
-  basePrice: number;
-  pricePerKm?: number;
-  pricePerHour?: number;
-  minimumCharge?: number;
+  basePrice: number | undefined;
+  pricePerKm?: number | undefined;
+  pricePerHour?: number | undefined;
+  minimumCharge?: number | undefined;
   availableVehicles?: string[];
-  crewSize?: number;
+  crewSize?: number | undefined;
   insuranceIncluded: boolean;
   insuranceCoverage?: string;
   packingServiceAvailable: boolean;
-  packingCharges?: number;
+  packingCharges?: number | undefined;
   loadingUnloadingIncluded: boolean;
   storageAvailable: boolean;
-  storagePricePerDay?: number;
+  storagePricePerDay?: number | undefined;
   serviceAreas?: string[];
   operatingHours?: string;
   advanceBookingRequired: boolean;
-  minimumBookingHours?: number;
+  minimumBookingHours?: number | undefined;
   sameDayService: boolean;
   country: string;
   stateProvince?: string;
   city?: string;
   areaName?: string;
   fullAddress?: string;
-  serviceRadiusKm?: number;
+  serviceRadiusKm?: number | undefined;
   contactPerson?: string;
   contactPhone: string;
   contactEmail?: string;
@@ -57,7 +56,7 @@ interface TransportationService {
   termsAndConditions?: string;
   cancellationPolicy?: string;
   paymentMethods?: string[];
-  advancePaymentPercentage?: number;
+  advancePaymentPercentage?: number | undefined;
   isVerified: boolean;
   isActive: boolean;
   isFeatured: boolean;
@@ -76,8 +75,10 @@ export function TransportationMovingServicesForm() {
   const [viewDialogOpen, setViewDialogOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<TransportationService | null>(null);
   const [viewingItem, setViewingItem] = useState<TransportationService | null>(null);
+  const [uploadingImages, setUploadingImages] = useState(false);
+  const [loading, setLoading] = useState(false); // Added loading state
 
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<any>({
     title: "",
     description: "",
     serviceType: "local_moving",
@@ -85,35 +86,36 @@ export function TransportationMovingServicesForm() {
     vehicleType: "",
     vehicleCapacity: "",
     priceType: "per_trip",
-    basePrice: "",
-    pricePerKm: "",
-    pricePerHour: "",
-    minimumCharge: "",
-    crewSize: "",
+    basePrice: undefined,
+    pricePerKm: undefined,
+    pricePerHour: undefined,
+    minimumCharge: undefined,
+    crewSize: undefined,
     insuranceIncluded: false,
     insuranceCoverage: "",
     packingServiceAvailable: false,
-    packingCharges: "",
+    packingCharges: undefined,
     loadingUnloadingIncluded: true,
     storageAvailable: false,
-    storagePricePerDay: "",
+    storagePricePerDay: undefined,
     operatingHours: "",
     advanceBookingRequired: true,
-    minimumBookingHours: "",
+    minimumBookingHours: undefined,
     sameDayService: false,
     country: "India",
     stateProvince: "",
     city: "",
     areaName: "",
     fullAddress: "",
-    serviceRadiusKm: "",
+    serviceRadiusKm: undefined,
     contactPerson: "",
     contactPhone: "",
     contactEmail: "",
     whatsappNumber: "",
     termsAndConditions: "",
     cancellationPolicy: "",
-    advancePaymentPercentage: "",
+    advancePaymentPercentage: undefined,
+    images: [],
     isActive: true,
     isFeatured: false,
   });
@@ -144,6 +146,9 @@ export function TransportationMovingServicesForm() {
     onError: (error: Error) => {
       toast({ title: "Error", description: error.message, variant: "destructive" });
     },
+    onSettled: () => {
+      setLoading(false);
+    }
   });
 
   const updateMutation = useMutation({
@@ -168,6 +173,9 @@ export function TransportationMovingServicesForm() {
     onError: (error: Error) => {
       toast({ title: "Error", description: error.message, variant: "destructive" });
     },
+    onSettled: () => {
+      setLoading(false);
+    }
   });
 
   const deleteMutation = useMutation({
@@ -218,35 +226,36 @@ export function TransportationMovingServicesForm() {
       vehicleType: "",
       vehicleCapacity: "",
       priceType: "per_trip",
-      basePrice: "",
-      pricePerKm: "",
-      pricePerHour: "",
-      minimumCharge: "",
-      crewSize: "",
+      basePrice: undefined,
+      pricePerKm: undefined,
+      pricePerHour: undefined,
+      minimumCharge: undefined,
+      crewSize: undefined,
       insuranceIncluded: false,
       insuranceCoverage: "",
       packingServiceAvailable: false,
-      packingCharges: "",
+      packingCharges: undefined,
       loadingUnloadingIncluded: true,
       storageAvailable: false,
-      storagePricePerDay: "",
+      storagePricePerDay: undefined,
       operatingHours: "",
       advanceBookingRequired: true,
-      minimumBookingHours: "",
+      minimumBookingHours: undefined,
       sameDayService: false,
       country: "India",
       stateProvince: "",
       city: "",
       areaName: "",
       fullAddress: "",
-      serviceRadiusKm: "",
+      serviceRadiusKm: undefined,
       contactPerson: "",
       contactPhone: "",
       contactEmail: "",
       whatsappNumber: "",
       termsAndConditions: "",
       cancellationPolicy: "",
-      advancePaymentPercentage: "",
+      advancePaymentPercentage: undefined,
+      images: [],
       isActive: true,
       isFeatured: false,
     });
@@ -263,35 +272,36 @@ export function TransportationMovingServicesForm() {
       vehicleType: item.vehicleType || "",
       vehicleCapacity: item.vehicleCapacity || "",
       priceType: item.priceType,
-      basePrice: item.basePrice.toString(),
-      pricePerKm: item.pricePerKm?.toString() || "",
-      pricePerHour: item.pricePerHour?.toString() || "",
-      minimumCharge: item.minimumCharge?.toString() || "",
-      crewSize: item.crewSize?.toString() || "",
+      basePrice: item.basePrice,
+      pricePerKm: item.pricePerKm,
+      pricePerHour: item.pricePerHour,
+      minimumCharge: item.minimumCharge,
+      crewSize: item.crewSize,
       insuranceIncluded: item.insuranceIncluded,
       insuranceCoverage: item.insuranceCoverage || "",
       packingServiceAvailable: item.packingServiceAvailable,
-      packingCharges: item.packingCharges?.toString() || "",
+      packingCharges: item.packingCharges,
       loadingUnloadingIncluded: item.loadingUnloadingIncluded,
       storageAvailable: item.storageAvailable,
-      storagePricePerDay: item.storagePricePerDay?.toString() || "",
+      storagePricePerDay: item.storagePricePerDay,
       operatingHours: item.operatingHours || "",
       advanceBookingRequired: item.advanceBookingRequired,
-      minimumBookingHours: item.minimumBookingHours?.toString() || "",
+      minimumBookingHours: item.minimumBookingHours,
       sameDayService: item.sameDayService,
       country: item.country,
       stateProvince: item.stateProvince || "",
       city: item.city || "",
       areaName: item.areaName || "",
       fullAddress: item.fullAddress || "",
-      serviceRadiusKm: item.serviceRadiusKm?.toString() || "",
+      serviceRadiusKm: item.serviceRadiusKm,
       contactPerson: item.contactPerson || "",
       contactPhone: item.contactPhone,
       contactEmail: item.contactEmail || "",
       whatsappNumber: item.whatsappNumber || "",
       termsAndConditions: item.termsAndConditions || "",
       cancellationPolicy: item.cancellationPolicy || "",
-      advancePaymentPercentage: item.advancePaymentPercentage?.toString() || "",
+      advancePaymentPercentage: item.advancePaymentPercentage,
+      images: item.images || [],
       isActive: item.isActive,
       isFeatured: item.isFeatured,
     });
@@ -303,12 +313,98 @@ export function TransportationMovingServicesForm() {
     setViewDialogOpen(true);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files;
+    if (!files || files.length === 0) return;
+
+    setUploadingImages(true);
+    const imageUrls: string[] = [];
+
+    for (const file of files) {
+      try {
+        // Create a local URL for the image (for development/preview)
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          const base64String = reader.result as string;
+          setFormData((prevFormData) => ({
+            ...prevFormData,
+            images: [...(prevFormData.images || []), base64String],
+          }));
+        };
+        reader.readAsDataURL(file);
+        
+        // Note: For production, integrate with Cloudinary or another image hosting service
+        // const formData = new FormData();
+        // formData.append("file", file);
+        // formData.append("upload_preset", "your_upload_preset");
+        // const response = await fetch(`https://api.cloudinary.com/v1_1/your_cloud_name/image/upload`, {
+        //   method: "POST",
+        //   body: formData,
+        // });
+        // const data = await response.json();
+        // imageUrls.push(data.secure_url);
+      } catch (error) {
+        console.error("Image upload failed:", error);
+        toast({ title: "Error", description: `Failed to upload ${file.name}`, variant: "destructive" });
+      }
+    }
+
+    setUploadingImages(false);
+  };
+
+  const removeImage = (index: number) => {
+    setFormData((prevFormData) => ({
+      ...prevFormData,
+      images: prevFormData.images.filter((_, i) => i !== index),
+    }));
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (editingItem) {
-      updateMutation.mutate({ id: editingItem.id, data: formData });
-    } else {
-      createMutation.mutate(formData);
+    setLoading(true);
+
+    try {
+      // Convert empty strings to null for numeric fields
+      const formattedData = {
+        ...formData,
+        basePrice: formData.basePrice === "" || formData.basePrice === undefined || formData.basePrice === null ? null : parseFloat(String(formData.basePrice)),
+        pricePerKm: formData.pricePerKm === "" || formData.pricePerKm === undefined || formData.pricePerKm === null ? null : parseFloat(String(formData.pricePerKm)),
+        pricePerHour: formData.pricePerHour === "" || formData.pricePerHour === undefined || formData.pricePerHour === null ? null : parseFloat(String(formData.pricePerHour)),
+        minimumCharge: formData.minimumCharge === "" || formData.minimumCharge === undefined || formData.minimumCharge === null ? null : parseFloat(String(formData.minimumCharge)),
+        crewSize: formData.crewSize === "" || formData.crewSize === undefined || formData.crewSize === null ? null : parseInt(String(formData.crewSize)),
+        packingCharges: formData.packingCharges === "" || formData.packingCharges === undefined || formData.packingCharges === null ? null : parseFloat(String(formData.packingCharges)),
+        storagePricePerDay: formData.storagePricePerDay === "" || formData.storagePricePerDay === undefined || formData.storagePricePerDay === null ? null : parseFloat(String(formData.storagePricePerDay)),
+        serviceRadiusKm: formData.serviceRadiusKm === "" || formData.serviceRadiusKm === undefined || formData.serviceRadiusKm === null ? null : parseInt(String(formData.serviceRadiusKm)),
+        minimumBookingHours: formData.minimumBookingHours === "" || formData.minimumBookingHours === undefined || formData.minimumBookingHours === null ? null : parseInt(String(formData.minimumBookingHours)),
+        advancePaymentPercentage: formData.advancePaymentPercentage === "" || formData.advancePaymentPercentage === undefined || formData.advancePaymentPercentage === null ? null : parseFloat(String(formData.advancePaymentPercentage)),
+      };
+
+      const url = editingItem?.id
+        ? `/api/admin/transportation-moving-services/${editingItem.id}`
+        : '/api/admin/transportation-moving-services';
+
+      const method = editingItem?.id ? 'PUT' : 'POST';
+
+      const response = await fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formattedData),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || "Failed to save service");
+      }
+      
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/transportation-moving-services"] });
+      toast({ title: "Success", description: editingItem ? "Service updated successfully" : "Service created successfully" });
+      setIsDialogOpen(false);
+      resetForm();
+
+    } catch (error: any) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -344,7 +440,7 @@ export function TransportationMovingServicesForm() {
                       <Eye className="w-4 h-4" />
                     </Button>
                     <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleEdit(service)}>
-                      <Edit className="w-4 h-4" />
+                      <Pencil className="w-4 h-4" />
                     </Button>
                     <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => deleteMutation.mutate(service.id)}>
                       <Trash2 className="w-4 h-4" />
@@ -487,23 +583,49 @@ export function TransportationMovingServicesForm() {
                   </div>
                   <div>
                     <Label htmlFor="basePrice">Base Price *</Label>
-                    <Input id="basePrice" type="number" value={formData.basePrice} onChange={(e) => setFormData({ ...formData, basePrice: e.target.value })} required />
+                    <Input 
+                      id="basePrice" 
+                      type="number" 
+                      value={formData.basePrice ?? ""} 
+                      onChange={(e) => setFormData({ ...formData, basePrice: e.target.value })} 
+                      required 
+                    />
                   </div>
                   <div>
                     <Label htmlFor="pricePerKm">Price Per KM</Label>
-                    <Input id="pricePerKm" type="number" value={formData.pricePerKm} onChange={(e) => setFormData({ ...formData, pricePerKm: e.target.value })} />
+                    <Input 
+                      id="pricePerKm" 
+                      type="number" 
+                      value={formData.pricePerKm ?? ""} 
+                      onChange={(e) => setFormData({ ...formData, pricePerKm: e.target.value })} 
+                    />
                   </div>
                   <div>
                     <Label htmlFor="pricePerHour">Price Per Hour</Label>
-                    <Input id="pricePerHour" type="number" value={formData.pricePerHour} onChange={(e) => setFormData({ ...formData, pricePerHour: e.target.value })} />
+                    <Input 
+                      id="pricePerHour" 
+                      type="number" 
+                      value={formData.pricePerHour ?? ""} 
+                      onChange={(e) => setFormData({ ...formData, pricePerHour: e.target.value })} 
+                    />
                   </div>
                   <div>
                     <Label htmlFor="minimumCharge">Minimum Charge</Label>
-                    <Input id="minimumCharge" type="number" value={formData.minimumCharge} onChange={(e) => setFormData({ ...formData, minimumCharge: e.target.value })} />
+                    <Input 
+                      id="minimumCharge" 
+                      type="number" 
+                      value={formData.minimumCharge ?? ""} 
+                      onChange={(e) => setFormData({ ...formData, minimumCharge: e.target.value })} 
+                    />
                   </div>
                   <div>
                     <Label htmlFor="advancePaymentPercentage">Advance Payment %</Label>
-                    <Input id="advancePaymentPercentage" type="number" value={formData.advancePaymentPercentage} onChange={(e) => setFormData({ ...formData, advancePaymentPercentage: e.target.value })} />
+                    <Input 
+                      id="advancePaymentPercentage" 
+                      type="number" 
+                      value={formData.advancePaymentPercentage ?? ""} 
+                      onChange={(e) => setFormData({ ...formData, advancePaymentPercentage: e.target.value })} 
+                    />
                   </div>
                 </div>
               </CardContent>
@@ -518,15 +640,30 @@ export function TransportationMovingServicesForm() {
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <Label htmlFor="crewSize">Crew Size</Label>
-                    <Input id="crewSize" type="number" value={formData.crewSize} onChange={(e) => setFormData({ ...formData, crewSize: e.target.value })} />
+                    <Input 
+                      id="crewSize" 
+                      type="number" 
+                      value={formData.crewSize ?? ""} 
+                      onChange={(e) => setFormData({ ...formData, crewSize: e.target.value })} 
+                    />
                   </div>
                   <div>
                     <Label htmlFor="packingCharges">Packing Charges</Label>
-                    <Input id="packingCharges" type="number" value={formData.packingCharges} onChange={(e) => setFormData({ ...formData, packingCharges: e.target.value })} />
+                    <Input 
+                      id="packingCharges" 
+                      type="number" 
+                      value={formData.packingCharges ?? ""} 
+                      onChange={(e) => setFormData({ ...formData, packingCharges: e.target.value })} 
+                    />
                   </div>
                   <div>
                     <Label htmlFor="storagePricePerDay">Storage Price Per Day</Label>
-                    <Input id="storagePricePerDay" type="number" value={formData.storagePricePerDay} onChange={(e) => setFormData({ ...formData, storagePricePerDay: e.target.value })} />
+                    <Input 
+                      id="storagePricePerDay" 
+                      type="number" 
+                      value={formData.storagePricePerDay ?? ""} 
+                      onChange={(e) => setFormData({ ...formData, storagePricePerDay: e.target.value })} 
+                    />
                   </div>
                   <div>
                     <Label htmlFor="insuranceCoverage">Insurance Coverage</Label>
@@ -591,7 +728,21 @@ export function TransportationMovingServicesForm() {
                   </div>
                   <div>
                     <Label htmlFor="serviceRadiusKm">Service Radius (km)</Label>
-                    <Input id="serviceRadiusKm" type="number" value={formData.serviceRadiusKm} onChange={(e) => setFormData({ ...formData, serviceRadiusKm: e.target.value })} />
+                    <Input 
+                      id="serviceRadiusKm" 
+                      type="number" 
+                      value={formData.serviceRadiusKm ?? ""} 
+                      onChange={(e) => setFormData({ ...formData, serviceRadiusKm: e.target.value })} 
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="minimumBookingHours">Minimum Booking Hours</Label>
+                    <Input 
+                      id="minimumBookingHours" 
+                      type="number" 
+                      value={formData.minimumBookingHours ?? ""} 
+                      onChange={(e) => setFormData({ ...formData, minimumBookingHours: e.target.value })} 
+                    />
                   </div>
                   <div>
                     <Label htmlFor="operatingHours">Operating Hours</Label>
@@ -634,6 +785,45 @@ export function TransportationMovingServicesForm() {
               </CardContent>
             </Card>
 
+            {/* Images */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Images</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div>
+                  <Label htmlFor="images">Upload Images</Label>
+                  <Input
+                    id="images"
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    onChange={handleImageUpload}
+                    disabled={uploadingImages}
+                  />
+                  {uploadingImages && <p className="text-sm text-muted-foreground mt-2">Uploading...</p>}
+                </div>
+                {formData.images && formData.images.length > 0 && (
+                  <div className="grid grid-cols-4 gap-4">
+                    {formData.images.map((img: string, idx: number) => (
+                      <div key={idx} className="relative">
+                        <img src={img} alt={`Upload ${idx + 1}`} className="w-full h-24 object-cover rounded" />
+                        <Button
+                          type="button"
+                          variant="destructive"
+                          size="icon"
+                          className="absolute top-1 right-1 h-6 w-6"
+                          onClick={() => removeImage(idx)}
+                        >
+                          ×
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
             {/* Status */}
             <Card>
               <CardHeader>
@@ -655,8 +845,8 @@ export function TransportationMovingServicesForm() {
 
             <div className="flex justify-end gap-2">
               <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>Cancel</Button>
-              <Button type="submit" disabled={createMutation.isPending || updateMutation.isPending}>
-                {createMutation.isPending || updateMutation.isPending ? (editingItem ? "Updating..." : "Creating...") : (editingItem ? "Update Service" : "Create Service")}
+              <Button type="submit" disabled={loading}>
+                {loading ? (editingItem ? "Updating..." : "Creating...") : (editingItem ? "Update Service" : "Create Service")}
               </Button>
             </div>
           </form>
@@ -678,7 +868,7 @@ export function TransportationMovingServicesForm() {
                 {viewingItem.isFeatured && <Badge className="bg-yellow-500">Featured</Badge>}
                 {viewingItem.sameDayService && <Badge variant="outline">Same Day Service</Badge>}
               </div>
-              
+
               {viewingItem.description && (
                 <div>
                   <h3 className="font-semibold mb-2">Description</h3>
@@ -707,6 +897,17 @@ export function TransportationMovingServicesForm() {
                     Location
                   </h3>
                   <p className="text-muted-foreground">{viewingItem.fullAddress}</p>
+                </div>
+              )}
+
+              {viewingItem.images && viewingItem.images.length > 0 && (
+                <div>
+                  <h3 className="font-semibold mb-2">Images</h3>
+                  <div className="grid grid-cols-3 gap-4">
+                    {viewingItem.images.map((img, idx) => (
+                      <img key={idx} src={img} alt={`Service image ${idx + 1}`} className="w-full h-24 object-cover rounded" />
+                    ))}
+                  </div>
                 </div>
               )}
             </div>
