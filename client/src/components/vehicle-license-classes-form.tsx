@@ -349,7 +349,43 @@ export default function VehicleLicenseClassesForm() {
                 </div>
               </CardContent>
             </Card>
-
+ <Card>
+              <CardHeader>
+                <CardTitle>Images</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div>
+                  <Label htmlFor="images">Upload Images</Label>
+                  <Input
+                    id="images"
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    onChange={handleImageUpload}
+                    disabled={uploadingImages}
+                  />
+                  {uploadingImages && <p className="text-sm text-muted-foreground mt-2">Uploading...</p>}
+                </div>
+                {formData.images && formData.images.length > 0 && (
+                  <div className="grid grid-cols-4 gap-4">
+                    {formData.images.map((img: string, idx: number) => (
+                      <div key={idx} className="relative">
+                        <img src={img} alt={`Upload ${idx + 1}`} className="w-full h-24 object-cover rounded" />
+                        <Button
+                          type="button"
+                          variant="destructive"
+                          size="icon"
+                          className="absolute top-1 right-1 h-6 w-6"
+                          onClick={() => removeImage(idx)}
+                        >
+                          ×
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
             {/* Training Provider */}
             <Card>
               <CardHeader>

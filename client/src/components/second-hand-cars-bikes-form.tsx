@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -11,7 +10,7 @@ import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Pencil, Trash2, Plus, Eye, EyeOff } from "lucide-react";
+import { Pencil, Trash2, Plus, Eye, EyeOff, Upload, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface SecondHandCarBike {
@@ -73,6 +72,7 @@ export function SecondHandCarsBikesForm() {
   const queryClient = useQueryClient();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<SecondHandCarBike | null>(null);
+  const [uploadingImages, setUploadingImages] = useState(false);
 
   const [formData, setFormData] = useState({
     title: "",
@@ -350,6 +350,52 @@ export function SecondHandCarsBikesForm() {
     setIsDialogOpen(true);
   };
 
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    setUploadingImages(true);
+    const formDataUpload = new FormData();
+
+    Array.from(files).forEach(file => {
+      formDataUpload.append('images', file);
+    });
+
+    try {
+      const response = await fetch('/api/upload/vehicle-images', {
+        method: 'POST',
+        body: formDataUpload,
+      });
+
+      if (!response.ok) throw new Error('Failed to upload images');
+
+      const data = await response.json();
+      const uploadedUrls = data.files.map((file: any) => file.url);
+
+      setFormData(prev => ({
+        ...prev,
+        images: [...prev.images, ...uploadedUrls]
+      }));
+
+      toast({ title: "Success", description: "Images uploaded successfully" });
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to upload images",
+        variant: "destructive"
+      });
+    } finally {
+      setUploadingImages(false);
+    }
+  };
+
+  const removeImage = (index: number) => {
+    setFormData(prev => ({
+      ...prev,
+      images: prev.images.filter((_, i) => i !== index)
+    }));
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (editingItem) {
@@ -594,6 +640,57 @@ export function SecondHandCarsBikesForm() {
                     placeholder="Describe the vehicle condition, features, etc."
                     rows={4}
                   />
+                </div>
+
+                <div className="space-y-4">
+                  <div>
+                    <Label>Vehicle Images</Label>
+                    <div className="mt-2">
+                      <div className="flex items-center gap-2">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          disabled={uploadingImages}
+                          onClick={() => document.getElementById('image-upload')?.click()}
+                        >
+                          <Upload className="w-4 h-4 mr-2" />
+                          {uploadingImages ? "Uploading..." : "Upload Images"}
+                        </Button>
+                        <input
+                          id="image-upload"
+                          type="file"
+                          multiple
+                          accept="image/*"
+                          className="hidden"
+                          onChange={handleImageUpload}
+                        />
+                        <span className="text-sm text-muted-foreground">
+                          Max 5MB per image, up to 10 images
+                        </span>
+                      </div>
+
+                      {formData.images.length > 0 && (
+                        <div className="grid grid-cols-3 gap-4 mt-4">
+                          {formData.images.map((image, index) => (
+                            <div key={index} className="relative group">
+                              <img
+                                src={image}
+                                alt={`Vehicle ${index + 1}`}
+                                className="w-full h-32 object-cover rounded-lg border"
+                              />
+                              <button
+                                type="button"
+                                onClick={() => removeImage(index)}
+                                className="absolute top-2 right-2 p-1 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                              >
+                                <X className="w-4 h-4" />
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
                 </div>
 
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
