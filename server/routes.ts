@@ -2009,8 +2009,6 @@ export function registerRoutes(app: Express) {
 
 
 
-  
-
   // PATCH - Toggle active status
   app.patch("/api/admin/cars-bikes/:id/toggle-active", async (req, res) => {
     try {

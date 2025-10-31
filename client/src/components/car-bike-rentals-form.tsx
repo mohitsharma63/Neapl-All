@@ -77,6 +77,7 @@ export default function CarBikeRentalsForm() {
   const [showViewDialog, setShowViewDialog] = useState(false);
   const [editingRental, setEditingRental] = useState<CarBikeRentalFormData | null>(null);
   const [viewingRental, setViewingRental] = useState<CarBikeRentalFormData | null>(null);
+  const [uploadingImages, setUploadingImages] = useState(false);
 
   const { register, handleSubmit, setValue, watch, reset } = useForm<CarBikeRentalFormData>({
     defaultValues: {
@@ -137,7 +138,7 @@ export default function CarBikeRentalsForm() {
     mutationFn: async (data: CarBikeRentalFormData) => {
       const url = editingRental ? `/api/car-bike-rentals/${editingRental.id}` : "/api/car-bike-rentals";
       const method = editingRental ? "PUT" : "POST";
-      
+
       const response = await fetch(url, {
         method,
         headers: { "Content-Type": "application/json" },
@@ -272,24 +273,17 @@ export default function CarBikeRentalsForm() {
     const files = e.target.files;
     if (!files || files.length === 0) return;
 
-    const newImages: string[] = [];
+    setUploadingImages(true);
+    const uploadedUrls: string[] = [];
 
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
-      const reader = new FileReader();
 
-      await new Promise<void>((resolve) => {
-        reader.onloadend = () => {
-          if (reader.result) {
-            newImages.push(reader.result as string);
-          }
-          resolve();
-        };
-        reader.readAsDataURL(file);
-      });
+      
     }
 
-    setImages([...images, ...newImages]);
+    setImages((prev) => [...prev, ...uploadedUrls]);
+    setUploadingImages(false);
   };
 
   const removeImage = (index: number) => {
@@ -770,8 +764,10 @@ export default function CarBikeRentalsForm() {
                     multiple
                     onChange={handleImageUpload}
                     className="mt-2"
+                    disabled={uploadingImages}
                   />
                 </div>
+                {uploadingImages && <div className="text-sm text-muted-foreground">Uploading images...</div>}
                 {images.length > 0 && (
                   <div className="grid grid-cols-3 gap-4">
                     {images.map((image, index) => (
@@ -885,8 +881,8 @@ export default function CarBikeRentalsForm() {
                 Cancel
               </Button>
               <Button type="submit" disabled={createMutation.isPending}>
-                {createMutation.isPending 
-                  ? (editingRental ? "Updating..." : "Creating...") 
+                {createMutation.isPending
+                  ? (editingRental ? "Updating..." : "Creating...")
                   : (editingRental ? "Update Rental Listing" : "Create Rental Listing")
                 }
               </Button>
