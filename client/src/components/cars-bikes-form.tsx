@@ -10,7 +10,7 @@ import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Pencil, Trash2, Plus, Eye, EyeOff } from "lucide-react";
+import { Pencil, Trash2, Plus, Eye, EyeOff, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface CarBike {
@@ -53,7 +53,7 @@ export function CarsBikesForm() {
   const queryClient = useQueryClient();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<CarBike | null>(null);
-
+  const [uploadingImages, setUploadingImages] = useState(false);
   const [formData, setFormData] = useState({
     title: "",
     description: "",
@@ -317,7 +317,53 @@ export function CarsBikesForm() {
       createMutation.mutate(formData);
     }
   };
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
 
+    setUploadingImages(true);
+    const newImages: string[] = [];
+
+    try {
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        const reader = new FileReader();
+
+        const result = await new Promise<string>((resolve, reject) => {
+          reader.onloadend = () => resolve(reader.result as string);
+          reader.onerror = reject;
+          reader.readAsDataURL(file);
+        });
+
+        newImages.push(result);
+      }
+
+      setFormData(prev => ({
+        ...prev,
+        images: [...prev.images, ...newImages]
+      }));
+
+      toast({
+        title: "Success",
+        description: `${newImages.length} image(s) uploaded successfully`,
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to upload images",
+        variant: "destructive",
+      });
+    } finally {
+      setUploadingImages(false);
+    }
+  };
+
+  const removeImage = (index: number) => {
+    setFormData(prev => ({
+      ...prev,
+      images: prev.images.filter((_, i) => i !== index)
+    }));
+  };
   return (
     <Card>
       <CardHeader>
@@ -560,7 +606,36 @@ export function CarsBikesForm() {
                     rows={4}
                   />
                 </div>
-
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Images</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div>
+                      <Label htmlFor="images">Upload Images</Label>
+                      <Input id="images" type="file" accept="image/*" multiple onChange={handleImageUpload} className="mt-2" />
+                      {uploadingImages && <p className="text-sm text-muted-foreground mt-2">Uploading...</p>}
+                    </div>
+                    {formData.images && formData.images.length > 0 && (
+                      <div className="grid grid-cols-4 gap-4 mt-4">
+                        {formData.images.map((img: string, idx: number) => (
+                          <div key={idx} className="relative">
+                            <img src={img} alt={`Upload ${idx + 1}`} className="w-full h-24 object-cover rounded" />
+                            <Button
+                              type="button"
+                              variant="destructive"
+                              size="icon"
+                              className="absolute top-1 right-1 h-6 w-6"
+                              onClick={() => removeImage(idx)}
+                            >
+                              <X className="w-3 h-3" />
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
                 <div className="flex items-center space-x-4">
                   <div className="flex items-center space-x-2">
                     <Switch

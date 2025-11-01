@@ -2009,8 +2009,6 @@ export function registerRoutes(app: Express) {
 
 
 
-  
-
   // PATCH - Toggle active status
   app.patch("/api/admin/cars-bikes/:id/toggle-active", async (req, res) => {
     try {
@@ -2817,16 +2815,31 @@ export function registerRoutes(app: Express) {
   // CREATE new vehicle license class
   app.post("/api/admin/vehicle-license-classes", async (req, res) => {
     try {
+      const { nextBatchStartDate, ...restData } = req.body;
+
+      // Handle date field - convert to Date if valid, otherwise set to null
+      let nextBatchStartDateValue = null;
+      if (nextBatchStartDate) {
+        try {
+          const date = new Date(nextBatchStartDate);
+          nextBatchStartDateValue = isNaN(date.getTime()) ? null : date;
+        } catch {
+          nextBatchStartDateValue = null;
+        }
+      }
+
       const [newClass] = await db
         .insert(vehicleLicenseClasses)
         .values({
-          ...req.body,
+          ...restData,
+          nextBatchStartDate: nextBatchStartDateValue,
           country: req.body.country || "India",
         })
         .returning();
 
       res.status(201).json(newClass);
     } catch (error: any) {
+      console.error("Error creating vehicle license class:", error);
       res.status(400).json({ message: error.message });
     }
   });
@@ -2834,9 +2847,28 @@ export function registerRoutes(app: Express) {
   // UPDATE vehicle license class
   app.put("/api/admin/vehicle-license-classes/:id", async (req, res) => {
     try {
+      const { nextBatchStartDate, ...restData } = req.body;
+
+      // Handle date field - convert to Date if valid, otherwise set to null
+      let nextBatchStartDateValue = null;
+      if (nextBatchStartDate) {
+        try {
+          const date = new Date(nextBatchStartDate);
+          nextBatchStartDateValue = isNaN(date.getTime()) ? null : date;
+        } catch {
+          nextBatchStartDateValue = null;
+        }
+      }
+
+      const updateData = {
+        ...restData,
+        nextBatchStartDate: nextBatchStartDateValue,
+        updatedAt: new Date(),
+      };
+
       const [updatedClass] = await db
         .update(vehicleLicenseClasses)
-        .set({ ...req.body, updatedAt: new Date() })
+        .set(updateData)
         .where(eq(vehicleLicenseClasses.id, req.params.id))
         .returning();
 
@@ -2846,6 +2878,7 @@ export function registerRoutes(app: Express) {
 
       res.json(updatedClass);
     } catch (error: any) {
+      console.error("Error updating vehicle license class:", error);
       res.status(400).json({ message: error.message });
     }
   });

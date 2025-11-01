@@ -274,21 +274,46 @@ export default function CarBikeRentalsForm() {
     if (!files || files.length === 0) return;
 
     setUploadingImages(true);
-    const uploadedUrls: string[] = [];
+    const newImages: string[] = [];
 
-    for (let i = 0; i < files.length; i++) {
-      const file = files[i];
+    try {
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        const reader = new FileReader();
 
-      
+        const result = await new Promise<string>((resolve, reject) => {
+          reader.onloadend = () => resolve(reader.result as string);
+          reader.onerror = reject;
+          reader.readAsDataURL(file);
+        });
+
+        newImages.push(result);
+      }
+
+      setImages([...images, ...newImages]);
+      setValue("images", [...images, ...newImages]);
+
+      toast({
+        title: "Success",
+        description: `${newImages.length} image(s) uploaded successfully`,
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to upload images",
+        variant: "destructive",
+      });
+    } finally {
+      setUploadingImages(false);
     }
-
-    setImages((prev) => [...prev, ...uploadedUrls]);
-    setUploadingImages(false);
   };
 
   const removeImage = (index: number) => {
-    setImages(images.filter((_, i) => i !== index));
+    const updatedImages = images.filter((_, i) => i !== index);
+    setImages(updatedImages);
+    setValue("images", updatedImages);
   };
+
 
   return (
     <>
@@ -754,37 +779,25 @@ export default function CarBikeRentalsForm() {
               <CardHeader>
                 <CardTitle>Images</CardTitle>
               </CardHeader>
-              <CardContent className="space-y-4">
+              <CardContent>
                 <div>
-                  <Label htmlFor="image-upload">Upload Images</Label>
-                  <Input
-                    id="image-upload"
-                    type="file"
-                    accept="image/*"
-                    multiple
-                    onChange={handleImageUpload}
-                    className="mt-2"
-                    disabled={uploadingImages}
-                  />
+                  <Label htmlFor="images">Upload Images</Label>
+                  <Input id="images" type="file" accept="image/*" multiple onChange={handleImageUpload} className="mt-2" />
+                  {uploadingImages && <p className="text-sm text-muted-foreground mt-2">Uploading...</p>}
                 </div>
-                {uploadingImages && <div className="text-sm text-muted-foreground">Uploading images...</div>}
-                {images.length > 0 && (
-                  <div className="grid grid-cols-3 gap-4">
-                    {images.map((image, index) => (
-                      <div key={index} className="relative group">
-                        <img
-                          src={image}
-                          alt={`Upload ${index + 1}`}
-                          className="w-full h-32 object-cover rounded-md"
-                        />
+                {images && images.length > 0 && (
+                  <div className="grid grid-cols-4 gap-4 mt-4">
+                    {images.map((img: string, idx: number) => (
+                      <div key={idx} className="relative">
+                        <img src={img} alt={`Upload ${idx + 1}`} className="w-full h-24 object-cover rounded" />
                         <Button
                           type="button"
                           variant="destructive"
                           size="icon"
-                          className="absolute top-2 right-2 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
-                          onClick={() => removeImage(index)}
+                          className="absolute top-1 right-1 h-6 w-6"
+                          onClick={() => removeImage(idx)}
                         >
-                          <X className="h-4 w-4" />
+                          <X className="w-3 h-3" />
                         </Button>
                       </div>
                     ))}

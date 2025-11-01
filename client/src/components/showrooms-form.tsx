@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -11,7 +10,7 @@ import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Pencil, Trash2, Plus, Eye, EyeOff } from "lucide-react";
+import { Pencil, Trash2, Plus, Eye, EyeOff, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface Showroom {
@@ -60,6 +59,7 @@ export function ShowroomsForm() {
   const queryClient = useQueryClient();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<Showroom | null>(null);
+  const [uploadingImages, setUploadingImages] = useState(false);
 
   const [formData, setFormData] = useState({
     title: "",
@@ -92,6 +92,7 @@ export function ShowroomsForm() {
     showroomEmail: "",
     isActive: true,
     isFeatured: false,
+    images: [] as string[],
   });
 
   const { data: showroomsList = [], isLoading } = useQuery<Showroom[]>({
@@ -217,6 +218,7 @@ export function ShowroomsForm() {
       showroomEmail: "",
       isActive: true,
       isFeatured: false,
+      images: [],
     });
     setEditingItem(null);
   };
@@ -254,8 +256,57 @@ export function ShowroomsForm() {
       showroomEmail: item.showroomEmail || "",
       isActive: item.isActive,
       isFeatured: item.isFeatured,
+      images: item.images || [],
     });
     setIsDialogOpen(true);
+  };
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    setUploadingImages(true);
+    const newImages: string[] = [];
+
+    try {
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        const reader = new FileReader();
+
+        const result = await new Promise<string>((resolve, reject) => {
+          reader.onloadend = () => resolve(reader.result as string);
+          reader.onerror = reject;
+          reader.readAsDataURL(file);
+        });
+
+        newImages.push(result);
+      }
+
+      setFormData(prev => ({
+        ...prev,
+        images: [...prev.images, ...newImages]
+      }));
+
+      toast({
+        title: "Success",
+        description: `${newImages.length} image(s) uploaded successfully`,
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to upload images",
+        variant: "destructive",
+      });
+    } finally {
+      setUploadingImages(false);
+    }
+  };
+
+  const removeImage = (index: number) => {
+    setFormData(prev => ({
+      ...prev,
+      images: prev.images.filter((_, i) => i !== index)
+    }));
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -519,6 +570,36 @@ export function ShowroomsForm() {
                         onCheckedChange={(checked) => setFormData({ ...formData, isFeatured: checked })}
                       />
                       <Label>Featured</Label>
+                    </div>
+
+                    <div className="md:col-span-2">
+                      <Label htmlFor="images">Images</Label>
+                      <Input
+                        id="images"
+                        type="file"
+                        multiple
+                        onChange={handleImageUpload}
+                        disabled={uploadingImages}
+                      />
+                      {formData.images.length > 0 && (
+                        <div className="mt-2 flex flex-wrap gap-2">
+                          {formData.images.map((image, index) => (
+                            <div key={index} className="relative group">
+                              <img src={image} alt={`Showroom image ${index + 1}`} className="w-24 h-24 object-cover rounded" />
+                              <Button
+                                variant="destructive"
+                                size="sm"
+                                className="absolute top-1 right-1 p-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+                                onClick={() => removeImage(index)}
+                                type="button"
+                              >
+                                <X className="w-4 h-4" />
+                              </Button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      {uploadingImages && <p className="text-sm text-gray-500">Uploading images...</p>}
                     </div>
                   </div>
 

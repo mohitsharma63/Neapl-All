@@ -7,6 +7,9 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { X } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 
 interface PropertyDealsFormProps {
   open: boolean;
@@ -16,6 +19,8 @@ interface PropertyDealsFormProps {
 }
 
 export function PropertyDealsForm({ open, onOpenChange, propertyDeal, onSuccess }: PropertyDealsFormProps) {
+  const { toast } = useToast();
+  const [uploadingImages, setUploadingImages] = useState(false);
   const [formData, setFormData] = useState({
     title: propertyDeal?.title || '',
     description: propertyDeal?.description || '',
@@ -39,9 +44,58 @@ export function PropertyDealsForm({ open, onOpenChange, propertyDeal, onSuccess 
     fullAddress: propertyDeal?.fullAddress || '',
     isActive: propertyDeal?.isActive !== undefined ? propertyDeal.isActive : true,
     isFeatured: propertyDeal?.isFeatured || false,
+    images: propertyDeal?.images || [],
   });
 
   const [loading, setLoading] = useState(false);
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    setUploadingImages(true);
+    const newImages: string[] = [];
+
+    try {
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        const reader = new FileReader();
+
+        const result = await new Promise<string>((resolve, reject) => {
+          reader.onloadend = () => resolve(reader.result as string);
+          reader.onerror = reject;
+          reader.readAsDataURL(file);
+        });
+
+        newImages.push(result);
+      }
+
+      setFormData(prev => ({
+        ...prev,
+        images: [...prev.images, ...newImages]
+      }));
+
+      toast({
+        title: "Success",
+        description: `${newImages.length} image(s) uploaded successfully`,
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to upload images",
+        variant: "destructive",
+      });
+    } finally {
+      setUploadingImages(false);
+    }
+  };
+
+  const removeImage = (index: number) => {
+    setFormData(prev => ({
+      ...prev,
+      images: prev.images.filter((_, i) => i !== index)
+    }));
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -54,10 +108,20 @@ export function PropertyDealsForm({ open, onOpenChange, propertyDeal, onSuccess 
       
       const method = propertyDeal?.id ? 'PUT' : 'POST';
 
+      // Convert empty strings to null for numeric fields
+      const sanitizedData = {
+        ...formData,
+        price: formData.price === '' ? null : parseFloat(formData.price),
+        area: formData.area === '' ? null : parseFloat(formData.area),
+        bedrooms: formData.bedrooms === '' ? null : parseInt(formData.bedrooms),
+        bathrooms: formData.bathrooms === '' ? null : parseInt(formData.bathrooms),
+        floors: formData.floors === '' ? null : parseInt(formData.floors),
+      };
+
       const response = await fetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
+        body: JSON.stringify(sanitizedData),
       });
 
       if (response.ok) {
@@ -250,6 +314,47 @@ export function PropertyDealsForm({ open, onOpenChange, propertyDeal, onSuccess 
                 value={formData.fullAddress}
                 onChange={(e) => setFormData({ ...formData, fullAddress: e.target.value })}
               />
+            </div>
+
+            <div className="col-span-2">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Images</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div>
+                    <Label htmlFor="images">Upload Images</Label>
+                    <Input 
+                      id="images" 
+                      type="file" 
+                      accept="image/*" 
+                      multiple 
+                      onChange={handleImageUpload} 
+                      className="mt-2"
+                      disabled={uploadingImages}
+                    />
+                    {uploadingImages && <p className="text-sm text-muted-foreground mt-2">Uploading...</p>}
+                  </div>
+                  {formData.images && formData.images.length > 0 && (
+                    <div className="grid grid-cols-4 gap-4 mt-4">
+                      {formData.images.map((img: string, idx: number) => (
+                        <div key={idx} className="relative">
+                          <img src={img} alt={`Upload ${idx + 1}`} className="w-full h-24 object-cover rounded" />
+                          <Button
+                            type="button"
+                            variant="destructive"
+                            size="icon"
+                            className="absolute top-1 right-1 h-6 w-6"
+                            onClick={() => removeImage(idx)}
+                          >
+                            <X className="w-3 h-3" />
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
             </div>
 
             <div className="flex items-center space-x-2">

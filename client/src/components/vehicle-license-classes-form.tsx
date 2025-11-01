@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -105,6 +104,8 @@ export default function VehicleLicenseClassesForm() {
   const [documentsRequired, setDocumentsRequired] = useState<string[]>([]);
   const [trainingVehicles, setTrainingVehicles] = useState<string[]>([]);
   const [languageOptions, setLanguageOptions] = useState<string[]>([]);
+  const [images, setImages] = useState<string[]>([]);
+  const [uploadingImages, setUploadingImages] = useState(false);
   const [newCourseItem, setNewCourseItem] = useState("");
   const [newSyllabus, setNewSyllabus] = useState("");
   const [newDocument, setNewDocument] = useState("");
@@ -171,6 +172,7 @@ export default function VehicleLicenseClassesForm() {
           documentsRequired,
           trainingVehicles,
           languageOptions,
+          images,
         }),
       });
 
@@ -214,6 +216,51 @@ export default function VehicleLicenseClassesForm() {
     },
   });
 
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    setUploadingImages(true);
+    const newImages: string[] = [];
+
+    try {
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        const reader = new FileReader();
+
+        const result = await new Promise<string>((resolve, reject) => {
+          reader.onloadend = () => resolve(reader.result as string);
+          reader.onerror = reject;
+          reader.readAsDataURL(file);
+        });
+
+        newImages.push(result);
+      }
+
+      setImages([...images, ...newImages]);
+      setValue("images", [...images, ...newImages]);
+
+      toast({
+        title: "Success",
+        description: `${newImages.length} image(s) uploaded successfully`,
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to upload images",
+        variant: "destructive",
+      });
+    } finally {
+      setUploadingImages(false);
+    }
+  };
+
+  const removeImage = (index: number) => {
+    const updatedImages = images.filter((_, i) => i !== index);
+    setImages(updatedImages);
+    setValue("images", updatedImages);
+  };
+
   const handleCloseDialog = () => {
     setShowDialog(false);
     setEditingClass(null);
@@ -223,6 +270,7 @@ export default function VehicleLicenseClassesForm() {
     setDocumentsRequired([]);
     setTrainingVehicles([]);
     setLanguageOptions([]);
+    setImages([]);
   };
 
   const handleEdit = (licenseClass: any) => {
@@ -235,6 +283,7 @@ export default function VehicleLicenseClassesForm() {
     setDocumentsRequired(licenseClass.documentsRequired || []);
     setTrainingVehicles(licenseClass.trainingVehicles || []);
     setLanguageOptions(licenseClass.languageOptions || []);
+    setImages(licenseClass.images || []);
     setShowDialog(true);
   };
 
@@ -292,7 +341,7 @@ export default function VehicleLicenseClassesForm() {
                 <div className="grid grid-cols-3 gap-4">
                   <div>
                     <Label htmlFor="licenseClass">License Class *</Label>
-                    <Select onValueChange={(value) => setValue("licenseClass", value)}>
+                    <Select onValueChange={(value) => setValue("licenseClass", value)} defaultValue={editingClass?.licenseClass}>
                       <SelectTrigger>
                         <SelectValue placeholder="Select license class" />
                       </SelectTrigger>
@@ -315,7 +364,7 @@ export default function VehicleLicenseClassesForm() {
 
                   <div>
                     <Label htmlFor="vehicleType">Vehicle Type *</Label>
-                    <Select onValueChange={(value) => setValue("vehicleType", value)}>
+                    <Select onValueChange={(value) => setValue("vehicleType", value)} defaultValue={editingClass?.vehicleType}>
                       <SelectTrigger>
                         <SelectValue placeholder="Select vehicle type" />
                       </SelectTrigger>
@@ -334,7 +383,7 @@ export default function VehicleLicenseClassesForm() {
 
                   <div>
                     <Label htmlFor="licenseType">License Type *</Label>
-                    <Select onValueChange={(value) => setValue("licenseType", value)}>
+                    <Select onValueChange={(value) => setValue("licenseType", value)} defaultValue={editingClass?.licenseType}>
                       <SelectTrigger>
                         <SelectValue placeholder="Select license type" />
                       </SelectTrigger>
@@ -349,43 +398,7 @@ export default function VehicleLicenseClassesForm() {
                 </div>
               </CardContent>
             </Card>
- <Card>
-              <CardHeader>
-                <CardTitle>Images</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div>
-                  <Label htmlFor="images">Upload Images</Label>
-                  <Input
-                    id="images"
-                    type="file"
-                    accept="image/*"
-                    multiple
-                    onChange={handleImageUpload}
-                    disabled={uploadingImages}
-                  />
-                  {uploadingImages && <p className="text-sm text-muted-foreground mt-2">Uploading...</p>}
-                </div>
-                {formData.images && formData.images.length > 0 && (
-                  <div className="grid grid-cols-4 gap-4">
-                    {formData.images.map((img: string, idx: number) => (
-                      <div key={idx} className="relative">
-                        <img src={img} alt={`Upload ${idx + 1}`} className="w-full h-24 object-cover rounded" />
-                        <Button
-                          type="button"
-                          variant="destructive"
-                          size="icon"
-                          className="absolute top-1 right-1 h-6 w-6"
-                          onClick={() => removeImage(idx)}
-                        >
-                          ×
-                        </Button>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+
             {/* Training Provider */}
             <Card>
               <CardHeader>
@@ -420,7 +433,7 @@ export default function VehicleLicenseClassesForm() {
                 </div>
 
                 <div className="flex items-center space-x-2">
-                  <Switch id="isRtoApproved" onCheckedChange={(checked) => setValue("isRtoApproved", checked)} />
+                  <Switch id="isRtoApproved" onCheckedChange={(checked) => setValue("isRtoApproved", checked)} checked={watch("isRtoApproved")} />
                   <Label htmlFor="isRtoApproved">RTO Approved</Label>
                 </div>
               </CardContent>
@@ -445,7 +458,7 @@ export default function VehicleLicenseClassesForm() {
 
                   <div>
                     <Label htmlFor="trainingMode">Training Mode</Label>
-                    <Select onValueChange={(value) => setValue("trainingMode", value)}>
+                    <Select onValueChange={(value) => setValue("trainingMode", value)} defaultValue={editingClass?.trainingMode}>
                       <SelectTrigger>
                         <SelectValue placeholder="Select mode" />
                       </SelectTrigger>
@@ -541,12 +554,12 @@ export default function VehicleLicenseClassesForm() {
 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="flex items-center space-x-2">
-                    <Switch id="installmentAvailable" onCheckedChange={(checked) => setValue("installmentAvailable", checked)} />
+                    <Switch id="installmentAvailable" onCheckedChange={(checked) => setValue("installmentAvailable", checked)} checked={watch("installmentAvailable")}/>
                     <Label htmlFor="installmentAvailable">Installment Available</Label>
                   </div>
 
                   <div className="flex items-center space-x-2">
-                    <Switch id="discountAvailable" onCheckedChange={(checked) => setValue("discountAvailable", checked)} />
+                    <Switch id="discountAvailable" onCheckedChange={(checked) => setValue("discountAvailable", checked)} checked={watch("discountAvailable")}/>
                     <Label htmlFor="discountAvailable">Discount Available</Label>
                   </div>
                 </div>
@@ -572,7 +585,7 @@ export default function VehicleLicenseClassesForm() {
                 </div>
 
                 <div className="flex items-center space-x-2">
-                  <Switch id="medicalCertificateRequired" defaultChecked onCheckedChange={(checked) => setValue("medicalCertificateRequired", checked)} />
+                  <Switch id="medicalCertificateRequired" onCheckedChange={(checked) => setValue("medicalCertificateRequired", checked)} checked={watch("medicalCertificateRequired")} />
                   <Label htmlFor="medicalCertificateRequired">Medical Certificate Required</Label>
                 </div>
 
@@ -604,49 +617,49 @@ export default function VehicleLicenseClassesForm() {
               <CardContent className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div className="flex items-center space-x-2">
-                    <Switch id="simulationTraining" onCheckedChange={(checked) => setValue("simulationTraining", checked)} />
+                    <Switch id="simulationTraining" onCheckedChange={(checked) => setValue("simulationTraining", checked)} checked={watch("simulationTraining")}/>
                     <Label htmlFor="simulationTraining">Simulation Training</Label>
                   </div>
 
                   <div className="flex items-center space-x-2">
-                    <Switch id="drivingTrackAvailable" onCheckedChange={(checked) => setValue("drivingTrackAvailable", checked)} />
+                    <Switch id="drivingTrackAvailable" onCheckedChange={(checked) => setValue("drivingTrackAvailable", checked)} checked={watch("drivingTrackAvailable")}/>
                     <Label htmlFor="drivingTrackAvailable">Driving Track Available</Label>
                   </div>
 
                   <div className="flex items-center space-x-2">
-                    <Switch id="pickupDropFacility" onCheckedChange={(checked) => setValue("pickupDropFacility", checked)} />
+                    <Switch id="pickupDropFacility" onCheckedChange={(checked) => setValue("pickupDropFacility", checked)} checked={watch("pickupDropFacility")}/>
                     <Label htmlFor="pickupDropFacility">Pickup/Drop Facility</Label>
                   </div>
 
                   <div className="flex items-center space-x-2">
-                    <Switch id="studyMaterialProvided" onCheckedChange={(checked) => setValue("studyMaterialProvided", checked)} />
+                    <Switch id="studyMaterialProvided" onCheckedChange={(checked) => setValue("studyMaterialProvided", checked)} checked={watch("studyMaterialProvided")}/>
                     <Label htmlFor="studyMaterialProvided">Study Material Provided</Label>
                   </div>
 
                   <div className="flex items-center space-x-2">
-                    <Switch id="onlineTestPractice" onCheckedChange={(checked) => setValue("onlineTestPractice", checked)} />
+                    <Switch id="onlineTestPractice" onCheckedChange={(checked) => setValue("onlineTestPractice", checked)} checked={watch("onlineTestPractice")}/>
                     <Label htmlFor="onlineTestPractice">Online Test Practice</Label>
                   </div>
 
                   <div className="flex items-center space-x-2">
-                    <Switch id="rtoTestAssistance" defaultChecked onCheckedChange={(checked) => setValue("rtoTestAssistance", checked)} />
+                    <Switch id="rtoTestAssistance" onCheckedChange={(checked) => setValue("rtoTestAssistance", checked)} checked={watch("rtoTestAssistance")}/>
                     <Label htmlFor="rtoTestAssistance">RTO Test Assistance</Label>
                   </div>
 
                   <div className="flex items-center space-x-2">
-                    <Switch id="dualControlVehicles" defaultChecked onCheckedChange={(checked) => setValue("dualControlVehicles", checked)} />
+                    <Switch id="dualControlVehicles" onCheckedChange={(checked) => setValue("dualControlVehicles", checked)} checked={watch("dualControlVehicles")}/>
                     <Label htmlFor="dualControlVehicles">Dual Control Vehicles</Label>
                   </div>
 
                   <div className="flex items-center space-x-2">
-                    <Switch id="weekendBatches" onCheckedChange={(checked) => setValue("weekendBatches", checked)} />
+                    <Switch id="weekendBatches" onCheckedChange={(checked) => setValue("weekendBatches", checked)} checked={watch("weekendBatches")}/>
                     <Label htmlFor="weekendBatches">Weekend Batches</Label>
                   </div>
                 </div>
 
                 <div>
                   <Label htmlFor="vehicleCondition">Vehicle Condition</Label>
-                  <Select onValueChange={(value) => setValue("vehicleCondition", value)}>
+                  <Select onValueChange={(value) => setValue("vehicleCondition", value)} defaultValue={editingClass?.vehicleCondition}>
                     <SelectTrigger>
                       <SelectValue placeholder="Select condition" />
                     </SelectTrigger>
@@ -728,12 +741,12 @@ export default function VehicleLicenseClassesForm() {
 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="flex items-center space-x-2">
-                    <Switch id="certificationProvided" defaultChecked onCheckedChange={(checked) => setValue("certificationProvided", checked)} />
+                    <Switch id="certificationProvided" onCheckedChange={(checked) => setValue("certificationProvided", checked)} checked={watch("certificationProvided")}/>
                     <Label htmlFor="certificationProvided">Certification Provided</Label>
                   </div>
 
                   <div className="flex items-center space-x-2">
-                    <Switch id="governmentCertified" onCheckedChange={(checked) => setValue("governmentCertified", checked)} />
+                    <Switch id="governmentCertified" onCheckedChange={(checked) => setValue("governmentCertified", checked)} checked={watch("governmentCertified")}/>
                     <Label htmlFor="governmentCertified">Government Certified</Label>
                   </div>
                 </div>
@@ -802,6 +815,38 @@ export default function VehicleLicenseClassesForm() {
               </CardContent>
             </Card>
 
+            {/* Images */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Images</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div>
+                  <Label htmlFor="images">Upload Images</Label>
+                  <Input id="images" type="file" accept="image/*" multiple onChange={handleImageUpload} className="mt-2" />
+                  {uploadingImages && <p className="text-sm text-muted-foreground mt-2">Uploading...</p>}
+                </div>
+                {images && images.length > 0 && (
+                  <div className="grid grid-cols-4 gap-4 mt-4">
+                    {images.map((img: string, idx: number) => (
+                      <div key={idx} className="relative">
+                        <img src={img} alt={`Upload ${idx + 1}`} className="w-full h-24 object-cover rounded" />
+                        <Button
+                          type="button"
+                          variant="destructive"
+                          size="icon"
+                          className="absolute top-1 right-1 h-6 w-6"
+                          onClick={() => removeImage(idx)}
+                        >
+                          <X className="w-3 h-3" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
             {/* Additional Services */}
             <Card>
               <CardHeader>
@@ -810,22 +855,22 @@ export default function VehicleLicenseClassesForm() {
               <CardContent className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div className="flex items-center space-x-2">
-                    <Switch id="jobPlacementAssistance" onCheckedChange={(checked) => setValue("jobPlacementAssistance", checked)} />
+                    <Switch id="jobPlacementAssistance" onCheckedChange={(checked) => setValue("jobPlacementAssistance", checked)} checked={watch("jobPlacementAssistance")}/>
                     <Label htmlFor="jobPlacementAssistance">Job Placement Assistance</Label>
                   </div>
 
                   <div className="flex items-center space-x-2">
-                    <Switch id="refresherCourseAvailable" onCheckedChange={(checked) => setValue("refresherCourseAvailable", checked)} />
+                    <Switch id="refresherCourseAvailable" onCheckedChange={(checked) => setValue("refresherCourseAvailable", checked)} checked={watch("refresherCourseAvailable")}/>
                     <Label htmlFor="refresherCourseAvailable">Refresher Course Available</Label>
                   </div>
 
                   <div className="flex items-center space-x-2">
-                    <Switch id="internationalLicenseTraining" onCheckedChange={(checked) => setValue("internationalLicenseTraining", checked)} />
+                    <Switch id="internationalLicenseTraining" onCheckedChange={(checked) => setValue("internationalLicenseTraining", checked)} checked={watch("internationalLicenseTraining")}/>
                     <Label htmlFor="internationalLicenseTraining">International License Training</Label>
                   </div>
 
                   <div className="flex items-center space-x-2">
-                    <Switch id="femaleInstructorAvailable" onCheckedChange={(checked) => setValue("femaleInstructorAvailable", checked)} />
+                    <Switch id="femaleInstructorAvailable" onCheckedChange={(checked) => setValue("femaleInstructorAvailable", checked)} checked={watch("femaleInstructorAvailable")}/>
                     <Label htmlFor="femaleInstructorAvailable">Female Instructor Available</Label>
                   </div>
                 </div>
@@ -858,17 +903,17 @@ export default function VehicleLicenseClassesForm() {
               <CardContent className="space-y-4">
                 <div className="grid grid-cols-3 gap-4">
                   <div className="flex items-center space-x-2">
-                    <Switch id="isActive" defaultChecked onCheckedChange={(checked) => setValue("isActive", checked)} />
+                    <Switch id="isActive" onCheckedChange={(checked) => setValue("isActive", checked)} checked={watch("isActive")}/>
                     <Label htmlFor="isActive">Active</Label>
                   </div>
 
                   <div className="flex items-center space-x-2">
-                    <Switch id="isFeatured" onCheckedChange={(checked) => setValue("isFeatured", checked)} />
+                    <Switch id="isFeatured" onCheckedChange={(checked) => setValue("isFeatured", checked)} checked={watch("isFeatured")}/>
                     <Label htmlFor="isFeatured">Featured</Label>
                   </div>
 
                   <div className="flex items-center space-x-2">
-                    <Switch id="isVerified" onCheckedChange={(checked) => setValue("isVerified", checked)} />
+                    <Switch id="isVerified" onCheckedChange={(checked) => setValue("isVerified", checked)} checked={watch("isVerified")}/>
                     <Label htmlFor="isVerified">Verified</Label>
                   </div>
                 </div>
@@ -918,6 +963,17 @@ export default function VehicleLicenseClassesForm() {
                   <p>{viewingClass.courseDurationDays} days</p>
                 </div>
               </div>
+
+              {viewingClass.images && viewingClass.images.length > 0 && (
+                <div>
+                  <h3 className="font-semibold mb-2">Images</h3>
+                  <div className="grid grid-cols-3 gap-2">
+                    {viewingClass.images.map((img, idx) => (
+                      <img key={idx} src={img} alt={`Class Image ${idx + 1}`} className="w-full h-24 object-cover rounded" />
+                    ))}
+                  </div>
+                </div>
+              )}
 
               {viewingClass.successRatePercentage && (
                 <div>

@@ -6,10 +6,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Edit, Trash2, Eye, Building, MapPin, Phone, Star } from "lucide-react";
+import { Plus, Edit, Trash2, Eye, Building, MapPin, Phone, Star, X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
@@ -47,6 +47,7 @@ export function EventDecorationServicesForm() {
   const [viewDialogOpen, setViewDialogOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<EventDecorationService | null>(null);
   const [viewingItem, setViewingItem] = useState<EventDecorationService | null>(null);
+  const [uploadingImages, setUploadingImages] = useState(false);
 
   const [formData, setFormData] = useState({
     title: "",
@@ -94,6 +95,7 @@ export function EventDecorationServicesForm() {
     advancePaymentPercentage: "",
     isActive: true,
     isFeatured: false,
+    images: [] as string[],
   });
 
   const { data: services = [], isLoading } = useQuery<EventDecorationService[]>({
@@ -198,6 +200,7 @@ export function EventDecorationServicesForm() {
       advancePaymentPercentage: "",
       isActive: true,
       isFeatured: false,
+      images: [] as string[],
     });
   };
 
@@ -240,6 +243,53 @@ export function EventDecorationServicesForm() {
     }
   };
 
+   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    setUploadingImages(true);
+    const newImages: string[] = [];
+
+    try {
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        const reader = new FileReader();
+
+        const result = await new Promise<string>((resolve, reject) => {
+          reader.onloadend = () => resolve(reader.result as string);
+          reader.onerror = reject;
+          reader.readAsDataURL(file);
+        });
+
+        newImages.push(result);
+      }
+
+      setFormData(prev => ({
+        ...prev,
+        images: [...prev.images, ...newImages]
+      }));
+
+      toast({
+        title: "Success",
+        description: `${newImages.length} image(s) uploaded successfully`,
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to upload images",
+        variant: "destructive",
+      });
+    } finally {
+      setUploadingImages(false);
+    }
+  };
+
+  const removeImage = (index: number) => {
+    setFormData(prev => ({
+      ...prev,
+      images: prev.images.filter((_, i) => i !== index)
+    }));
+  };
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -337,6 +387,45 @@ export function EventDecorationServicesForm() {
                 <Textarea id="fullAddress" value={formData.fullAddress} onChange={(e) => setFormData({ ...formData, fullAddress: e.target.value })} required />
               </div>
             </div>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Images</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div>
+                  <Label htmlFor="images">Upload Images</Label>
+                  <Input 
+                    id="images" 
+                    type="file" 
+                    accept="image/*" 
+                    multiple 
+                    onChange={handleImageUpload} 
+                    className="mt-2"
+                    disabled={uploadingImages}
+                  />
+                  {uploadingImages && <p className="text-sm text-muted-foreground mt-2">Uploading...</p>}
+                </div>
+                {formData.images && formData.images.length > 0 && (
+                  <div className="grid grid-cols-4 gap-4 mt-4">
+                    {formData.images.map((img: string, idx: number) => (
+                      <div key={idx} className="relative">
+                        <img src={img} alt={`Upload ${idx + 1}`} className="w-full h-24 object-cover rounded" />
+                        <Button
+                          type="button"
+                          variant="destructive"
+                          size="icon"
+                          className="absolute top-1 right-1 h-6 w-6"
+                          onClick={() => removeImage(idx)}
+                        >
+                          <X className="w-3 h-3" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
 
             <div className="flex flex-wrap gap-4">
               <div className="flex items-center gap-2">

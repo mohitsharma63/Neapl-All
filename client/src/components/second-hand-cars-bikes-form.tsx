@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -10,7 +11,7 @@ import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Pencil, Trash2, Plus, Eye, EyeOff, Upload, X } from "lucide-react";
+import { Pencil, Trash2, Plus, Eye, EyeOff, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface SecondHandCarBike {
@@ -355,34 +356,36 @@ export function SecondHandCarsBikesForm() {
     if (!files || files.length === 0) return;
 
     setUploadingImages(true);
-    const formDataUpload = new FormData();
-
-    Array.from(files).forEach(file => {
-      formDataUpload.append('images', file);
-    });
+    const newImages: string[] = [];
 
     try {
-      const response = await fetch('/api/upload/vehicle-images', {
-        method: 'POST',
-        body: formDataUpload,
-      });
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        const reader = new FileReader();
 
-      if (!response.ok) throw new Error('Failed to upload images');
+        const result = await new Promise<string>((resolve, reject) => {
+          reader.onloadend = () => resolve(reader.result as string);
+          reader.onerror = reject;
+          reader.readAsDataURL(file);
+        });
 
-      const data = await response.json();
-      const uploadedUrls = data.files.map((file: any) => file.url);
+        newImages.push(result);
+      }
 
       setFormData(prev => ({
         ...prev,
-        images: [...prev.images, ...uploadedUrls]
+        images: [...prev.images, ...newImages]
       }));
 
-      toast({ title: "Success", description: "Images uploaded successfully" });
-    } catch (error: any) {
+      toast({
+        title: "Success",
+        description: `${newImages.length} image(s) uploaded successfully`,
+      });
+    } catch (error) {
       toast({
         title: "Error",
-        description: error.message || "Failed to upload images",
-        variant: "destructive"
+        description: "Failed to upload images",
+        variant: "destructive",
       });
     } finally {
       setUploadingImages(false);
@@ -642,56 +645,36 @@ export function SecondHandCarsBikesForm() {
                   />
                 </div>
 
-                <div className="space-y-4">
-                  <div>
-                    <Label>Vehicle Images</Label>
-                    <div className="mt-2">
-                      <div className="flex items-center gap-2">
-                        <Button
-                          type="button"
-                          variant="outline"
-                          disabled={uploadingImages}
-                          onClick={() => document.getElementById('image-upload')?.click()}
-                        >
-                          <Upload className="w-4 h-4 mr-2" />
-                          {uploadingImages ? "Uploading..." : "Upload Images"}
-                        </Button>
-                        <input
-                          id="image-upload"
-                          type="file"
-                          multiple
-                          accept="image/*"
-                          className="hidden"
-                          onChange={handleImageUpload}
-                        />
-                        <span className="text-sm text-muted-foreground">
-                          Max 5MB per image, up to 10 images
-                        </span>
-                      </div>
-
-                      {formData.images.length > 0 && (
-                        <div className="grid grid-cols-3 gap-4 mt-4">
-                          {formData.images.map((image, index) => (
-                            <div key={index} className="relative group">
-                              <img
-                                src={image}
-                                alt={`Vehicle ${index + 1}`}
-                                className="w-full h-32 object-cover rounded-lg border"
-                              />
-                              <button
-                                type="button"
-                                onClick={() => removeImage(index)}
-                                className="absolute top-2 right-2 p-1 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
-                              >
-                                <X className="w-4 h-4" />
-                              </button>
-                            </div>
-                          ))}
-                        </div>
-                      )}
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Images</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div>
+                      <Label htmlFor="images">Upload Images</Label>
+                      <Input id="images" type="file" accept="image/*" multiple onChange={handleImageUpload} className="mt-2" />
+                      {uploadingImages && <p className="text-sm text-muted-foreground mt-2">Uploading...</p>}
                     </div>
-                  </div>
-                </div>
+                    {formData.images && formData.images.length > 0 && (
+                      <div className="grid grid-cols-4 gap-4 mt-4">
+                        {formData.images.map((img: string, idx: number) => (
+                          <div key={idx} className="relative">
+                            <img src={img} alt={`Upload ${idx + 1}`} className="w-full h-24 object-cover rounded" />
+                            <Button
+                              type="button"
+                              variant="destructive"
+                              size="icon"
+                              className="absolute top-1 right-1 h-6 w-6"
+                              onClick={() => removeImage(idx)}
+                            >
+                              <X className="w-3 h-3" />
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
 
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                   <div className="flex items-center space-x-2">
