@@ -15,6 +15,7 @@ export const users = pgTable("users", {
   phone: text("phone"),
   role: text("role").default("user"), // "admin", "agent", "user"
   accountType: text("account_type"), // "individual", "buyer", "seller"
+  selectedServices: jsonb("selected_services").$type<string[]>().default([]),
   isActive: boolean("is_active").default(true),
   avatar: text("avatar"),
   country: text("country"),
@@ -211,6 +212,7 @@ export const insertUserSchema = createInsertSchema(users).omit({
   lastName: z.string().min(1),
   phone: z.string().min(10),
   accountType: z.enum(["individual", "buyer", "seller"]),
+  selectedServices: z.array(z.string()).optional(),
   country: z.string().optional(),
   state: z.string().optional(),
   city: z.string().optional(),
@@ -1537,6 +1539,106 @@ export const insertCricketSportsTrainingSchema = createInsertSchema(cricketSport
 export type InsertCricketSportsTraining = z.infer<typeof insertCricketSportsTrainingSchema>;
 export type CricketSportsTraining = typeof cricketSportsTraining.$inferSelect;
 
+// Pharmacy & Medical Stores
+export const pharmacyMedicalStores = pgTable("pharmacy_medical_stores", {
+  id: varchar("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  title: text("title").notNull(),
+  description: text("description"),
+  listingType: text("listing_type").notNull(),
+  storeType: text("store_type").notNull(),
+  storeName: text("store_name").notNull(),
+  ownerName: text("owner_name"),
+  licenseNumber: text("license_number"),
+  establishmentYear: integer("establishment_year"),
+  operatingHours: text("operating_hours"),
+  servicesOffered: jsonb("services_offered").$type<string[]>().default([]),
+  medicinesAvailable: jsonb("medicines_available").$type<string[]>().default([]),
+  homeDelivery: boolean("home_delivery").default(false),
+  emergencyService: boolean("emergency_service").default(false),
+  online24_7: boolean("online_24_7").default(false),
+  contactPerson: text("contact_person"),
+  contactPhone: text("contact_phone").notNull(),
+  contactEmail: text("contact_email"),
+  country: text("country").notNull().default("India"),
+  stateProvince: text("state_province"),
+  city: text("city"),
+  area: text("area"),
+  fullAddress: text("full_address"),
+  images: jsonb("images").$type<string[]>().default([]),
+  isActive: boolean("is_active").default(true),
+  isFeatured: boolean("is_featured").default(false),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const insertPharmacyMedicalStoreSchema = createInsertSchema(pharmacyMedicalStores).omit({ id: true, createdAt: true, updatedAt: true });
+export type InsertPharmacyMedicalStore = z.infer<typeof insertPharmacyMedicalStoreSchema>;
+export type PharmacyMedicalStore = typeof pharmacyMedicalStores.$inferSelect;
+
+// Saree Clothing Shopping
+export const sareeClothingShopping = pgTable("saree_clothing_shopping", {
+  id: varchar("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  title: text("title").notNull(),
+  description: text("description"),
+  listingType: text("listing_type").notNull(),
+  category: text("category").notNull(),
+  productType: text("product_type"),
+  brand: text("brand"),
+  material: text("material"),
+  color: text("color"),
+  size: text("size"),
+  price: decimal("price", { precision: 12, scale: 2 }).notNull(),
+  isNegotiable: boolean("is_negotiable").default(false),
+  condition: text("condition"),
+  images: jsonb("images").$type<string[]>().default([]),
+  shopName: text("shop_name"),
+  contactPhone: text("contact_phone").notNull(),
+  contactEmail: text("contact_email"),
+  country: text("country").notNull().default("India"),
+  stateProvince: text("state_province"),
+  city: text("city"),
+  area: text("area"),
+  fullAddress: text("full_address"),
+  isActive: boolean("is_active").default(true),
+  isFeatured: boolean("is_featured").default(false),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const insertSareeClothingShoppingSchema = createInsertSchema(sareeClothingShopping).omit({ id: true, createdAt: true, updatedAt: true });
+export type InsertSareeClothingShopping = z.infer<typeof insertSareeClothingShoppingSchema>;
+export type SareeClothingShopping = typeof sareeClothingShopping.$inferSelect;
+
+// E-Books & Online Courses
+export const ebooksOnlineCourses = pgTable("ebooks_online_courses", {
+  id: varchar("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  title: text("title").notNull(),
+  description: text("description"),
+  listingType: text("listing_type").notNull(),
+  category: text("category").notNull(),
+  author: text("author"),
+  publisher: text("publisher"),
+  price: decimal("price", { precision: 10, scale: 2 }).notNull(),
+  duration: text("duration"),
+  language: text("language"),
+  format: text("format"),
+  accessType: text("access_type"),
+  coursePlatform: text("course_platform"),
+  certificateProvided: boolean("certificate_provided").default(false),
+  images: jsonb("images").$type<string[]>().default([]),
+  previewUrl: text("preview_url"),
+  contactPhone: text("contact_phone").notNull(),
+  contactEmail: text("contact_email"),
+  isActive: boolean("is_active").default(true),
+  isFeatured: boolean("is_featured").default(false),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const insertEbooksOnlineCoursesSchema = createInsertSchema(ebooksOnlineCourses).omit({ id: true, createdAt: true, updatedAt: true });
+export type InsertEbooksOnlineCourses = z.infer<typeof insertEbooksOnlineCoursesSchema>;
+export type EbooksOnlineCourses = typeof ebooksOnlineCourses.$inferSelect;
+
 // Computer, Mobile & Laptop Repair Services
 export const computerMobileLaptopRepairServices = pgTable("computer_mobile_laptop_repair_services", {
   id: varchar("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
@@ -2209,7 +2311,7 @@ export const sareeClothingShopping = pgTable("saree_clothing_shopping", {
   returnPeriodDays: integer("return_period_days"),
   replacementPolicy: text("replacement_policy"),
   exchangeAvailable: boolean("exchange_available").default(true),
-  refundAvailable: boolean("refund_available").default(true),
+  refundAvailable: boolean("refund_available").default(false),
   warrantyAvailable: boolean("warranty_available").default(false),
   warrantyPeriod: text("warranty_period"),
   sellerType: text("seller_type"),

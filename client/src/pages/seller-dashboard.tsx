@@ -1,8 +1,8 @@
-
 import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import {
   Sidebar,
   SidebarContent,
@@ -27,7 +27,6 @@ import {
   Settings,
   User,
   LogOut,
-  Eye,
   MessageSquare,
   TrendingUp
 } from "lucide-react";
@@ -39,18 +38,90 @@ interface User {
   firstName?: string;
   lastName?: string;
   accountType?: string;
+  selectedServices?: string[];
+  selectedServicesDetails?: Array<{
+    slug: string;
+    name: string;
+    type: string;
+    parentCategory?: string;
+  }>;
 }
 
-function SellerSidebar({ activeSection, setActiveSection }: { activeSection: string; setActiveSection: (section: string) => void }) {
-  const sidebarItems = [
+function SellerSidebar({ activeSection, setActiveSection, selectedServices, categoryPreferences }: { activeSection: string; setActiveSection: (section: string) => void; selectedServices: string[]; categoryPreferences?: any[] }) {
+  // Base navigation items
+  const baseItems = [
     { title: "Dashboard", icon: Home, key: "dashboard" },
-    { title: "My Listings", icon: Building, key: "listings" },
-    { title: "Add Property", icon: Plus, key: "add-property" },
+  ];
+
+  // Service icon mapping
+  const getServiceIcon = (serviceKey: string) => {
+    const iconMap: { [key: string]: any } = {
+      'rental': Building,
+      'hostel-pg': Building,
+      'construction-materials': Building,
+      'property-deals': Building,
+      'commercial-properties': Building,
+      'industrial-land': Building,
+      'office-spaces': Building,
+      'heavy-equipment': Building,
+      'showrooms': Building,
+      'second-hand-cars-bikes': Building,
+      'car-bike-rentals': Building,
+      'transportation-moving-services': Building,
+      'vehicle-license-classes': Building,
+      'electronics-gadgets': Building,
+      'phones-tablets-accessories': Building,
+      'second-hand-phones-tablets-accessories': Building,
+      'cricket-sports-training': Building,
+      'computer-mobile-laptop-repair-services': Building,
+      'cyber-cafe-internet-services': Building,
+      'event-decoration-services': Building,
+      'fashion-beauty-products': Building,
+      'furniture-interior-decor': Building,
+      'household-services': Building,
+      'saree-clothing-shopping': Building,
+      'ebooks-online-courses': Building,
+    };
+    return iconMap[serviceKey] || Building;
+  };
+
+  // Service-specific items based on category preferences
+  const serviceItems = (categoryPreferences || []).flatMap(pref => {
+    const items = [];
+    
+    // Add category as main item
+    items.push({
+      title: pref.categoryName,
+      icon: Building,
+      key: pref.categorySlug,
+      isCategory: true
+    });
+    
+    // Add subcategories
+    if (pref.subcategoriesWithNames && pref.subcategoriesWithNames.length > 0) {
+      pref.subcategoriesWithNames.forEach((sub: any) => {
+        items.push({
+          title: sub.name,
+          icon: Building,
+          key: sub.slug || sub.id,
+          isSubcategory: true,
+          parentCategory: pref.categoryName
+        });
+      });
+    }
+    
+    return items;
+  });
+
+  // Common items for all sellers
+  const commonItems = [
     { title: "Analytics", icon: BarChart3, key: "analytics" },
     { title: "Inquiries", icon: MessageSquare, key: "inquiries" },
     { title: "Profile", icon: User, key: "profile" },
     { title: "Settings", icon: Settings, key: "settings" }
   ];
+
+  const sidebarItems = [...baseItems, ...serviceItems, ...commonItems];
 
   return (
     <Sidebar variant="inset">
@@ -59,19 +130,67 @@ function SellerSidebar({ activeSection, setActiveSection }: { activeSection: str
           <div className="w-8 h-8 bg-gradient-to-br from-green-600 to-emerald-600 rounded-lg flex items-center justify-center">
             <Building className="w-4 h-4 text-white" />
           </div>
-          <div>
+          <div className="flex-1">
             <h1 className="font-bold text-lg">Seller Dashboard</h1>
-            <p className="text-xs text-muted-foreground">Manage Your Properties</p>
+            <p className="text-xs text-muted-foreground">
+              {selectedServices.length > 0 
+                ? `${selectedServices.length} Service${selectedServices.length > 1 ? 's' : ''} Active`
+                : 'No Services Selected'}
+            </p>
           </div>
         </div>
       </SidebarHeader>
 
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel>Main Navigation</SidebarGroupLabel>
+          <SidebarGroupLabel>Navigation</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {sidebarItems.map((item) => (
+              {baseItems.map((item) => (
+                <SidebarMenuItem key={item.title}>
+                  <SidebarMenuButton
+                    tooltip={item.title}
+                    isActive={activeSection === item.key}
+                    className="w-full justify-start cursor-pointer"
+                    onClick={() => setActiveSection(item.key)}
+                  >
+                    <item.icon className="w-4 h-4" />
+                    <span>{item.title}</span>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        {serviceItems.length > 0 && (
+          <SidebarGroup>
+            <SidebarGroupLabel>My Services</SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                {serviceItems.map((item) => (
+                  <SidebarMenuItem key={item.title}>
+                    <SidebarMenuButton
+                      tooltip={item.title}
+                      isActive={activeSection === item.key}
+                      className="w-full justify-start cursor-pointer"
+                      onClick={() => setActiveSection(item.key)}
+                    >
+                      <item.icon className="w-4 h-4" />
+                      <span>{item.title}</span>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                ))}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )}
+
+        <SidebarGroup>
+          <SidebarGroupLabel>Account</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {commonItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton
                     tooltip={item.title}
@@ -110,7 +229,7 @@ function SellerSidebar({ activeSection, setActiveSection }: { activeSection: str
   );
 }
 
-function DashboardSection({ userId }: { userId: string }) {
+function DashboardSection({ userId, selectedServices }: { userId: string; selectedServices: string[] }) {
   const [stats, setStats] = useState({
     totalListings: 0,
     totalViews: 0,
@@ -129,7 +248,7 @@ function DashboardSection({ userId }: { userId: string }) {
 
         // Calculate stats
         const totalViews = properties.reduce((sum: number, p: any) => sum + (p.viewCount || 0), 0);
-        
+
         setStats({
           totalListings: properties.length,
           totalViews: totalViews,
@@ -277,6 +396,8 @@ export default function SellerDashboard() {
           setUser(freshUserData);
           // Update localStorage with fresh data
           localStorage.setItem("user", JSON.stringify(freshUserData));
+          // Store globally for sidebar access
+          (window as any).__currentUser = freshUserData;
         } else {
           // Fallback to stored data if API fails
           if (userData.accountType !== "seller") {
@@ -317,7 +438,12 @@ export default function SellerDashboard() {
   return (
     <SidebarProvider>
       <div className="min-h-screen flex w-full bg-background">
-        <SellerSidebar activeSection={activeSection} setActiveSection={setActiveSection} />
+        <SellerSidebar 
+          activeSection={activeSection} 
+          setActiveSection={setActiveSection}
+          selectedServices={user.selectedServices || []}
+          categoryPreferences={user.categoryPreferences || []}
+        />
 
         <SidebarInset className="flex-1">
           <header className="flex h-16 shrink-0 items-center border-b px-6 bg-card justify-between">
@@ -333,10 +459,15 @@ export default function SellerDashboard() {
           </header>
 
           <main className="flex-1 p-6">
-            {activeSection === "dashboard" && <DashboardSection userId={user.id} />}
+            {activeSection === "dashboard" && <DashboardSection userId={user.id} selectedServices={user.selectedServices || []} />}
             {activeSection !== "dashboard" && (
               <div className="text-center py-16">
-                <p className="text-muted-foreground">Section under development</p>
+                <p className="text-muted-foreground">
+                  {(user.selectedServices || []).includes(activeSection) 
+                    ? `${activeSection.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')} section - Coming soon`
+                    : 'Section under development'
+                  }
+                </p>
               </div>
             )}
           </main>

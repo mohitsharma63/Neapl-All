@@ -255,6 +255,86 @@ function EducationalConsultancyStudyAbroadSection() {
 
 
 function EventDecorationServicesSection() {
+  const [services, setServices] = useState<any[]>([]);
+  const [showForm, setShowForm] = useState(false);
+  const [editingService, setEditingService] = useState(null);
+  const [editingItem, setEditingItem] = useState<any>(null); // Added state for editingItem
+  const [viewingService, setViewingService] = useState<any>(null);
+  const [showDetailsDialog, setShowDetailsDialog] = useState(false);
+
+  useEffect(() => {
+    fetchServices();
+  }, []);
+
+  const fetchServices = async () => {
+    try {
+      const response = await fetch('/api/admin/event-decoration-services');
+      const data = await response.json();
+      setServices(Array.isArray(data) ? data : []);
+    } catch (error) {
+      console.error('Error fetching event & decoration services:', error);
+      setServices([]);
+    }
+  };
+
+  const handleSuccess = () => {
+    setShowForm(false);
+    setEditingService(null);
+    setEditingItem(null); // Reset editingItem state
+    fetchServices();
+  };
+
+  const handleEdit = (service: any) => {
+    setEditingService(service);
+    setEditingItem(service); // Set editingItem state
+    setShowForm(true);
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!confirm('Are you sure you want to delete this service?')) return;
+    try {
+      const response = await fetch(`/api/admin/event-decoration-services/${id}`, {
+        method: 'DELETE',
+      });
+      if (response.ok) {
+        fetchServices();
+      }
+    } catch (error) {
+      console.error('Error deleting service:', error);
+    }
+  };
+
+  const handleViewDetails = (service: any) => {
+    setViewingService(service);
+    setShowDetailsDialog(true);
+  };
+
+  const toggleActive = async (id: string) => {
+    try {
+      const response = await fetch(`/api/admin/event-decoration-services/${id}/toggle-active`, {
+        method: 'PATCH',
+      });
+      if (response.ok) {
+        fetchServices();
+      }
+    } catch (error) {
+      console.error('Error toggling active status:', error);
+    }
+  };
+
+  const toggleFeatured = async (id: string) => {
+    try {
+      const response = await fetch(`/api/admin/event-decoration-services/${id}/toggle-featured`, {
+        method: 'PATCH',
+      });
+      if (response.ok) {
+        fetchServices();
+      }
+    } catch (error) {
+      console.error('Error toggling featured status:', error);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between mb-6">
@@ -262,8 +342,238 @@ function EventDecorationServicesSection() {
           <h2 className="text-2xl font-bold">Event & Decoration Services</h2>
           <p className="text-muted-foreground">Manage marriage halls, party venues, café setups, and decoration materials</p>
         </div>
+        <Button onClick={() => setShowForm(true)}>
+          <Plus className="w-4 h-4 mr-2" />
+          Add Service
+        </Button>
       </div>
-      <EventDecorationServicesForm />
+
+      <Dialog open={showForm} onOpenChange={setShowForm}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>{editingService ? 'Edit Event & Decoration Service' : 'Add New Event & Decoration Service'}</DialogTitle>
+            <DialogDescription>Fill in the details to {editingService ? 'update' : 'create'} an event or decoration service listing</DialogDescription>
+          </DialogHeader>
+          <EventDecorationServicesForm onSuccess={handleSuccess} editingService={editingService} />
+        </DialogContent>
+      </Dialog>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+        {Array.isArray(services) && services.map((service) => (
+          <Card key={service.id} className="group hover:shadow-lg transition-shadow">
+            <CardHeader>
+              <div className="flex items-start justify-between">
+                <div className="flex-1">
+                  <CardTitle className="text-lg mb-2">{service.title}</CardTitle>
+                  <div className="flex gap-2 flex-wrap">
+                    <Badge variant="secondary">{service.serviceType?.replace('_', ' ')}</Badge>
+                    {service.isFeatured && <Badge className="bg-yellow-500">Featured</Badge>}
+                  </div>
+                </div>
+                <div className="flex gap-1">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8"
+                    onClick={() => handleViewDetails(service)}
+                    title="View Details"
+                  >
+                    <Eye className="w-4 h-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8"
+                    onClick={() => handleEdit(service)}
+                    title="Edit"
+                  >
+                    <Edit className="w-4 h-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 text-destructive"
+                    onClick={() => handleDelete(service.id)}
+                    title="Delete"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                {service.description && (
+                  <p className="text-sm text-muted-foreground line-clamp-2">{service.description}</p>
+                )}
+                <div className="flex items-center justify-between">
+                  <span className="font-semibold text-lg text-primary">₹{Number(service.basePrice).toLocaleString()}</span>
+                  <Badge variant={service.isActive ? 'default' : 'secondary'}>
+                    {service.isActive ? 'Active' : 'Inactive'}
+                  </Badge>
+                </div>
+                {service.venueName && (
+                  <div className="text-sm">
+                    <span className="font-medium">Venue: </span>
+                    <span className="text-muted-foreground">{service.venueName}</span>
+                  </div>
+                )}
+                {service.city && (
+                  <div className="text-sm">
+                    <span className="font-medium">City: </span>
+                    <span className="text-muted-foreground">{service.city}</span>
+                  </div>
+                )}
+              </div>
+            </CardContent>
+            <CardFooter className="pt-0 flex gap-2">
+              <Button
+                variant={service.isActive ? "outline" : "default"}
+                size="sm"
+                className="flex-1"
+                onClick={() => toggleActive(service.id)}
+              >
+                {service.isActive ? "Deactivate" : "Activate"}
+              </Button>
+              <Button
+                variant={service.isFeatured ? "secondary" : "outline"}
+                size="sm"
+                className="flex-1"
+                onClick={() => toggleFeatured(service.id)}
+              >
+                {service.isFeatured ? "Unfeature" : "Feature"}
+              </Button>
+            </CardFooter>
+          </Card>
+        ))}
+      </div>
+
+      {/* View Details Dialog */}
+      <Dialog open={showDetailsDialog} onOpenChange={setShowDetailsDialog}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-2xl">{viewingService?.title}</DialogTitle>
+            <DialogDescription>Complete service details</DialogDescription>
+          </DialogHeader>
+          {viewingService && (
+            <div className="space-y-6">
+              <div className="flex gap-2 flex-wrap">
+                <Badge variant="secondary">{viewingService.serviceType?.replace('_', ' ')}</Badge>
+                {viewingService.venueType && <Badge variant="outline">{viewingService.venueType}</Badge>}
+                {viewingService.isFeatured && <Badge className="bg-yellow-500">Featured</Badge>}
+              </div>
+
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="p-4 bg-muted rounded-lg">
+                  <p className="text-sm text-muted-foreground">Base Price</p>
+                  <p className="text-lg font-bold text-primary">₹{Number(viewingService.basePrice).toLocaleString()}</p>
+                </div>
+                {viewingService.capacity && (
+                  <div className="p-4 bg-muted rounded-lg">
+                    <p className="text-sm text-muted-foreground">Capacity</p>
+                    <p className="text-lg font-bold">{viewingService.capacity} people</p>
+                  </div>
+                )}
+                {viewingService.hallArea && (
+                  <div className="p-4 bg-muted rounded-lg">
+                    <p className="text-sm text-muted-foreground">Hall Area</p>
+                    <p className="text-lg font-bold">{viewingService.hallArea} sq.ft</p>
+                  </div>
+                )}
+              </div>
+
+              {viewingService.description && (
+                <div>
+                  <h3 className="font-semibold mb-2">Description</h3>
+                  <p className="text-muted-foreground">{viewingService.description}</p>
+                </div>
+              )}
+
+              <div>
+                <h3 className="font-semibold mb-2">Venue Information</h3>
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  {viewingService.venueName && (
+                    <div>
+                      <span className="font-medium">Venue Name:</span>
+                      <span className="ml-2 text-muted-foreground">{viewingService.venueName}</span>
+                    </div>
+                  )}
+                  {viewingService.capacitySeating && (
+                    <div>
+                      <span className="font-medium">Seating Capacity:</span>
+                      <span className="ml-2 text-muted-foreground">{viewingService.capacitySeating}</span>
+                    </div>
+                  )}
+                  {viewingService.capacityStanding && (
+                    <div>
+                      <span className="font-medium">Standing Capacity:</span>
+                      <span className="ml-2 text-muted-foreground">{viewingService.capacityStanding}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div>
+                <h3 className="font-semibold mb-2">Services & Amenities</h3>
+                <div className="flex flex-wrap gap-2">
+                  {viewingService.cateringAvailable && <Badge variant="outline">Catering Available</Badge>}
+                  {viewingService.decorationIncluded && <Badge variant="outline">Decoration Included</Badge>}
+                  {viewingService.djSoundAvailable && <Badge variant="outline">DJ & Sound</Badge>}
+                  {viewingService.parkingAvailable && <Badge variant="outline">Parking</Badge>}
+                  {viewingService.acAvailable && <Badge variant="outline">AC</Badge>}
+                  {viewingService.powerBackup && <Badge variant="outline">Power Backup</Badge>}
+                  {viewingService.kitchenFacility && <Badge variant="outline">Kitchen</Badge>}
+                </div>
+              </div>
+
+              <div>
+                <h3 className="font-semibold mb-2 flex items-center gap-2">
+                  <MapPin className="w-4 h-4" />
+                  Location
+                </h3>
+                <div className="space-y-1 text-sm">
+                  <p><span className="font-medium">Address:</span> {viewingService.fullAddress}</p>
+                  {viewingService.areaName && <p><span className="font-medium">Area:</span> {viewingService.areaName}</p>}
+                  {viewingService.city && <p><span className="font-medium">City:</span> {viewingService.city}</p>}
+                  {viewingService.stateProvince && <p><span className="font-medium">State:</span> {viewingService.stateProvince}</p>}
+                </div>
+              </div>
+
+              <div>
+                <h3 className="font-semibold mb-2 flex items-center gap-2">
+                  <Phone className="w-4 h-4" />
+                  Contact Information
+                </h3>
+                <div className="space-y-1 text-sm">
+                  <p><span className="font-medium">Contact Person:</span> {viewingService.contactPerson}</p>
+                  <p><span className="font-medium">Phone:</span> {viewingService.contactPhone}</p>
+                  {viewingService.contactEmail && <p><span className="font-medium">Email:</span> {viewingService.contactEmail}</p>}
+                  {viewingService.whatsappNumber && <p><span className="font-medium">WhatsApp:</span> {viewingService.whatsappNumber}</p>}
+                </div>
+              </div>
+
+              <div className="pt-4 border-t text-sm text-muted-foreground">
+                <p>Created: {new Date(viewingService.createdAt).toLocaleString()}</p>
+                <p>Last Updated: {new Date(viewingService.updatedAt).toLocaleString()}</p>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {(!services || services.length === 0) && (
+        <Card>
+          <CardContent className="py-12 text-center">
+            <Building className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
+            <h3 className="text-lg font-semibold mb-2">No Services Found</h3>
+            <p className="text-muted-foreground mb-4">Start by adding your first event or decoration service</p>
+            <Button onClick={() => setShowForm(true)}>
+              <Plus className="w-4 h-4 mr-2" />
+              Add Service
+            </Button>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }
@@ -911,8 +1221,8 @@ function CricketSportsTrainingSection() {
                 <div className="flex-1">
                   <CardTitle className="text-lg mb-2">{program.title}</CardTitle>
                   <div className="flex gap-2 flex-wrap">
-                    <Badge variant="secondary">{program.level}</Badge>
-                    <Badge variant="outline">{program.duration}</Badge>
+                    <Badge variant="secondary">{program.trainingLevel}</Badge>
+                    <Badge variant="outline">{program.courseDurationDays} days</Badge>
                     {program.isFeatured && <Badge className="bg-yellow-500">Featured</Badge>}
                   </div>
                 </div>
@@ -934,7 +1244,7 @@ function CricketSportsTrainingSection() {
                   <p className="text-sm text-muted-foreground line-clamp-2">{program.description}</p>
                 )}
                 <div className="flex items-center justify-between">
-                  <span className="font-semibold text-lg text-primary">₹{program.price}</span>
+                  <span className="font-semibold text-lg text-primary">₹{program.pricePerMonth}</span>
                   <Badge variant={program.isActive ? 'default' : 'secondary'}>
                     {program.isActive ? 'Active' : 'Inactive'}
                   </Badge>
@@ -991,6 +1301,8 @@ function CricketSportsTrainingSection() {
 function HouseholdServicesSection() {
   const [services, setServices] = useState<any[]>([]);
   const [showForm, setShowForm] = useState(false);
+  const [editingService, setEditingService] = useState<any>(null);
+  const [editingItem, setEditingItem] = useState<any>(null); // Added state for editingItem
   const [viewingService, setViewingService] = useState<any>(null);
   const [showDetailsDialog, setShowDetailsDialog] = useState(false);
 
@@ -1011,7 +1323,15 @@ function HouseholdServicesSection() {
 
   const handleSuccess = () => {
     setShowForm(false);
+    setEditingService(null);
+    setEditingItem(null); // Reset editingItem state
     fetchServices();
+  };
+
+  const handleEdit = (service: any) => {
+    setEditingService(service);
+    setEditingItem(service); // Set editingItem state
+    setShowForm(true);
   };
 
   const handleDelete = async (id: string) => {
@@ -1066,19 +1386,33 @@ function HouseholdServicesSection() {
           <h2 className="text-2xl font-bold">Household Services</h2>
           <p className="text-muted-foreground">Manage household service providers</p>
         </div>
-        <Button onClick={() => setShowForm(true)}>
+        <Button onClick={() => {
+          setEditingService(null);
+          setEditingItem(null); // Reset editingItem when adding new
+          setShowForm(true);
+        }}>
           <Plus className="w-4 h-4 mr-2" />
           Add Service
         </Button>
       </div>
 
-      <Dialog open={showForm} onOpenChange={setShowForm}>
+      <Dialog open={showForm} onOpenChange={(open) => {
+        setShowForm(open);
+        if (!open) {
+            setEditingService(null);
+            setEditingItem(null); // Reset editingItem when dialog closes
+        }
+      }}>
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Add New Household Service</DialogTitle>
-            <DialogDescription>Fill in the details to create a new household service listing</DialogDescription>
+            <DialogTitle>{editingService ? "Edit Household Service" : "Add New Household Service"}</DialogTitle>
+            <DialogDescription>
+              Fill in the details to {editingService ? "update" : "create"} a household service listing
+            </DialogDescription>
           </DialogHeader>
-          <HouseholdServicesForm onSuccess={handleSuccess} />
+          <div className="mt-4">
+            <HouseholdServicesForm onSuccess={handleSuccess} editingService={editingService} />
+          </div>
         </DialogContent>
       </Dialog>
 
@@ -1103,6 +1437,14 @@ function HouseholdServicesSection() {
                     onClick={() => handleViewDetails(service)}
                   >
                     <Eye className="w-4 h-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8"
+                    onClick={() => handleEdit(service)}
+                  >
+                    <Pencil className="w-4 h-4" />
                   </Button>
                   <Button
                     variant="ghost"
@@ -2397,7 +2739,7 @@ function AgenciesSection() {
         </Dialog>
       )}
 
-     
+
     </div>
   );
 }
@@ -3098,7 +3440,7 @@ function ConstructionMaterialsSection() {
               <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                 <div className="p-4 bg-muted rounded-lg">
                   <p className="text-sm text-muted-foreground">Price</p>
-                  <p className="text-lg font-bold text-primary">₹{viewingMaterial.price}/{viewingMaterial.unit}</p>
+                  <p className="text-lg font-bold text-primary">₹{viewingViewingMaterial.price}/{viewingMaterial.unit}</p>
                 </div>
                 {viewingMaterial.minimumOrder && (
                   <div className="p-4 bg-muted rounded-lg">
@@ -4211,7 +4553,7 @@ console.log("AAAAAAAAAAAAA",normalizedSection)
         <SidebarInset className="flex-1">
           <header className="flex h-16 shrink-0 items-center border-b px-6 bg-card">
             <SidebarTrigger className="-ml-1" />
-            <div className="h-6 w-px bg-border mx-4" />
+            <div className="h-6 w-border bg-border mx-4" />
             <div>
               <h1 className="text-lg font-semibold capitalize">{activeSection.replace('-', ' ')}</h1>
             </div>
@@ -4290,7 +4632,7 @@ function SecondHandCarsBikesSection() {
 function CarBikeRentalsSection() {
   return (
     <div className="space-y-6">
-     
+
       <CarBikeRentalsForm />
     </div>
   );
@@ -4309,7 +4651,7 @@ function TransportationMovingServicesSection() {
 function VehicleLicenseClassesSection() {
   return (
     <div className="space-y-6">
-  
+
       <VehicleLicenseClassesForm />
     </div>
   );
@@ -4379,7 +4721,7 @@ function ComputerMobileLaptopRepairServicesSection() {
 function FurnitureInteriorDecorSection() {
   const [items, setItems] = useState<any[]>([]);
   const [showForm, setShowForm] = useState(false);
-  const [editingItem, setEditingItem] = useState(null);
+  const [editingItem, setEditingItem] = useState<any>(null);
   const [viewingItem, setViewingItem] = useState<any>(null);
   const [showDetailsDialog, setShowDetailsDialog] = useState(false);
 
@@ -4404,6 +4746,11 @@ function FurnitureInteriorDecorSection() {
     fetchItems();
   };
 
+  const handleEdit = (item: any) => {
+    setEditingItem(item);
+    setShowForm(true);
+  };
+
   const handleDelete = async (id: string) => {
     if (!confirm('Are you sure you want to delete this item?')) return;
     try {
@@ -4416,6 +4763,11 @@ function FurnitureInteriorDecorSection() {
     } catch (error) {
       console.error('Error deleting item:', error);
     }
+  };
+
+  const handleViewDetails = (item: any) => {
+    setViewingItem(item);
+    setShowDetailsDialog(true);
   };
 
   const toggleActive = async (id: string) => {
@@ -4444,11 +4796,6 @@ function FurnitureInteriorDecorSection() {
     }
   };
 
-  const handleViewDetails = (item: any) => {
-    setViewingItem(item);
-    setShowDetailsDialog(true);
-  };
-
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -4462,13 +4809,22 @@ function FurnitureInteriorDecorSection() {
         </Button>
       </div>
 
-      <Dialog open={showForm} onOpenChange={setShowForm}>
+      <Dialog open={showForm} onOpenChange={(open) => {
+        setShowForm(open);
+        if (!open) setEditingItem(null);
+      }}>
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Add New Furniture/Decor Item</DialogTitle>
-            <DialogDescription>Fill in the details to create a new furniture or decor listing</DialogDescription>
+            <DialogTitle>{editingItem ? 'Edit Furniture/Decor Item' : 'Add New Furniture/Decor Item'}</DialogTitle>
+            <DialogDescription>
+              {editingItem ? 'Update the details of this furniture or decor listing' : 'Fill in the details to create a new furniture or decor listing'}
+            </DialogDescription>
           </DialogHeader>
-          <FurnitureInteriorDecorForm onSuccess={handleSuccess} />
+          <FurnitureInteriorDecorForm
+            key={editingItem?.id || 'new'}
+            editingItem={editingItem}
+            onSuccess={handleSuccess}
+          />
         </DialogContent>
       </Dialog>
 
@@ -4494,6 +4850,14 @@ function FurnitureInteriorDecorSection() {
                     onClick={() => handleViewDetails(item)}
                   >
                     <Eye className="w-4 h-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8"
+                    onClick={() => handleEdit(item)}
+                  >
+                    <Edit className="w-4 h-4" />
                   </Button>
                   <Button
                     variant="ghost"
@@ -4531,9 +4895,34 @@ function FurnitureInteriorDecorSection() {
                 )}
               </div>
             </CardContent>
-            <CardFooter className="pt-0 flex gap-2">
+            <CardFooter className="flex gap-2 flex-wrap">
               <Button
-                variant={item.isActive ? "outline" : "default"}
+                variant="outline"
+                size="sm"
+                className="flex-1"
+                onClick={() => handleEdit(item)}
+              >
+                <Edit className="w-4 h-4 mr-1" />
+                Edit
+              </Button>
+              <Button
+                variant="destructive"
+                size="sm"
+                className="flex-1"
+                onClick={() => handleDelete(item.id)}
+              >
+                Delete
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                className="flex-1"
+                onClick={() => handleViewDetails(item)}
+              >
+                View Details
+              </Button>
+              <Button
+                variant={item.isActive ? "secondary" : "outline"}
                 size="sm"
                 className="flex-1"
                 onClick={() => toggleActive(item.id)}

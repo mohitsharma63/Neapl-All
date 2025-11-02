@@ -33,12 +33,11 @@ import {
   computerMobileLaptopRepairServices,
   furnitureInteriorDecor,
   householdServices,
-  // eventPlanningServices,
+  eventDecorationServices,
   fashionBeautyProducts,
   sareeClothingShopping,
   ebooksOnlineCourses,
   cricketSportsTraining,
-  // educationalConsultancyStudyAbroad,
 } from "../shared/schema";
 import { eq, sql, desc } from "drizzle-orm";
 
@@ -354,6 +353,39 @@ export function registerRoutes(app: Express) {
         return res.status(400).json({ message: "User with this email already exists" });
       }
 
+      // Build selected services array from category and subcategory IDs
+      let selectedServicesArray: string[] = [];
+      
+      if (categoryIds && Array.isArray(categoryIds)) {
+        // Get all categories with their subcategories
+        const allCategories = await db.query.adminCategories.findMany({
+          with: {
+            subcategories: true,
+          },
+        });
+
+        // Add category slugs
+        categoryIds.forEach((categoryId: string) => {
+          const category = allCategories.find(c => c.id === categoryId);
+          if (category) {
+            selectedServicesArray.push(category.slug);
+          }
+        });
+
+        // Add subcategory slugs
+        if (subcategoryIds && Array.isArray(subcategoryIds)) {
+          subcategoryIds.forEach((subId: string) => {
+            for (const cat of allCategories) {
+              const subcategory = cat.subcategories.find(sub => sub.id === subId);
+              if (subcategory) {
+                selectedServicesArray.push(subcategory.slug);
+                break;
+              }
+            }
+          });
+        }
+      }
+
       // Create user
       const [newUser] = await db
         .insert(users)
@@ -365,6 +397,7 @@ export function registerRoutes(app: Express) {
           lastName,
           phone,
           accountType,
+          selectedServices: selectedServicesArray,
           country: location?.country,
           state: location?.state,
           city: location?.city,
@@ -377,7 +410,7 @@ export function registerRoutes(app: Express) {
 
       // Add category preferences if provided
       if (categoryIds && Array.isArray(categoryIds)) {
-        // Get all categories with their subcategories
+        // Get all categories with their subcategories (reuse if already fetched)
         const allCategories = await db.query.adminCategories.findMany({
           with: {
             subcategories: true,
@@ -539,8 +572,96 @@ export function registerRoutes(app: Express) {
         return res.status(404).json({ message: "User not found" });
       }
 
+      // Fetch all categories with subcategories for mapping
+      const allCategories = await db.query.adminCategories.findMany({
+        with: {
+          subcategories: true,
+        },
+      });
+
+      // Fetch selected services details if selectedServices exists
+      let selectedServicesDetails = [];
+      if (user.selectedServices && Array.isArray(user.selectedServices) && user.selectedServices.length > 0) {
+        selectedServicesDetails = user.selectedServices.map(serviceSlug => {
+          // Check if it's a category
+          const category = allCategories.find(cat => cat.slug === serviceSlug);
+          if (category) {
+            return {
+              slug: category.slug,
+              name: category.name,
+              type: 'category'
+            };
+          }
+          
+          // Check if it's a subcategory
+          for (const cat of allCategories) {
+            const subcategory = cat.subcategories.find(sub => sub.slug === serviceSlug);
+            if (subcategory) {
+              return {
+                slug: subcategory.slug,
+                name: subcategory.name,
+                type: 'subcategory',
+                parentCategory: cat.name
+              };
+            }
+          }
+          
+          // Return the slug if not found
+          return {
+            slug: serviceSlug,
+            name: serviceSlug,
+            type: 'unknown'
+          };
+        });
+      }
+
+      // Enrich categoryPreferences with actual names
+      const categoryPreferencesWithNames = user.categoryPreferences.map(pref => {
+        const category = allCategories.find(cat => cat.id === pref.categorySlug || cat.slug === pref.categorySlug);
+        
+        const subcategoriesWithNames = pref.subcategorySlugs.map((subSlug: string) => {
+          if (category) {
+            const subcategory = category.subcategories.find(sub => sub.id === subSlug || sub.slug === subSlug);
+            if (subcategory) {
+              return {
+                id: subcategory.id,
+                slug: subcategory.slug,
+                name: subcategory.name
+              };
+            }
+          }
+          // Fallback: search in all categories
+          for (const cat of allCategories) {
+            const subcategory = cat.subcategories.find(sub => sub.id === subSlug || sub.slug === subSlug);
+            if (subcategory) {
+              return {
+                id: subcategory.id,
+                slug: subcategory.slug,
+                name: subcategory.name
+              };
+            }
+          }
+          return {
+            id: subSlug,
+            slug: subSlug,
+            name: subSlug
+          };
+        });
+
+        return {
+          ...pref,
+          categoryName: category?.name || pref.categorySlug,
+          categoryId: category?.id,
+          subcategoriesWithNames
+        };
+      });
+
       const { password: _, ...userWithoutPassword } = user;
-      res.json(userWithoutPassword);
+      res.json({
+        ...userWithoutPassword,
+        categoryPreferences: categoryPreferencesWithNames,
+        selectedServicesDetails
+      });
     } catch (error: any) {
       res.status(500).json({ message: error.message });
     }
@@ -3332,6 +3453,140 @@ export function registerRoutes(app: Express) {
         .update(secondHandPhonesTabletsAccessories)
         .set({ isFeatured: !product.isFeatured, updatedAt: new Date() })
         .where(eq(secondHandPhonesTabletsAccessories.id, req.params.id))
+        .returning();
+
+      res.json(updated);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Event & Decoration Services Routes - Full CRUD
+
+  // GET all event decoration services
+  app.get("/api/admin/event-decoration-services", async (_req, res) => {
+    try {
+      const services = await db.query.eventDecorationServices.findMany({
+        orderBy: desc(eventDecorationServices.createdAt),
+      });
+      res.json(services);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // GET single event decoration service by ID
+  app.get("/api/admin/event-decoration-services/:id", async (req, res) => {
+    try {
+      const service = await db.query.eventDecorationServices.findFirst({
+        where: eq(eventDecorationServices.id, req.params.id),
+      });
+
+      if (!service) {
+        return res.status(404).json({ message: "Event decoration service not found" });
+      }
+
+      res.json(service);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // CREATE new event decoration service
+  app.post("/api/admin/event-decoration-services", async (req, res) => {
+    try {
+      const [newService] = await db
+        .insert(eventDecorationServices)
+        .values({
+          ...req.body,
+          country: req.body.country || "India",
+        })
+        .returning();
+
+      res.status(201).json(newService);
+    } catch (error: any) {
+      console.error("Error creating event decoration service:", error);
+      res.status(400).json({ message: error.message });
+    }
+  });
+
+  // UPDATE event decoration service
+  app.put("/api/admin/event-decoration-services/:id", async (req, res) => {
+    try {
+      const [updatedService] = await db
+        .update(eventDecorationServices)
+        .set({ ...req.body, updatedAt: new Date() })
+        .where(eq(eventDecorationServices.id, req.params.id))
+        .returning();
+
+      if (!updatedService) {
+        return res.status(404).json({ message: "Event decoration service not found" });
+      }
+
+      res.json(updatedService);
+    } catch (error: any) {
+      console.error("Error updating event decoration service:", error);
+      res.status(400).json({ message: error.message });
+    }
+  });
+
+  // DELETE event decoration service
+  app.delete("/api/admin/event-decoration-services/:id", async (req, res) => {
+    try {
+      const deletedRows = await db
+        .delete(eventDecorationServices)
+        .where(eq(eventDecorationServices.id, req.params.id))
+        .returning();
+
+      if (deletedRows.length === 0) {
+        return res.status(404).json({ message: "Event decoration service not found" });
+      }
+
+      res.json({ message: "Event decoration service deleted successfully", id: req.params.id });
+    } catch (error: any) {
+      console.error("Error deleting event decoration service:", error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // PATCH - Toggle active status
+  app.patch("/api/admin/event-decoration-services/:id/toggle-active", async (req, res) => {
+    try {
+      const service = await db.query.eventDecorationServices.findFirst({
+        where: eq(eventDecorationServices.id, req.params.id),
+      });
+
+      if (!service) {
+        return res.status(404).json({ message: "Event decoration service not found" });
+      }
+
+      const [updated] = await db
+        .update(eventDecorationServices)
+        .set({ isActive: !service.isActive, updatedAt: new Date() })
+        .where(eq(eventDecorationServices.id, req.params.id))
+        .returning();
+
+      res.json(updated);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // PATCH - Toggle featured status
+  app.patch("/api/admin/event-decoration-services/:id/toggle-featured", async (req, res) => {
+    try {
+      const service = await db.query.eventDecorationServices.findFirst({
+        where: eq(eventDecorationServices.id, req.params.id),
+      });
+
+      if (!service) {
+        return res.status(404).json({ message: "Event decoration service not found" });
+      }
+
+      const [updated] = await db
+        .update(eventDecorationServices)
+        .set({ isFeatured: !service.isFeatured, updatedAt: new Date() })
+        .where(eq(eventDecorationServices.id, req.params.id))
         .returning();
 
       res.json(updated);

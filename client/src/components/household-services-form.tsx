@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -11,6 +10,9 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDes
 import { Switch } from "@/components/ui/switch";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Label } from "@/components/ui/label";
+import { X } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 const formSchema = z.object({
   title: z.string().min(5, "Title must be at least 5 characters"),
@@ -58,20 +60,71 @@ const formSchema = z.object({
   amcAvailable: z.boolean().default(false),
   cashOnDelivery: z.boolean().default(true),
   digitalPayment: z.boolean().default(true),
+  images: z.array(z.string()).default([]),
 });
 
 type FormValues = z.infer<typeof formSchema>;
 
 interface HouseholdServicesFormProps {
   onSuccess?: () => void;
+  editingService?: any;
 }
 
-export default function HouseholdServicesForm({ onSuccess }: HouseholdServicesFormProps) {
+export default function HouseholdServicesForm({ onSuccess, editingService }: HouseholdServicesFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [uploadingImages, setUploadingImages] = useState(false);
+  const { toast } = useToast();
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
-    defaultValues: {
+    defaultValues: editingService ? {
+      title: editingService.title || "",
+      description: editingService.description || "",
+      serviceType: editingService.serviceType || "plumbing",
+      serviceCategory: editingService.serviceCategory || undefined,
+      baseServiceCharge: editingService.baseServiceCharge?.toString() || "",
+      hourlyRate: editingService.hourlyRate?.toString() || "",
+      minimumCharge: editingService.minimumCharge?.toString() || "",
+      pricingType: editingService.pricingType || "fixed",
+      freeInspection: editingService.freeInspection || false,
+      freeEstimate: editingService.freeEstimate !== undefined ? editingService.freeEstimate : true,
+      emergencyService: editingService.emergencyService || false,
+      emergencyCharges: editingService.emergencyCharges?.toString() || "",
+      sameDayService: editingService.sameDayService || false,
+      warrantyProvided: editingService.warrantyProvided || false,
+      warrantyPeriod: editingService.warrantyPeriod || "",
+      available24_7: editingService.available24_7 || false,
+      workingHours: editingService.workingHours || "",
+      workingDays: editingService.workingDays || "",
+      advanceBookingRequired: editingService.advanceBookingRequired || false,
+      businessName: editingService.businessName || "",
+      ownerName: editingService.ownerName || "",
+      experienceYears: editingService.experienceYears || undefined,
+      teamSize: editingService.teamSize || undefined,
+      certifiedProfessional: editingService.certifiedProfessional || false,
+      residentialService: editingService.residentialService !== undefined ? editingService.residentialService : true,
+      commercialService: editingService.commercialService || false,
+      equipmentProvided: editingService.equipmentProvided !== undefined ? editingService.equipmentProvided : true,
+      materialsIncluded: editingService.materialsIncluded || false,
+      contactPerson: editingService.contactPerson || "",
+      contactPhone: editingService.contactPhone || "",
+      contactEmail: editingService.contactEmail || "",
+      whatsappAvailable: editingService.whatsappAvailable || false,
+      country: editingService.country || "India",
+      stateProvince: editingService.stateProvince || "",
+      city: editingService.city || "",
+      areaName: editingService.areaName || "",
+      fullAddress: editingService.fullAddress || "",
+      serviceRadiusKm: editingService.serviceRadiusKm || undefined,
+      homeVisitAvailable: editingService.homeVisitAvailable !== undefined ? editingService.homeVisitAvailable : true,
+      consultationAvailable: editingService.consultationAvailable || false,
+      seniorCitizenDiscount: editingService.seniorCitizenDiscount || false,
+      contractAvailable: editingService.contractAvailable || false,
+      amcAvailable: editingService.amcAvailable || false,
+      cashOnDelivery: editingService.cashOnDelivery !== undefined ? editingService.cashOnDelivery : true,
+      digitalPayment: editingService.digitalPayment !== undefined ? editingService.digitalPayment : true,
+      images: editingService.images || [],
+    } : {
       serviceType: "plumbing",
       pricingType: "fixed",
       freeInspection: false,
@@ -95,35 +148,98 @@ export default function HouseholdServicesForm({ onSuccess }: HouseholdServicesFo
       amcAvailable: false,
       cashOnDelivery: true,
       digitalPayment: true,
+      images: [],
     },
   });
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    setUploadingImages(true);
+    const newImages: string[] = [];
+
+    try {
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        const reader = new FileReader();
+
+        const result = await new Promise<string>((resolve, reject) => {
+          reader.onloadend = () => resolve(reader.result as string);
+          reader.onerror = reject;
+          reader.readAsDataURL(file);
+        });
+
+        newImages.push(result);
+      }
+
+      const currentImages = form.getValues("images") || [];
+      form.setValue("images", [...currentImages, ...newImages]);
+
+      toast({
+        title: "Success",
+        description: `${newImages.length} image(s) uploaded successfully`,
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to upload images",
+        variant: "destructive",
+      });
+    } finally {
+      setUploadingImages(false);
+    }
+  };
+
+  const removeImage = (index: number) => {
+    const currentImages = form.getValues("images") || [];
+    form.setValue("images", currentImages.filter((_, i) => i !== index));
+  };
 
   const onSubmit = async (data: FormValues) => {
     setIsSubmitting(true);
     try {
-      const response = await fetch("/api/admin/household-services", {
-        method: "POST",
+      const url = editingService 
+        ? `/api/admin/household-services/${editingService.id}`
+        : "/api/admin/household-services";
+
+      const method = editingService ? "PUT" : "POST";
+
+      // Convert empty strings to null for numeric fields
+      const sanitizedData = {
+        ...data,
+        baseServiceCharge: data.baseServiceCharge || null,
+        hourlyRate: data.hourlyRate || null,
+        minimumCharge: data.minimumCharge || null,
+        emergencyCharges: data.emergencyCharges || null,
+        experienceYears: data.experienceYears || null,
+        teamSize: data.teamSize || null,
+        serviceRadiusKm: data.serviceRadiusKm || null,
+      };
+
+      const response = await fetch(url, {
+        method,
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(data),
+        body: JSON.stringify(sanitizedData),
       });
 
       if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.message || "Failed to create service listing");
+        throw new Error(error.message || `Failed to ${editingService ? 'update' : 'create'} service listing`);
       }
 
       const result = await response.json();
-      console.log("Created service:", result);
-      alert("Service listing created successfully!");
+      console.log(`${editingService ? 'Updated' : 'Created'} service:`, result);
+      alert(`Service listing ${editingService ? 'updated' : 'created'} successfully!`);
       form.reset();
       if (onSuccess) {
         onSuccess();
       }
     } catch (error) {
       console.error("Error submitting form:", error);
-      alert(error instanceof Error ? error.message : "Failed to create service listing");
+      alert(error instanceof Error ? error.message : `Failed to ${editingService ? 'update' : 'create'} service listing`);
     } finally {
       setIsSubmitting(false);
     }
@@ -224,6 +340,46 @@ export default function HouseholdServicesForm({ onSuccess }: HouseholdServicesFo
                 )}
               />
             </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Images</CardTitle>
+            <CardDescription>Upload service images (optional)</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div>
+              <Label htmlFor="images">Upload Images</Label>
+              <Input 
+                id="images" 
+                type="file" 
+                accept="image/*" 
+                multiple 
+                onChange={handleImageUpload} 
+                className="mt-2" 
+                disabled={uploadingImages}
+              />
+              {uploadingImages && <p className="text-sm text-muted-foreground mt-2">Uploading...</p>}
+            </div>
+            {form.watch("images") && form.watch("images").length > 0 && (
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
+                {form.watch("images").map((img: string, idx: number) => (
+                  <div key={idx} className="relative">
+                    <img src={img} alt={`Upload ${idx + 1}`} className="w-full h-24 object-cover rounded" />
+                    <Button
+                      type="button"
+                      variant="destructive"
+                      size="icon"
+                      className="absolute top-1 right-1 h-6 w-6"
+                      onClick={() => removeImage(idx)}
+                    >
+                      <X className="w-3 h-3" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            )}
           </CardContent>
         </Card>
 
@@ -799,7 +955,7 @@ export default function HouseholdServicesForm({ onSuccess }: HouseholdServicesFo
         </Card>
 
         <Button type="submit" className="w-full" disabled={isSubmitting}>
-          {isSubmitting ? "Submitting..." : "Create Service Listing"}
+          {isSubmitting ? "Submitting..." : (editingService ? "Update Service Listing" : "Create Service Listing")}
         </Button>
       </form>
     </Form>

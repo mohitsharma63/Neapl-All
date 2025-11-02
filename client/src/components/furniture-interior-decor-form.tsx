@@ -10,6 +10,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Switch } from "@/components/ui/switch";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Label } from "@/components/ui/label";
+import { X } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 const formSchema = z.object({
   title: z.string().min(5, "Title must be at least 5 characters"),
@@ -53,68 +56,225 @@ const formSchema = z.object({
   city: z.string().optional(),
   areaName: z.string().optional(),
   fullAddress: z.string().optional(),
+  images: z.array(z.string()).optional(),
 });
 
 type FormValues = z.infer<typeof formSchema>;
 
 interface FurnitureInteriorDecorFormProps {
+  editingItem?: any;
   onSuccess?: () => void;
 }
 
-export default function FurnitureInteriorDecorForm({ onSuccess }: FurnitureInteriorDecorFormProps) {
+export default function FurnitureInteriorDecorForm({ editingItem, onSuccess }: FurnitureInteriorDecorFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [uploadingImages, setUploadingImages] = useState(false);
+  const { toast } = useToast();
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
-    defaultValues: {
+    defaultValues: editingItem ? {
+      title: editingItem.title || "",
+      description: editingItem.description || "",
+      listingType: editingItem.listingType || "sale",
+      category: editingItem.category || "furniture",
+      subcategory: editingItem.subcategory || "",
+      itemType: editingItem.itemType || "",
+      brand: editingItem.brand || "",
+      material: editingItem.material || "",
+      color: editingItem.color || "",
+      dimensions: editingItem.dimensions || "",
+      weight: editingItem.weight || "",
+      condition: editingItem.condition || undefined,
+      ageInMonths: editingItem.ageInMonths ? Number(editingItem.ageInMonths) : undefined,
+      price: editingItem.price ? editingItem.price.toString() : "",
+      originalPrice: editingItem.originalPrice ? editingItem.originalPrice.toString() : "",
+      rentalPricePerDay: editingItem.rentalPricePerDay ? editingItem.rentalPricePerDay.toString() : "",
+      rentalPricePerMonth: editingItem.rentalPricePerMonth ? editingItem.rentalPricePerMonth.toString() : "",
+      isNegotiable: editingItem.isNegotiable === true,
+      assemblyRequired: editingItem.assemblyRequired === true,
+      assemblyServiceAvailable: editingItem.assemblyServiceAvailable === true,
+      customMade: editingItem.customMade === true,
+      customizationAvailable: editingItem.customizationAvailable === true,
+      style: editingItem.style || "",
+      roomType: editingItem.roomType || "",
+      seatingCapacity: editingItem.seatingCapacity ? Number(editingItem.seatingCapacity) : undefined,
+      warrantyAvailable: editingItem.warrantyAvailable === true,
+      warrantyPeriod: editingItem.warrantyPeriod || "",
+      billAvailable: editingItem.billAvailable === true,
+      isSet: editingItem.isSet === true,
+      setItems: editingItem.setItems ? Number(editingItem.setItems) : undefined,
+      deliveryAvailable: editingItem.deliveryAvailable === true,
+      freeDelivery: editingItem.freeDelivery === true,
+      exchangeAccepted: editingItem.exchangeAccepted === true,
+      contactPhone: editingItem.contactPhone || "",
+      contactEmail: editingItem.contactEmail || "",
+      whatsappAvailable: editingItem.whatsappAvailable === true,
+      country: editingItem.country || "India",
+      stateProvince: editingItem.stateProvince || "",
+      city: editingItem.city || "",
+      areaName: editingItem.areaName || "",
+      fullAddress: editingItem.fullAddress || "",
+      images: editingItem.images || [],
+    } : {
+      title: "",
+      description: "",
       listingType: "sale",
       category: "furniture",
+      subcategory: "",
+      itemType: "",
+      brand: "",
+      material: "",
+      color: "",
+      dimensions: "",
+      weight: "",
+      price: "",
+      originalPrice: "",
+      rentalPricePerDay: "",
+      rentalPricePerMonth: "",
       isNegotiable: false,
       assemblyRequired: false,
       assemblyServiceAvailable: false,
       customMade: false,
       customizationAvailable: false,
+      style: "",
+      roomType: "",
       warrantyAvailable: false,
+      warrantyPeriod: "",
       billAvailable: false,
       isSet: false,
       deliveryAvailable: false,
       freeDelivery: false,
       exchangeAccepted: false,
+      contactPhone: "",
+      contactEmail: "",
       whatsappAvailable: false,
       country: "India",
+      stateProvince: "",
+      city: "",
+      areaName: "",
+      fullAddress: "",
+      images: [],
     },
   });
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    setUploadingImages(true);
+    const newImages: string[] = [];
+
+    try {
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        const reader = new FileReader();
+
+        const result = await new Promise<string>((resolve, reject) => {
+          reader.onloadend = () => resolve(reader.result as string);
+          reader.onerror = reject;
+          reader.readAsDataURL(file);
+        });
+
+        newImages.push(result);
+      }
+
+      const currentImages = form.getValues("images") || [];
+      form.setValue("images", [...currentImages, ...newImages]);
+
+      toast({
+        title: "Success",
+        description: `${newImages.length} image(s) uploaded successfully`,
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to upload images",
+        variant: "destructive",
+      });
+    } finally {
+      setUploadingImages(false);
+    }
+  };
+
+  const removeImage = (index: number) => {
+    const currentImages = form.getValues("images") || [];
+    form.setValue("images", currentImages.filter((_, i) => i !== index));
+  };
 
   const onSubmit = async (data: FormValues) => {
     setIsSubmitting(true);
     try {
-      const response = await fetch("/api/admin/furniture-interior-decor", {
-        method: "POST",
+      const url = editingItem
+        ? `/api/admin/furniture-interior-decor/${editingItem.id}`
+        : "/api/admin/furniture-interior-decor";
+
+      const method = editingItem ? "PUT" : "POST";
+
+      // Convert empty strings to null for numeric fields
+      const sanitizedData = {
+        ...data,
+        price: data.price || null,
+        originalPrice: data.originalPrice || null,
+        rentalPricePerDay: data.rentalPricePerDay || null,
+        rentalPricePerWeek: data.rentalPricePerWeek || null,
+        rentalPricePerMonth: data.rentalPricePerMonth || null,
+        assemblyCharges: data.assemblyCharges || null,
+        consultationCharges: data.consultationCharges || null,
+        installationCharges: data.installationCharges || null,
+        deliveryCharges: data.deliveryCharges || null,
+        baseServiceCharge: data.baseServiceCharge || null,
+        pricePerSqft: data.pricePerSqft || null,
+        minimumOrderValue: data.minimumOrderValue || null,
+        advancePaymentPercentage: data.advancePaymentPercentage || null,
+        ageInMonths: data.ageInMonths || null,
+        seatingCapacity: data.seatingCapacity || null,
+        setItems: data.setItems || null,
+        returnPeriodDays: data.returnPeriodDays || null,
+        stockQuantity: data.stockQuantity || null,
+        experienceYears: data.experienceYears || null,
+        inquiryCount: data.inquiryCount || null,
+        favoriteCount: data.favoriteCount || null,
+        rating: data.rating || null,
+        reviewCount: data.reviewCount || null,
+      };
+
+      const response = await fetch(url, {
+        method,
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(data),
+        body: JSON.stringify(sanitizedData),
       });
 
       if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.message || "Failed to create listing");
+        throw new Error(error.message || `Failed to ${editingItem ? 'update' : 'create'} listing`);
       }
 
       const result = await response.json();
-      console.log("Created listing:", result);
-      alert("Listing created successfully!");
+      console.log(`${editingItem ? 'Updated' : 'Created'} listing:`, result);
+      toast({
+        title: "Success",
+        description: `Listing ${editingItem ? 'updated' : 'created'} successfully!`,
+      });
       form.reset();
       if (onSuccess) {
         onSuccess();
       }
     } catch (error) {
       console.error("Error submitting form:", error);
-      alert(error instanceof Error ? error.message : "Failed to create listing");
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : `Failed to ${editingItem ? 'update' : 'create'} listing`,
+        variant: "destructive",
+      });
     } finally {
       setIsSubmitting(false);
     }
   };
+
+  const images = form.watch("images") || [];
 
   return (
     <Form {...form}>
@@ -433,6 +593,37 @@ export default function FurnitureInteriorDecorForm({ onSuccess }: FurnitureInter
 
         <Card>
           <CardHeader>
+            <CardTitle>Images</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div>
+              <Label htmlFor="images">Upload Images</Label>
+              <Input id="images" type="file" accept="image/*" multiple onChange={handleImageUpload} className="mt-2" />
+              {uploadingImages && <p className="text-sm text-muted-foreground mt-2">Uploading...</p>}
+            </div>
+            {images.length > 0 && (
+              <div className="grid grid-cols-4 gap-4 mt-4">
+                {images.map((img: string, idx: number) => (
+                  <div key={idx} className="relative">
+                    <img src={img} alt={`Upload ${idx + 1}`} className="w-full h-24 object-cover rounded" />
+                    <Button
+                      type="button"
+                      variant="destructive"
+                      size="icon"
+                      className="absolute top-1 right-1 h-6 w-6"
+                      onClick={() => removeImage(idx)}
+                    >
+                      <X className="w-3 h-3" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
             <CardTitle>Contact Information</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -547,7 +738,7 @@ export default function FurnitureInteriorDecorForm({ onSuccess }: FurnitureInter
         </Card>
 
         <Button type="submit" className="w-full" disabled={isSubmitting}>
-          {isSubmitting ? "Submitting..." : "Create Listing"}
+          {isSubmitting ? "Submitting..." : editingItem ? "Update Listing" : "Create Listing"}
         </Button>
       </form>
     </Form>
