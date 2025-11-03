@@ -4444,7 +4444,6 @@ export default function AdminDashboard() {
   const renderSection = () => {
     // Normalize the active section to handle different slug formats
     const normalizedSection = activeSection.toLowerCase().replace(/\s+/g, '-');
-console.log("AAAAAAAAAAAAA",normalizedSection)
     switch (normalizedSection) {
       case "dashboard":
         return <DashboardSection />;
