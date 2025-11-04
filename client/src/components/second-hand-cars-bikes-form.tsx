@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -13,6 +12,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Pencil, Trash2, Plus, Eye, EyeOff, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useUser } from "@/hooks/use-user";
 
 interface SecondHandCarBike {
   id: string;
@@ -66,14 +66,36 @@ interface SecondHandCarBike {
   viewCount: number;
   createdAt: string;
   updatedAt: string;
+  userId: string;
+  role: string;
 }
 
 export function SecondHandCarsBikesForm() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { user } = useUser();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<SecondHandCarBike | null>(null);
   const [uploadingImages, setUploadingImages] = useState(false);
+
+  // Get userId and role from localStorage
+  const getUserFromLocalStorage = () => {
+    const storedUser = localStorage.getItem("user");
+    if (storedUser) {
+      try {
+        return JSON.parse(storedUser);
+      } catch (error) {
+        console.error("Error parsing user from localStorage:", error);
+        return null;
+      }
+    }
+    return null;
+  };
+
+  const localUser = getUserFromLocalStorage();
+  const userId = localUser?.id || user?.id;
+  console.log("AAAAAAAAAAAAAAAAAAAAAA",userId)
+  const userRole = localUser?.role || user?.role;
 
   const [formData, setFormData] = useState({
     title: "",
@@ -100,9 +122,9 @@ export function SecondHandCarsBikesForm() {
     seatingCapacity: "",
     engineCapacity: "",
     mileageKmpl: "",
-    images: [] as string[],
-    documents: [] as string[],
-    features: [] as string[],
+    images: [],
+    documents: [],
+    features: [],
     condition: "good",
     accidentHistory: false,
     floodAffected: false,
@@ -123,6 +145,8 @@ export function SecondHandCarsBikesForm() {
     isActive: true,
     isFeatured: false,
     isVerified: false,
+    userId: userId,
+    role: userRole,
   });
 
   const { data: listings = [], isLoading } = useQuery<SecondHandCarBike[]>({
@@ -143,8 +167,10 @@ export function SecondHandCarsBikesForm() {
         mileageKmpl: data.mileageKmpl ? parseFloat(data.mileageKmpl.toString()) : null,
         insuranceValidUntil: data.insuranceValidUntil || null,
         taxValidity: data.taxValidity || null,
+        userId: userId,
+        role: userRole,
       };
-
+      console.log("BBBBBBBBBBBBBBBBBBBBB",JSON.stringify(payload));
       const response = await fetch("/api/admin/second-hand-cars-bikes", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -178,6 +204,8 @@ export function SecondHandCarsBikesForm() {
         mileageKmpl: data.mileageKmpl ? parseFloat(data.mileageKmpl.toString()) : null,
         insuranceValidUntil: data.insuranceValidUntil || null,
         taxValidity: data.taxValidity || null,
+        userId: userId,
+        role: userRole,
       };
 
       const response = await fetch(`/api/admin/second-hand-cars-bikes/${id}`, {
@@ -293,6 +321,8 @@ export function SecondHandCarsBikesForm() {
       isActive: true,
       isFeatured: false,
       isVerified: false,
+      userId: userId,
+      role: userRole,
     });
     setEditingItem(null);
   };
@@ -347,6 +377,8 @@ export function SecondHandCarsBikesForm() {
       isActive: item.isActive,
       isFeatured: item.isFeatured,
       isVerified: item.isVerified,
+      userId: item.userId,
+      role: item.role,
     });
     setIsDialogOpen(true);
   };
@@ -570,7 +602,7 @@ export function SecondHandCarsBikesForm() {
 
                   <div>
                     <Label htmlFor="ownerNumber">Owner Number</Label>
-                    <Select value={formData.ownerNumber.toString()} onValueChange={(value) => setFormData({ ...formData, ownerNumber: parseInt(value) })}>
+                    <Select value={formData.ownerNumber?.toString() || "1"} onValueChange={(value) => setFormData({ ...formData, ownerNumber: parseInt(value) })}>
                       <SelectTrigger>
                         <SelectValue />
                       </SelectTrigger>

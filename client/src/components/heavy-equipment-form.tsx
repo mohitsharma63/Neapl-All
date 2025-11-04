@@ -12,6 +12,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Pencil, Trash2, Plus, Eye, EyeOff, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useUser } from "@/hooks/use-user";
 
 interface HeavyEquipment {
   id: string;
@@ -45,14 +46,21 @@ interface HeavyEquipment {
   viewCount: number;
   createdAt: string;
   updatedAt: string;
+  userId: string; // Added
+  role: string; // Added
 }
 
 export function HeavyEquipmentForm() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { user } = useUser();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<HeavyEquipment | null>(null);
   const [uploadingImages, setUploadingImages] = useState(false);
+
+  // Extract userId and role from the user object
+  const userId = user?.id;
+  const userRole = user?.role;
 
   const [formData, setFormData] = useState({
     title: "",
@@ -82,6 +90,8 @@ export function HeavyEquipmentForm() {
     fullAddress: "",
     isActive: true,
     isFeatured: false,
+    userId: userId, // Initialize with userId
+    role: userRole, // Initialize with role
   });
 
   const { data: equipment = [], isLoading } = useQuery<HeavyEquipment[]>({
@@ -93,7 +103,11 @@ export function HeavyEquipmentForm() {
       const response = await fetch("/api/admin/heavy-equipment", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
+        body: JSON.stringify({
+          ...formData,
+          sellerId: userId,
+          role: userRole,
+        }),
       });
       if (!response.ok) {
         const error = await response.json();
@@ -204,6 +218,8 @@ export function HeavyEquipmentForm() {
       fullAddress: "",
       isActive: true,
       isFeatured: false,
+      userId: userId,
+      role: userRole,
     });
     setEditingItem(null);
   };
@@ -238,6 +254,8 @@ export function HeavyEquipmentForm() {
       fullAddress: item.fullAddress || "",
       isActive: item.isActive,
       isFeatured: item.isFeatured,
+      userId: userId,
+      role: userRole,
     });
     setIsDialogOpen(true);
   };

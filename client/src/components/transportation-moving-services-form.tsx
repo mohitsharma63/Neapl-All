@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useUser } from "@/hooks/use-user";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -71,12 +72,16 @@ interface TransportationService {
 export function TransportationMovingServicesForm() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { user } = useUser();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [viewDialogOpen, setViewDialogOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<TransportationService | null>(null);
   const [viewingItem, setViewingItem] = useState<TransportationService | null>(null);
   const [uploadingImages, setUploadingImages] = useState(false);
   const [loading, setLoading] = useState(false); // Added loading state
+
+  const userId = user?.id;
+  const userRole = user?.role;
 
   const [formData, setFormData] = useState<any>({
     title: "",
@@ -118,6 +123,8 @@ export function TransportationMovingServicesForm() {
     images: [],
     isActive: true,
     isFeatured: false,
+    userId: user?.id,
+    role: user?.role,
   });
 
   const { data: services = [], isLoading } = useQuery<TransportationService[]>({
@@ -129,7 +136,11 @@ export function TransportationMovingServicesForm() {
       const response = await fetch("/api/admin/transportation-moving-services", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
+        body: JSON.stringify({
+          ...formData,
+          ownerId: userId,
+          role: userRole,
+        }),
       });
       if (!response.ok) {
         const error = await response.json();
@@ -258,6 +269,8 @@ export function TransportationMovingServicesForm() {
       images: [],
       isActive: true,
       isFeatured: false,
+      userId: user?.id,
+      role: user?.role,
     });
     setEditingItem(null);
   };
@@ -304,6 +317,8 @@ export function TransportationMovingServicesForm() {
       images: item.images || [],
       isActive: item.isActive,
       isFeatured: item.isFeatured,
+      userId: user?.id,
+      role: user?.role,
     });
     setIsDialogOpen(true);
   };
@@ -332,7 +347,7 @@ export function TransportationMovingServicesForm() {
           }));
         };
         reader.readAsDataURL(file);
-        
+
         // Note: For production, integrate with Cloudinary or another image hosting service
         // const formData = new FormData();
         // formData.append("file", file);
@@ -395,7 +410,7 @@ export function TransportationMovingServicesForm() {
         const error = await response.json();
         throw new Error(error.message || "Failed to save service");
       }
-      
+
       queryClient.invalidateQueries({ queryKey: ["/api/admin/transportation-moving-services"] });
       toast({ title: "Success", description: editingItem ? "Service updated successfully" : "Service created successfully" });
       setIsDialogOpen(false);

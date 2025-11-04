@@ -927,6 +927,8 @@ export const secondHandCarsBikes = pgTable("second_hand_cars_bikes", {
   viewCount: integer("view_count").default(0),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
+  userId: varchar("user_id").references(() => users.id),
+  role: text("role"),
 });
 
 export const insertSecondHandCarsBikesSchema = createInsertSchema(secondHandCarsBikes).omit({ id: true, createdAt: true, updatedAt: true });

@@ -12,6 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import { X, Eye, Edit, Trash2, Plus, MapPin, Phone } from "lucide-react";
+import { useUser } from "@/hooks/use-user";
 
 interface CarBikeRentalFormData {
   id?: string;
@@ -64,11 +65,14 @@ interface CarBikeRentalFormData {
   features?: string[];
   createdAt?: string;
   updatedAt?: string;
+  userId?: string;
+  role?: string;
 }
 
-export default function CarBikeRentalsForm() {
+function CarBikeRentalsForm() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { user } = useUser();
   const [images, setImages] = useState<string[]>([]);
   const [documents, setDocuments] = useState<string[]>([]);
   const [features, setFeatures] = useState<string[]>([]);
@@ -92,6 +96,8 @@ export default function CarBikeRentalsForm() {
       isFeatured: false,
       driverAvailable: false,
       pickupDeliveryAvailable: false,
+      userId: user?.id,
+      role: user?.role,
     },
   });
 
@@ -127,6 +133,8 @@ export default function CarBikeRentalsForm() {
         isFeatured: false,
         driverAvailable: false,
         pickupDeliveryAvailable: false,
+        userId: user?.id,
+        role: user?.role,
       });
       setImages([]);
       setDocuments([]);
@@ -138,6 +146,8 @@ export default function CarBikeRentalsForm() {
     mutationFn: async (data: CarBikeRentalFormData) => {
       const url = editingRental ? `/api/car-bike-rentals/${editingRental.id}` : "/api/car-bike-rentals";
       const method = editingRental ? "PUT" : "POST";
+      const userId = user?.id;
+      const userRole = user?.role;
 
       const response = await fetch(url, {
         method,
@@ -147,6 +157,8 @@ export default function CarBikeRentalsForm() {
           images,
           documents,
           features,
+          userId: userId,
+          role: userRole,
         }),
       });
 
@@ -1024,3 +1036,5 @@ export default function CarBikeRentalsForm() {
     </>
   );
 }
+
+export default CarBikeRentalsForm;

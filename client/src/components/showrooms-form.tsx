@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useUser } from "@/hooks/use-user";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -52,14 +53,20 @@ interface Showroom {
   viewCount: number;
   createdAt: string;
   updatedAt: string;
+  userId?: string;
+  role?: string;
 }
 
 export function ShowroomsForm() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { user } = useUser();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<Showroom | null>(null);
   const [uploadingImages, setUploadingImages] = useState(false);
+
+  const userId = user?.id;
+  const userRole = user?.role;
 
   const [formData, setFormData] = useState({
     title: "",
@@ -92,7 +99,9 @@ export function ShowroomsForm() {
     showroomEmail: "",
     isActive: true,
     isFeatured: false,
-    images: [] as string[],
+    images: [],
+    userId: userId,
+    role: userRole,
   });
 
   const { data: showroomsList = [], isLoading } = useQuery<Showroom[]>({
@@ -104,7 +113,11 @@ export function ShowroomsForm() {
       const response = await fetch("/api/admin/showrooms", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
+        body: JSON.stringify({
+          ...formData,
+          sellerId: userId,
+          role: userRole,
+        }),
       });
       if (!response.ok) {
         const error = await response.json();
@@ -219,6 +232,8 @@ export function ShowroomsForm() {
       isActive: true,
       isFeatured: false,
       images: [],
+      userId: userId,
+      role: userRole,
     });
     setEditingItem(null);
   };
@@ -257,6 +272,8 @@ export function ShowroomsForm() {
       isActive: item.isActive,
       isFeatured: item.isFeatured,
       images: item.images || [],
+      userId: item.userId,
+      role: item.role,
     });
     setIsDialogOpen(true);
   };

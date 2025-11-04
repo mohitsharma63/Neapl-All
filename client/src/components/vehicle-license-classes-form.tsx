@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useUser } from "@/hooks/use-user";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -94,11 +95,14 @@ interface VehicleLicenseClassFormData {
   isActive?: boolean;
   isFeatured?: boolean;
   isVerified?: boolean;
+  userId?: string;
+  role?: string;
 }
 
 export default function VehicleLicenseClassesForm() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { user } = useUser();
   const [courseIncludes, setCourseIncludes] = useState<string[]>([]);
   const [syllabusCovered, setSyllabusCovered] = useState<string[]>([]);
   const [documentsRequired, setDocumentsRequired] = useState<string[]>([]);
@@ -143,6 +147,8 @@ export default function VehicleLicenseClassesForm() {
       isActive: true,
       isFeatured: false,
       isVerified: false,
+      userId: user?.id,
+      role: user?.role,
     },
   });
 
@@ -298,7 +304,19 @@ export default function VehicleLicenseClassesForm() {
       ...data,
       nextBatchStartDate: data.nextBatchStartDate || null,
     };
-    createMutation.mutate(sanitizedData);
+    
+    // Add userId and role from the logged-in user
+    const userId = user?.id;
+    const userRole = user?.role;
+
+    // Ensure userId and userRole are not undefined before passing them
+    const formDataWithUser = {
+      ...sanitizedData,
+      userId: userId || "", // Provide a default empty string or handle appropriately
+      role: userRole || "", // Provide a default empty string or handle appropriately
+    };
+
+    createMutation.mutate(formDataWithUser);
   };
 
   return (

@@ -12,6 +12,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Pencil, Trash2, Plus, Eye, EyeOff, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useUser } from "@/hooks/use-user";
 
 interface CarBike {
   id: string;
@@ -46,15 +47,20 @@ interface CarBike {
   viewCount: number;
   createdAt: string;
   updatedAt: string;
+  userId?: string; // Added userId
+  role?: string;   // Added role
 }
 
 export function CarsBikesForm() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { user } = useUser();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<CarBike | null>(null);
   const [uploadingImages, setUploadingImages] = useState(false);
-  const [formData, setFormData] = useState({
+  const userId = user?.id || "";
+  const userRole = user?.role || "";
+  const [formData, setFormData] = useState<Omit<CarBike, 'id' | 'viewCount' | 'createdAt' | 'updatedAt'> & { price: string; kilometersDriven: string; ownerNumber: string; }>(() => ({
     title: "",
     description: "",
     listingType: "sell",
@@ -66,14 +72,14 @@ export function CarsBikesForm() {
     kilometersDriven: "",
     fuelType: "petrol",
     transmission: "manual",
-    ownerNumber: 1,
+    ownerNumber: "1",
     registrationNumber: "",
     registrationState: "",
     insuranceValidUntil: "",
     color: "",
-    images: [] as string[],
-    documents: [] as string[],
-    features: [] as string[],
+    images: [],
+    documents: [],
+    features: [],
     condition: "good",
     isNegotiable: false,
     country: "India",
@@ -83,7 +89,9 @@ export function CarsBikesForm() {
     fullAddress: "",
     isActive: true,
     isFeatured: false,
-  });
+    userId: userId,
+    role: userRole,
+  }));
 
   const { data: listings = [], isLoading } = useQuery<CarBike[]>({
     queryKey: ["/api/admin/cars-bikes"],
@@ -121,6 +129,8 @@ export function CarsBikesForm() {
         fullAddress: data.fullAddress || null,
         isActive: data.isActive,
         isFeatured: data.isFeatured,
+        userId: userId, // Added userId
+        role: userRole,   // Added role
       };
 
       const response = await fetch("/api/admin/cars-bikes", {
@@ -174,6 +184,8 @@ export function CarsBikesForm() {
         fullAddress: data.fullAddress || null,
         isActive: data.isActive,
         isFeatured: data.isFeatured,
+        userId: userId, // Added userId
+        role: userRole,   // Added role
       };
 
       const response = await fetch(`/api/admin/cars-bikes/${id}`, {
@@ -253,7 +265,7 @@ export function CarsBikesForm() {
       kilometersDriven: "",
       fuelType: "petrol",
       transmission: "manual",
-      ownerNumber: 1,
+      ownerNumber: "1",
       registrationNumber: "",
       registrationState: "",
       insuranceValidUntil: "",
@@ -270,6 +282,8 @@ export function CarsBikesForm() {
       fullAddress: "",
       isActive: true,
       isFeatured: false,
+      userId: userId,
+      role: userRole,
     });
     setEditingItem(null);
   };
@@ -288,7 +302,7 @@ export function CarsBikesForm() {
       kilometersDriven: item.kilometersDriven?.toString() || "",
       fuelType: item.fuelType || "petrol",
       transmission: item.transmission || "manual",
-      ownerNumber: item.ownerNumber || 1,
+      ownerNumber: item.ownerNumber?.toString() || "1",
       registrationNumber: item.registrationNumber || "",
       registrationState: item.registrationState || "",
       insuranceValidUntil: item.insuranceValidUntil || "",
@@ -305,6 +319,8 @@ export function CarsBikesForm() {
       fullAddress: item.fullAddress || "",
       isActive: item.isActive,
       isFeatured: item.isFeatured,
+      userId: item.userId || userId,
+      role: item.role || userRole,
     });
     setIsDialogOpen(true);
   };
@@ -486,7 +502,7 @@ export function CarsBikesForm() {
 
                   <div>
                     <Label htmlFor="fuelType">Fuel Type</Label>
-                    <Select value={formData.fuelType} onValueChange={(value) => setFormData({ ...formData, fuelType: value })}>
+                    <Select value={formData.fuelType || ""} onValueChange={(value) => setFormData({ ...formData, fuelType: value })}>
                       <SelectTrigger>
                         <SelectValue />
                       </SelectTrigger>
@@ -502,7 +518,7 @@ export function CarsBikesForm() {
 
                   <div>
                     <Label htmlFor="transmission">Transmission</Label>
-                    <Select value={formData.transmission} onValueChange={(value) => setFormData({ ...formData, transmission: value })}>
+                    <Select value={formData.transmission || ""} onValueChange={(value) => setFormData({ ...formData, transmission: value })}>
                       <SelectTrigger>
                         <SelectValue />
                       </SelectTrigger>
@@ -516,7 +532,7 @@ export function CarsBikesForm() {
 
                   <div>
                     <Label htmlFor="ownerNumber">Owner Number</Label>
-                    <Select value={formData.ownerNumber.toString()} onValueChange={(value) => setFormData({ ...formData, ownerNumber: parseInt(value) })}>
+                    <Select value={formData.ownerNumber} onValueChange={(value) => setFormData({ ...formData, ownerNumber: value })}>
                       <SelectTrigger>
                         <SelectValue />
                       </SelectTrigger>
@@ -532,7 +548,7 @@ export function CarsBikesForm() {
 
                   <div>
                     <Label htmlFor="condition">Condition</Label>
-                    <Select value={formData.condition} onValueChange={(value) => setFormData({ ...formData, condition: value })}>
+                    <Select value={formData.condition || ""} onValueChange={(value) => setFormData({ ...formData, condition: value })}>
                       <SelectTrigger>
                         <SelectValue />
                       </SelectTrigger>

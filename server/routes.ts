@@ -1898,11 +1898,19 @@ export function registerRoutes(app: Express) {
   // Cars & Bikes Routes - Full CRUD
 
   // GET all cars & bikes
-  app.get("/api/admin/cars-bikes", async (_req, res) => {
+  app.get("/api/admin/cars-bikes", async (req, res) => {
     try {
-      const vehicles = await db.query.carsBikes.findMany({
+      const { userId, role } = req.query;
+
+      let vehicles = await db.query.carsBikes.findMany({
         orderBy: desc(carsBikes.createdAt),
       });
+
+      // Filter by userId if provided and user is not admin
+      if (userId && role !== 'admin') {
+        vehicles = vehicles.filter(vehicle => vehicle.userId === userId);
+      }
+
       res.json(vehicles);
     } catch (error: any) {
       res.status(500).json({ message: error.message });
@@ -2656,7 +2664,6 @@ export function registerRoutes(app: Express) {
     }
   });
 
-  // Second Hand Cars & Bikes routes
   app.get("/api/second-hand-cars-bikes", async (req, res) => {
     const listings = await db.select().from(secondHandCarsBikes);
     res.json(listings);
