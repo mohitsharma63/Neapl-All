@@ -59,6 +59,8 @@ export const agencies = pgTable("agencies", {
   propertyCount: integer("property_count").default(0),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
+  userId: varchar("user_id").references(() => users.id),
+  role: text("role"),
 });
 
 export const locations = pgTable("locations", {
@@ -82,6 +84,8 @@ export const propertyCategories = pgTable("property_categories", {
   slug: text("slug").notNull().unique(),
   icon: text("icon"),
   description: text("description"),
+  userId: varchar("user_id").references(() => users.id),
+  role: text("role"),
 });
 
 export const properties = pgTable("properties", {
@@ -108,6 +112,8 @@ export const properties = pgTable("properties", {
 
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
+  userId: varchar("user_id").references(() => users.id),
+  role: text("role"),
 });
 
 export const faqs = pgTable("faqs", {
@@ -216,6 +222,8 @@ export const propertyPages = pgTable("property_pages", {
   sortOrder: integer("sort_order").default(0),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
+  userId: varchar("user_id").references(() => users.id),
+  role: text("role"),
 });
 
 // Insert schemas
@@ -315,6 +323,8 @@ export const rentalListings = pgTable("rental_listings", {
   viewCount: integer("view_count").default(0),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
+  userId: varchar("user_id").references(() => users.id),
+  role: text("role"),
 });
 
 // Hostel PG Listings
@@ -343,6 +353,8 @@ export const hostelPgListings = pgTable("hostel_listings", {
   ownerId: varchar("owner_id").references(() => users.id, { onDelete: "set null" }),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+  userId: varchar("user_id").references(() => users.id),
+  role: text("role"),
 });
 
 // Construction Materials
@@ -371,6 +383,8 @@ export const constructionMaterials = pgTable("construction_materials", {
   isFeatured: boolean("is_featured").default(false),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
+  userId: varchar("user_id").references(() => users.id),
+  role: text("role"),
 });
 
 // Cars & Bikes
@@ -409,6 +423,8 @@ export const carsBikes = pgTable("cars_bikes", {
   viewCount: integer("view_count").default(0),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
+  userId: varchar("user_id").references(() => users.id),
+  role: text("role"),
 });
 
 // Property Deals
@@ -443,6 +459,8 @@ export const propertyDeals = pgTable("property_deals", {
   viewCount: integer("view_count").default(0),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
+  userId: varchar("user_id").references(() => users.id),
+  role: text("role"),
 });
 
 // Commercial Properties
@@ -473,6 +491,8 @@ export const commercialProperties = pgTable("commercial_properties", {
   viewCount: integer("view_count").default(0),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
+  userId: varchar("user_id").references(() => users.id),
+  role: text("role"),
 });
 
 // Fashion & Beauty Products
@@ -655,6 +675,9 @@ export const fashionBeautyProducts = pgTable("fashion_beauty_products", {
   // Timestamps
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
+
+  userId: varchar("user_id").references(() => users.id),
+  role: text("role"),
 });
 
 // Industrial Land
@@ -687,6 +710,8 @@ export const industrialLand = pgTable("industrial_land", {
   viewCount: integer("view_count").default(0),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
+  userId: varchar("user_id").references(() => users.id),
+  role: text("role"),
 });
 
 // Office Spaces
@@ -722,6 +747,8 @@ export const officeSpaces = pgTable("office_spaces", {
   viewCount: integer("view_count").default(0),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
+  userId: varchar("user_id").references(() => users.id),
+  role: text("role"),
 });
 
 // Insert schemas
@@ -818,6 +845,8 @@ export const heavyEquipment = pgTable("heavy_equipment", {
   viewCount: integer("view_count").default(0),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
+  userId: varchar("user_id").references(() => users.id),
+  role: text("role"),
 });
 
 export const insertHeavyEquipmentSchema = createInsertSchema(heavyEquipment).omit({ id: true, createdAt: true, updatedAt: true });
@@ -866,6 +895,8 @@ export const showrooms = pgTable("showrooms", {
   viewCount: integer("view_count").default(0),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
+  userId: varchar("user_id").references(() => users.id),
+  role: text("role"),
 });
 
 export const insertShowroomSchema = createInsertSchema(showrooms).omit({ id: true, createdAt: true, updatedAt: true });
@@ -997,6 +1028,8 @@ export const carBikeRentals = pgTable("car_bike_rentals", {
   reviewCount: integer("review_count").default(0),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
+  userId: varchar("user_id").references(() => users.id),
+  role: text("role"),
 });
 
 export const insertCarBikeRentalSchema = createInsertSchema(carBikeRentals).omit({ id: true, createdAt: true, updatedAt: true });
@@ -1066,6 +1099,8 @@ export const transportationMovingServices = pgTable("transportation_moving_servi
   viewCount: integer("view_count").default(0),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
+  userId: varchar("user_id").references(() => users.id),
+  role: text("role"),
 });
 
 export const insertTransportationMovingServiceSchema = createInsertSchema(transportationMovingServices).omit({ id: true, createdAt: true, updatedAt: true });
@@ -1158,6 +1193,8 @@ export const vehicleLicenseClasses = pgTable("vehicle_license_classes", {
   viewCount: integer("view_count").default(0),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
+  userId: varchar("user_id").references(() => users.id),
+  role: text("role"),
 });
 
 export const insertVehicleLicenseClassSchema = createInsertSchema(vehicleLicenseClasses).omit({ id: true, createdAt: true, updatedAt: true });
@@ -1246,6 +1283,8 @@ export const electronicsGadgets = pgTable("electronics_gadgets", {
   inquiryCount: integer("inquiry_count").default(0),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
+  userId: varchar("user_id").references(() => users.id),
+  role: text("role"),
 });
 
 export const insertElectronicsGadgetSchema = createInsertSchema(electronicsGadgets).omit({ id: true, createdAt: true, updatedAt: true });
@@ -1352,6 +1391,8 @@ export const phonesTabletsAccessories = pgTable("phones_tablets_accessories", {
   purchaseCount: integer("purchase_count").default(0),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
+  userId: varchar("user_id").references(() => users.id),
+  role: text("role"),
 });
 
 export const insertPhonesTabletsAccessoriesSchema = createInsertSchema(phonesTabletsAccessories).omit({ id: true, createdAt: true, updatedAt: true });
@@ -1472,6 +1513,8 @@ export const secondHandPhonesTabletsAccessories = pgTable("second_hand_phones_ta
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
   soldAt: timestamp("sold_at"),
+  userId: varchar("user_id").references(() => users.id),
+  role: text("role"),
 });
 
 export const insertSecondHandPhonesTabletsAccessoriesSchema = createInsertSchema(secondHandPhonesTabletsAccessories).omit({ id: true, createdAt: true, updatedAt: true });
@@ -1554,6 +1597,8 @@ export const cricketSportsTraining = pgTable("cricket_sports_training", {
   isVerified: boolean("is_verified").default(false),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
+  userId: varchar("user_id").references(() => users.id),
+  role: text("role"),
 });
 
 export const insertCricketSportsTrainingSchema = createInsertSchema(cricketSportsTraining).omit({ id: true, createdAt: true, updatedAt: true });
@@ -1656,6 +1701,8 @@ export const computerMobileLaptopRepairServices = pgTable("computer_mobile_lapto
   viewCount: integer("view_count").default(0),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
+  userId: varchar("user_id").references(() => users.id),
+  role: text("role"),
 });
 
 export const insertComputerMobileLaptopRepairServiceSchema = createInsertSchema(computerMobileLaptopRepairServices).omit({ id: true, createdAt: true, updatedAt: true });
@@ -1764,6 +1811,8 @@ export const cyberCafeInternetServices = pgTable("cyber_cafe_internet_services",
   viewCount: integer("view_count").default(0),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
+  userId: varchar("user_id").references(() => users.id),
+  role: text("role"),
 });
 
 export const insertCyberCafeInternetServiceSchema = createInsertSchema(cyberCafeInternetServices).omit({ id: true, createdAt: true, updatedAt: true });
@@ -1903,6 +1952,8 @@ export const eventDecorationServices = pgTable("event_decoration_services", {
   bookingCount: integer("booking_count").default(0),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
+  userId: varchar("user_id").references(() => users.id),
+  role: text("role"),
 });
 
 export const insertEventDecorationServiceSchema = createInsertSchema(eventDecorationServices).omit({ id: true, createdAt: true, updatedAt: true });
@@ -2025,6 +2076,8 @@ export const furnitureInteriorDecor = pgTable("furniture_interior_decor", {
   reviewCount: integer("review_count").default(0),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
+  userId: varchar("user_id").references(() => users.id),
+  role: text("role"),
 });
 
 export const insertFurnitureInteriorDecorSchema = createInsertSchema(furnitureInteriorDecor).omit({ id: true, createdAt: true, updatedAt: true });
@@ -2129,6 +2182,8 @@ export const householdServices = pgTable("household_services", {
   bookingCount: integer("booking_count").default(0),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
+  userId: varchar("user_id").references(() => users.id),
+  role: text("role"),
 });
 
 export const insertHouseholdServiceSchema = createInsertSchema(householdServices).omit({ id: true, createdAt: true, updatedAt: true });
@@ -2284,6 +2339,8 @@ export const sareeClothingShopping = pgTable("saree_clothing_shopping", {
   availabilityStatus: text("availability_status").default("available"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
+  userId: varchar("user_id").references(() => users.id),
+  role: text("role"),
 });
 
 export const insertSareeClothingShoppingSchema = createInsertSchema(sareeClothingShopping).omit({ id: true, createdAt: true, updatedAt: true });
@@ -2464,6 +2521,9 @@ export const ebooksOnlineCourses = pgTable("ebooks_online_courses", {
   // Timestamps
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
+
+  userId: varchar("user_id").references(() => users.id),
+  role: text("role"),
 });
 
 export const insertEbooksOnlineCoursesSchema = createInsertSchema(ebooksOnlineCourses).omit({ id: true, createdAt: true, updatedAt: true });

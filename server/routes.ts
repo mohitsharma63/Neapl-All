@@ -38,6 +38,7 @@ import {
   sareeClothingShopping,
   ebooksOnlineCourses,
   cricketSportsTraining,
+  // educationalConsultancyStudyAbroad,
 } from "../shared/schema";
 import { eq, sql, desc } from "drizzle-orm";
 
@@ -355,7 +356,7 @@ export function registerRoutes(app: Express) {
 
       // Build selected services array from category and subcategory IDs
       let selectedServicesArray: string[] = [];
-      
+
       if (categoryIds && Array.isArray(categoryIds)) {
         // Get all categories with their subcategories
         const allCategories = await db.query.adminCategories.findMany({
@@ -592,7 +593,7 @@ export function registerRoutes(app: Express) {
               type: 'category'
             };
           }
-          
+
           // Check if it's a subcategory
           for (const cat of allCategories) {
             const subcategory = cat.subcategories.find(sub => sub.slug === serviceSlug);
@@ -605,7 +606,7 @@ export function registerRoutes(app: Express) {
               };
             }
           }
-          
+
           // Return the slug if not found
           return {
             slug: serviceSlug,
@@ -618,7 +619,7 @@ export function registerRoutes(app: Express) {
       // Enrich categoryPreferences with actual names
       const categoryPreferencesWithNames = user.categoryPreferences.map(pref => {
         const category = allCategories.find(cat => cat.id === pref.categorySlug || cat.slug === pref.categorySlug);
-        
+
         const subcategoriesWithNames = pref.subcategorySlugs.map((subSlug: string) => {
           if (category) {
             const subcategory = category.subcategories.find(sub => sub.id === subSlug || sub.slug === subSlug);
@@ -1902,13 +1903,22 @@ export function registerRoutes(app: Express) {
     try {
       const { userId, role } = req.query;
 
-      let vehicles = await db.query.carsBikes.findMany({
-        orderBy: desc(carsBikes.createdAt),
-      });
+      let vehicles;
 
-      // Filter by userId if provided and user is not admin
-      if (userId && role !== 'admin') {
-        vehicles = vehicles.filter(vehicle => vehicle.userId === userId);
+      // If user is admin, fetch all vehicles
+      if (role === 'admin') {
+        vehicles = await db.query.carsBikes.findMany({
+          orderBy: desc(carsBikes.createdAt),
+        });
+      } else if (userId) {
+        // For non-admin users, filter by userId at database level
+        vehicles = await db.query.carsBikes.findMany({
+          where: eq(carsBikes.sellerId, userId as string),
+          orderBy: desc(carsBikes.createdAt),
+        });
+      } else {
+        // If no userId provided and not admin, return empty array
+        vehicles = [];
       }
 
       res.json(vehicles);
@@ -2328,11 +2338,28 @@ export function registerRoutes(app: Express) {
   // Heavy Equipment Routes - Full CRUD
 
   // GET all heavy equipment
-  app.get("/api/admin/heavy-equipment", async (_req, res) => {
+  app.get("/api/admin/heavy-equipment", async (req, res) => {
     try {
-      const equipment = await db.query.heavyEquipment.findMany({
-        orderBy: desc(heavyEquipment.createdAt),
-      });
+      const { userId, role } = req.query;
+
+      let equipment;
+
+      // If user is admin, fetch all equipment
+      if (role === 'admin') {
+        equipment = await db.query.heavyEquipment.findMany({
+          orderBy: desc(heavyEquipment.createdAt),
+        });
+      } else if (userId) {
+        // For non-admin users, filter by userId at database level
+        equipment = await db.query.heavyEquipment.findMany({
+          where: eq(heavyEquipment.sellerId, userId as string),
+          orderBy: desc(heavyEquipment.createdAt),
+        });
+      } else {
+        // If no userId provided and not admin, return empty array
+        equipment = [];
+      }
+
       res.json(equipment);
     } catch (error: any) {
       res.status(500).json({ message: error.message });
@@ -2525,14 +2552,29 @@ export function registerRoutes(app: Express) {
     }
   });
 
-  // Second Hand Cars & Bikes Routes - Full CRUD
-
-  // GET all second hand cars & bikes
-  app.get("/api/admin/second-hand-cars-bikes", async (_req, res) => {
+ 
+  app.get("/api/admin/second-hand-cars-bikes", async (req, res) => {
     try {
-      const vehicles = await db.query.secondHandCarsBikes.findMany({
-        orderBy: desc(secondHandCarsBikes.createdAt),
-      });
+      const { userId, role } = req.query;
+
+      let vehicles;
+
+      // If user is admin, fetch all vehicles
+      if (role === 'admin') {
+        vehicles = await db.query.secondHandCarsBikes.findMany({
+          orderBy: desc(secondHandCarsBikes.createdAt),
+        });
+      } else if (userId) {
+        // For non-admin users, filter by userId at database level
+        vehicles = await db.query.secondHandCarsBikes.findMany({
+          where: eq(secondHandCarsBikes.userId, userId as string),
+          orderBy: desc(secondHandCarsBikes.createdAt),
+        });
+      } else {
+        // If no userId provided and not admin, return empty array
+        vehicles = [];
+      }
+
       res.json(vehicles);
     } catch (error: any) {
       res.status(500).json({ message: error.message });
@@ -2665,9 +2707,23 @@ export function registerRoutes(app: Express) {
   });
 
   app.get("/api/second-hand-cars-bikes", async (req, res) => {
-    const listings = await db.select().from(secondHandCarsBikes);
+    const { userId, role } = req.query;
+
+    let listings;
+
+    // If user is admin, fetch all listings
+    if (role === 'admin') {
+      listings = await db.select().from(secondHandCarsBikes);
+    } else if (userId) {
+      // For non-admin users, filter by userId at database level
+      listings = await db.select().from(secondHandCarsBikes).where(eq(secondHandCarsBikes.userId, userId as string));
+    } else {
+      // If no userId provided and not admin, return empty array
+      listings = [];
+    }
     res.json(listings);
   });
+
 
   app.post("/api/second-hand-cars-bikes", async (req, res) => {
     const newListing = await db.insert(secondHandCarsBikes).values(req.body).returning();
@@ -2697,8 +2753,31 @@ export function registerRoutes(app: Express) {
 
   // Car & Bike Rentals routes
   app.get("/api/car-bike-rentals", async (req, res) => {
-    const rentals = await db.select().from(carBikeRentals);
-    res.json(rentals);
+    try {
+      const { userId, role } = req.query;
+
+      let rentals;
+
+      // If user is admin, fetch all rentals
+      if (role === 'admin') {
+        rentals = await db.query.carBikeRentals.findMany({
+          orderBy: desc(carBikeRentals.createdAt),
+        });
+      } else if (userId) {
+        // For non-admin users, filter by userId at database level
+        rentals = await db.query.carBikeRentals.findMany({
+          where: eq(carBikeRentals.ownerId, userId as string),
+          orderBy: desc(carBikeRentals.createdAt),
+        });
+      } else {
+        // If no userId provided and not admin, return empty array
+        rentals = [];
+      }
+
+      res.json(rentals);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
   });
 
   app.post("/api/car-bike-rentals", async (req, res) => {
@@ -2766,11 +2845,28 @@ export function registerRoutes(app: Express) {
   // Transportation/Moving Services Routes - Full CRUD
 
   // GET all transportation services
-  app.get("/api/admin/transportation-moving-services", async (_req, res) => {
+  app.get("/api/admin/transportation-moving-services", async (req, res) => {
     try {
-      const services = await db.query.transportationMovingServices.findMany({
-        orderBy: desc(transportationMovingServices.createdAt),
-      });
+      const { userId, role } = req.query;
+
+      let services;
+
+      // If user is admin, fetch all services
+      if (role === 'admin') {
+        services = await db.query.transportationMovingServices.findMany({
+          orderBy: desc(transportationMovingServices.createdAt),
+        });
+      } else if (userId) {
+        // For non-admin users, filter by userId at database level
+        services = await db.query.transportationMovingServices.findMany({
+          where: eq(transportationMovingServices.ownerId, userId as string),
+          orderBy: desc(transportationMovingServices.createdAt),
+        });
+      } else {
+        // If no userId provided and not admin, return empty array
+        services = [];
+      }
+
       res.json(services);
     } catch (error: any) {
       res.status(500).json({ message: error.message });
@@ -2912,11 +3008,28 @@ export function registerRoutes(app: Express) {
   // Vehicle License Classes Routes - Full CRUD
 
   // GET all vehicle license classes
-  app.get("/api/admin/vehicle-license-classes", async (_req, res) => {
+  app.get("/api/admin/vehicle-license-classes", async (req, res) => {
     try {
-      const classes = await db.query.vehicleLicenseClasses.findMany({
-        orderBy: desc(vehicleLicenseClasses.createdAt),
-      });
+      const { userId, role } = req.query;
+
+      let classes;
+
+      // If user is admin, fetch all classes
+      if (role === 'admin') {
+        classes = await db.query.vehicleLicenseClasses.findMany({
+          orderBy: desc(vehicleLicenseClasses.createdAt),
+        });
+      } else if (userId) {
+        // For non-admin users, filter by userId at database level
+        classes = await db.query.vehicleLicenseClasses.findMany({
+          where: eq(vehicleLicenseClasses.ownerId, userId as string),
+          orderBy: desc(vehicleLicenseClasses.createdAt),
+        });
+      } else {
+        // If no userId provided and not admin, return empty array
+        classes = [];
+      }
+
       res.json(classes);
     } catch (error: any) {
       res.status(500).json({ message: error.message });
@@ -4542,11 +4655,28 @@ export function registerRoutes(app: Express) {
   // Educational Consultancy Study Abroad Routes - Full CRUD
 
   // GET all educational consultancy services
-  app.get("/api/admin/educational-consultancy-study-abroad", async (_req, res) => {
+  app.get("/api/admin/educational-consultancy-study-abroad", async (req, res) => {
     try {
-      const services = await db.query.educationalConsultancyStudyAbroad.findMany({
-        orderBy: desc(educationalConsultancyStudyAbroad.createdAt),
-      });
+      const { userId, role } = req.query;
+
+      let services;
+
+      // If user is admin, fetch all services
+      if (role === 'admin') {
+        services = await db.query.educationalConsultancyStudyAbroad.findMany({
+          orderBy: desc(educationalConsultancyStudyAbroad.createdAt),
+        });
+      } else if (userId) {
+        // For non-admin users, filter by userId at database level
+        services = await db.query.educationalConsultancyStudyAbroad.findMany({
+          where: eq(educationalConsultancyStudyAbroad.ownerId, userId as string),
+          orderBy: desc(educationalConsultancyStudyAbroad.createdAt),
+        });
+      } else {
+        // If no userId provided and not admin, return empty array
+        services = [];
+      }
+
       res.json(services);
     } catch (error: any) {
       res.status(500).json({ message: error.message });

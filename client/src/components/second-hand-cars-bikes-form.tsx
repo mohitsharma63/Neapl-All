@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -94,8 +94,34 @@ export function SecondHandCarsBikesForm() {
 
   const localUser = getUserFromLocalStorage();
   const userId = localUser?.id || user?.id;
-  console.log("AAAAAAAAAAAAAAAAAAAAAA",userId)
-  const userRole = localUser?.role || user?.role;
+ 
+  const userRole = localUser?.role || user?.role ||'admin';
+
+  // useEffect to fetch listings on mount and when userId/userRole changes
+  useEffect(() => {
+    const fetchListings = async () => {
+
+
+      try {
+        const queryParams = new URLSearchParams();
+        queryParams.append('userId', userId);
+        queryParams.append('role', userRole || 'admin');
+
+        const response = await fetch(`/api/admin/second-hand-cars-bikes?${queryParams.toString()}`);
+       
+        if (response.ok) {
+          const data = await response.json();
+          console.log('Fetched listings in useEffect:', data);
+          // Optionally update React Query cache
+          queryClient.setQueryData(["/api/admin/second-hand-cars-bikes", userId, userRole], data);
+        }
+      } catch (error) {
+        console.error('Error fetching listings in useEffect:', error);
+      }
+    };
+
+    fetchListings();
+  }, [userId, userRole, queryClient]);
 
   const [formData, setFormData] = useState({
     title: "",
@@ -150,11 +176,34 @@ export function SecondHandCarsBikesForm() {
   });
 
   const { data: listings = [], isLoading } = useQuery<SecondHandCarBike[]>({
-    queryKey: ["/api/admin/second-hand-cars-bikes"],
+    queryKey: ["/api/admin/second-hand-cars-bikes", userId, userRole],
+    queryFn: async () => {
+      const storedUser = localStorage.getItem("user");
+      if (!storedUser) return [];
+
+      const userData = JSON.parse(storedUser);
+      const queryParams = new URLSearchParams();
+
+      // Always send userId for non-admin users
+      if (userData.id) {
+        queryParams.append('userId', userData.id);
+      }
+      // Always send role
+      queryParams.append('role', userData.role || 'user');
+
+      const response = await fetch(`/api/admin/second-hand-cars-bikes?${queryParams.toString()}`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch listings');
+      }
+      return response.json();
+    },
   });
 
   const createMutation = useMutation({
     mutationFn: async (data: typeof formData) => {
+      const storedUser = localStorage.getItem("user");
+      const userData = storedUser ? JSON.parse(storedUser) : null;
+
       const payload = {
         ...data,
         year: parseInt(data.year.toString()),
@@ -167,10 +216,9 @@ export function SecondHandCarsBikesForm() {
         mileageKmpl: data.mileageKmpl ? parseFloat(data.mileageKmpl.toString()) : null,
         insuranceValidUntil: data.insuranceValidUntil || null,
         taxValidity: data.taxValidity || null,
-        userId: userId,
-        role: userRole,
+        userId: userData?.id || null,
+        role: userData?.role || 'user',
       };
-      console.log("BBBBBBBBBBBBBBBBBBBBB",JSON.stringify(payload));
       const response = await fetch("/api/admin/second-hand-cars-bikes", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -192,6 +240,9 @@ export function SecondHandCarsBikesForm() {
 
   const updateMutation = useMutation({
     mutationFn: async ({ id, data }: { id: string; data: typeof formData }) => {
+      const storedUser = localStorage.getItem("user");
+      const userData = storedUser ? JSON.parse(storedUser) : null;
+
       const payload = {
         ...data,
         year: parseInt(data.year.toString()),
@@ -204,8 +255,8 @@ export function SecondHandCarsBikesForm() {
         mileageKmpl: data.mileageKmpl ? parseFloat(data.mileageKmpl.toString()) : null,
         insuranceValidUntil: data.insuranceValidUntil || null,
         taxValidity: data.taxValidity || null,
-        userId: userId,
-        role: userRole,
+        userId: userData?.id || null,
+        role: userData?.role || 'user',
       };
 
       const response = await fetch(`/api/admin/second-hand-cars-bikes/${id}`, {

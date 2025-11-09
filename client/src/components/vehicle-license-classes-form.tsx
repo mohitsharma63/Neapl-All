@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useUser } from "@/hooks/use-user";
@@ -120,6 +120,23 @@ export default function VehicleLicenseClassesForm() {
   const [editingClass, setEditingClass] = useState<VehicleLicenseClassFormData | null>(null);
   const [viewingClass, setViewingClass] = useState<VehicleLicenseClassFormData | null>(null);
 
+  const getUserFromLocalStorage = () => {
+    const storedUser = localStorage.getItem("user");
+    if (storedUser) {
+      try {
+        return JSON.parse(storedUser);
+      } catch (error) {
+        console.error("Error parsing user from localStorage:", error);
+        return null;
+      }
+    }
+    return null;
+  };
+
+  const localUser = getUserFromLocalStorage();
+  const userId = localUser?.id || user?.id;
+  const userRole = localUser?.role || user?.role;
+
   const { register, handleSubmit, setValue, watch, reset } = useForm<VehicleLicenseClassFormData>({
     defaultValues: {
       country: "India",
@@ -152,10 +169,36 @@ export default function VehicleLicenseClassesForm() {
     },
   });
 
+  useEffect(() => {
+    const fetchClasses = async () => {
+      if (!userId) return;
+
+      try {
+        const queryParams = new URLSearchParams();
+        queryParams.append('userId', userId);
+        queryParams.append('role', userRole || 'user');
+
+        const response = await fetch(`/api/admin/vehicle-license-classes?${queryParams.toString()}`);
+        if (response.ok) {
+          const data = await response.json();
+          queryClient.setQueryData(["/api/admin/vehicle-license-classes", userId, userRole], data);
+        }
+      } catch (error) {
+        console.error('Error fetching classes in useEffect:', error);
+      }
+    };
+
+    fetchClasses();
+  }, [userId, userRole, queryClient]);
+
   const { data: classes = [], isLoading } = useQuery({
-    queryKey: ["/api/admin/vehicle-license-classes"],
+    queryKey: ["/api/admin/vehicle-license-classes", userId, userRole],
     queryFn: async () => {
-      const response = await fetch("/api/admin/vehicle-license-classes");
+      const params = new URLSearchParams();
+      if (userId) params.append('userId', userId.toString());
+      if (userRole) params.append('role', userRole);
+
+      const response = await fetch(`/api/admin/vehicle-license-classes?${params.toString()}`);
       if (!response.ok) throw new Error("Failed to fetch classes");
       return response.json();
     },

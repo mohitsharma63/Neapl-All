@@ -78,10 +78,24 @@ export function TransportationMovingServicesForm() {
   const [editingItem, setEditingItem] = useState<TransportationService | null>(null);
   const [viewingItem, setViewingItem] = useState<TransportationService | null>(null);
   const [uploadingImages, setUploadingImages] = useState(false);
-  const [loading, setLoading] = useState(false); // Added loading state
+  const [loading, setLoading] = useState(false);
 
-  const userId = user?.id;
-  const userRole = user?.role;
+  const getUserFromLocalStorage = () => {
+    const storedUser = localStorage.getItem("user");
+    if (storedUser) {
+      try {
+        return JSON.parse(storedUser);
+      } catch (error) {
+        console.error("Error parsing user from localStorage:", error);
+        return null;
+      }
+    }
+    return null;
+  };
+
+  const localUser = getUserFromLocalStorage();
+  const userId = localUser?.id || user?.id;
+  const userRole = localUser?.role || user?.role;
 
   const [formData, setFormData] = useState<any>({
     title: "",
@@ -127,8 +141,39 @@ export function TransportationMovingServicesForm() {
     role: user?.role,
   });
 
+  useEffect(() => {
+    const fetchServices = async () => {
+      if (!userId) return;
+
+      try {
+        const queryParams = new URLSearchParams();
+        queryParams.append('userId', userId);
+        queryParams.append('role', userRole || 'user');
+
+        const response = await fetch(`/api/admin/transportation-moving-services?${queryParams.toString()}`);
+        if (response.ok) {
+          const data = await response.json();
+          queryClient.setQueryData(["/api/admin/transportation-moving-services", userId, userRole], data);
+        }
+      } catch (error) {
+        console.error('Error fetching services in useEffect:', error);
+      }
+    };
+
+    fetchServices();
+  }, [userId, userRole, queryClient]);
+
   const { data: services = [], isLoading } = useQuery<TransportationService[]>({
-    queryKey: ["/api/admin/transportation-moving-services"],
+    queryKey: ["/api/admin/transportation-moving-services", userId, userRole],
+    queryFn: async () => {
+      const params = new URLSearchParams();
+      if (userId) params.append('userId', userId);
+      if (userRole) params.append('role', userRole);
+
+      const response = await fetch(`/api/admin/transportation-moving-services?${params.toString()}`);
+      if (!response.ok) throw new Error("Failed to fetch services");
+      return response.json();
+    },
   });
 
   const createMutation = useMutation({

@@ -58,43 +58,59 @@ export function CarsBikesForm() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<CarBike | null>(null);
   const [uploadingImages, setUploadingImages] = useState(false);
-  const userId = user?.id || "";
-  const userRole = user?.role || "";
-  const [formData, setFormData] = useState<Omit<CarBike, 'id' | 'viewCount' | 'createdAt' | 'updatedAt'> & { price: string; kilometersDriven: string; ownerNumber: string; }>(() => ({
-    title: "",
-    description: "",
-    listingType: "sell",
-    vehicleType: "car",
-    brand: "",
-    model: "",
-    year: new Date().getFullYear(),
-    price: "",
-    kilometersDriven: "",
-    fuelType: "petrol",
-    transmission: "manual",
-    ownerNumber: "1",
-    registrationNumber: "",
-    registrationState: "",
-    insuranceValidUntil: "",
-    color: "",
-    images: [],
-    documents: [],
-    features: [],
-    condition: "good",
-    isNegotiable: false,
-    country: "India",
-    stateProvince: "",
-    city: "",
-    areaName: "",
-    fullAddress: "",
-    isActive: true,
-    isFeatured: false,
-    userId: userId,
-    role: userRole,
-  }));
+
+  const getUserFromLocalStorage = () => {
+    const storedUser = localStorage.getItem("user");
+    if (storedUser) {
+      try {
+        return JSON.parse(storedUser);
+      } catch (error) {
+        console.error("Error parsing user from localStorage:", error);
+        return null;
+      }
+    }
+    return null;
+  };
+
+  const localUser = getUserFromLocalStorage();
+  const userId = localUser?.id || user?.id || "";
+  const userRole = localUser?.role || user?.role || "";
+  console.log("AAAAAAAAAAAAAAA",userId)
+  useEffect(() => {
+    const fetchListings = async () => {
+      if (!userId) return;
+
+      try {
+        const queryParams = new URLSearchParams();
+        queryParams.append('userId', userId);
+        queryParams.append('role', userRole || 'user');
+
+        const response = await fetch(`/api/admin/cars-bikes?${queryParams.toString()}`);
+      
+        if (response.ok) {
+          const data = await response.json();
+          queryClient.setQueryData(["/api/admin/cars-bikes", userId, userRole], data);
+        }
+      } catch (error) {
+        console.error('Error fetching listings in useEffect:', error);
+      }
+    };
+
+    fetchListings();
+  }, [userId, userRole, queryClient]);
 
   const { data: listings = [], isLoading } = useQuery<CarBike[]>({
-    queryKey: ["/api/admin/cars-bikes"],
+    queryKey: ["/api/admin/cars-bikes", userId, userRole],
+    queryFn: async () => {
+      const params = new URLSearchParams();
+      if (userId) params.append('userId', userId);
+      if (userRole) params.append('role', userRole);
+
+      const response = await fetch(`/api/admin/cars-bikes?${params.toString()}`);
+      
+      if (!response.ok) throw new Error("Failed to fetch listings");
+      return response.json();
+    },
   });
 
   const createMutation = useMutation({
@@ -330,6 +346,7 @@ export function CarsBikesForm() {
     if (editingItem) {
       updateMutation.mutate({ id: editingItem.id, data: formData });
     } else {
+      
       createMutation.mutate(formData);
     }
   };

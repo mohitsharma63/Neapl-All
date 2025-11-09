@@ -256,6 +256,7 @@ function EducationalConsultancyStudyAbroadSection() {
 }
 
 
+// Event Decoration Services Section Component
 function EventDecorationServicesSection() {
   const [services, setServices] = useState<any[]>([]);
   const [showForm, setShowForm] = useState(false);
@@ -1790,6 +1791,8 @@ interface User {
         name: string;
     }>;
   }>;
+  isActive: boolean; // Added isActive property
+  createdAt: string; // Added createdAt property
 }
 
 interface AdminCategory {
@@ -4714,7 +4717,7 @@ function CarsBikesSection() {
                   <p className="text-sm text-muted-foreground line-clamp-2">{listing.description}</p>
                 )}
                 <div className="flex items-center justify-between">
-                  <span className="font-semibold text-lg text-primary">₹{listing.price}</span>
+                  <span className="font-semibold text-lg text-primary">₹{listing.price.toLocaleString()}</span>
                   <Badge variant={listing.isActive ? 'default' : 'secondary'}>
                     {listing.isActive ? 'Active' : 'Inactive'}
                   </Badge>
@@ -5161,17 +5164,47 @@ function SecondHandCarsBikesSection() {
   const [showForm, setShowForm] = useState(false);
   const [editingListing, setEditingListing] = useState<any>(null);
 
+  // Get userId and role from localStorage
+  const getUserFromLocalStorage = () => {
+    const storedUser = localStorage.getItem("user");
+    if (storedUser) {
+      try {
+        return JSON.parse(storedUser);
+      } catch (error) {
+        console.error("Error parsing user from localStorage:", error);
+        return null;
+      }
+    }
+    return null;
+  };
+
+  const localUser = getUserFromLocalStorage();
+  const userId = localUser?.id;
+  const userRole = localUser?.role;
+
   useEffect(() => {
     fetchListings();
-  }, []);
+  }, [userId, userRole]);
 
   const fetchListings = async () => {
+    if (!userId) return;
+
     try {
-      const response = await fetch('/api/admin/second-hand-cars-bikes');
-      const data = await response.json();
-      setListings(Array.isArray(data) ? data : []);
+      const queryParams = new URLSearchParams();
+      queryParams.append('userId', userId);
+      queryParams.append('role', userRole || 'user');
+
+      const response = await fetch(`/api/admin/second-hand-cars-bikes?${queryParams.toString()}`);
+      if (response.ok) {
+        const data = await response.json();
+        console.log('Fetched listings:', data);
+        setListings(Array.isArray(data) ? data : []);
+      } else {
+        console.error('Failed to fetch listings');
+        setListings([]);
+      }
     } catch (error) {
-      console.error('Error fetching second-hand cars & bikes listings:', error);
+      console.error('Error fetching listings:', error);
       setListings([]);
     }
   };
@@ -5267,7 +5300,7 @@ function SecondHandCarsBikesSection() {
                   <CardTitle className="text-lg mb-2">{listing.title}</CardTitle>
                   <div className="flex gap-2 flex-wrap">
                     <Badge variant="secondary">{listing.vehicleType}</Badge>
-                    <Badge variant="outline">{listing.make}</Badge>
+                    <Badge variant="outline">{listing.brand}</Badge>
                     {listing.isFeatured && <Badge className="bg-yellow-500">Featured</Badge>}
                   </div>
                 </div>
@@ -5297,7 +5330,7 @@ function SecondHandCarsBikesSection() {
                   <p className="text-sm text-muted-foreground line-clamp-2">{listing.description}</p>
                 )}
                 <div className="flex items-center justify-between">
-                  <span className="font-semibold text-lg text-primary">₹{listing.price}</span>
+                  <span className="font-semibold text-lg text-primary">₹{listing.price.toLocaleString()}</span>
                   <Badge variant={listing.isActive ? 'default' : 'secondary'}>
                     {listing.isActive ? 'Active' : 'Inactive'}
                   </Badge>
@@ -6415,7 +6448,7 @@ function SecondHandPhonesTabletsAccessoriesSection() {
         </DialogContent>
       </Dialog>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-grid-cols-2 xl:grid-cols-3 gap-6">
         {Array.isArray(items) && items.map((item) => (
           <Card key={item.id} className="group hover:shadow-lg transition-shadow">
             <CardHeader>

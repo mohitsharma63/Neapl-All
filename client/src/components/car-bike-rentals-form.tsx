@@ -83,6 +83,23 @@ function CarBikeRentalsForm() {
   const [viewingRental, setViewingRental] = useState<CarBikeRentalFormData | null>(null);
   const [uploadingImages, setUploadingImages] = useState(false);
 
+  const getUserFromLocalStorage = () => {
+    const storedUser = localStorage.getItem("user");
+    if (storedUser) {
+      try {
+        return JSON.parse(storedUser);
+      } catch (error) {
+        console.error("Error parsing user from localStorage:", error);
+        return null;
+      }
+    }
+    return null;
+  };
+
+  const localUser = getUserFromLocalStorage();
+  const userId = localUser?.id || user?.id;
+  const userRole = localUser?.role || user?.role;
+
   const { register, handleSubmit, setValue, watch, reset } = useForm<CarBikeRentalFormData>({
     defaultValues: {
       country: "India",
@@ -101,11 +118,37 @@ function CarBikeRentalsForm() {
     },
   });
 
+  useEffect(() => {
+    const fetchRentals = async () => {
+      if (!userId) return;
+
+      try {
+        const queryParams = new URLSearchParams();
+        queryParams.append('userId', userId);
+        queryParams.append('role', userRole || 'user');
+
+        const response = await fetch(`/api/car-bike-rentals?${queryParams.toString()}`);
+        if (response.ok) {
+          const data = await response.json();
+          queryClient.setQueryData(["/api/car-bike-rentals", userId, userRole], data);
+        }
+      } catch (error) {
+        console.error('Error fetching rentals in useEffect:', error);
+      }
+    };
+
+    fetchRentals();
+  }, [userId, userRole, queryClient]);
+
   // Fetch rentals list
   const { data: rentals = [], isLoading } = useQuery({
-    queryKey: ["/api/car-bike-rentals"],
+    queryKey: ["/api/car-bike-rentals", userId, userRole],
     queryFn: async () => {
-      const response = await fetch("/api/car-bike-rentals");
+      const params = new URLSearchParams();
+      if (userId) params.append('userId', userId.toString());
+      if (userRole) params.append('role', userRole);
+
+      const response = await fetch(`/api/car-bike-rentals?${queryParams.toString()}`);
       if (!response.ok) throw new Error("Failed to fetch rentals");
       return response.json();
     },

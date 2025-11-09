@@ -58,9 +58,46 @@ export function HeavyEquipmentForm() {
   const [editingItem, setEditingItem] = useState<HeavyEquipment | null>(null);
   const [uploadingImages, setUploadingImages] = useState(false);
 
-  // Extract userId and role from the user object
-  const userId = user?.id;
-  const userRole = user?.role;
+  const getUserFromLocalStorage = () => {
+    const storedUser = localStorage.getItem("user");
+    if (storedUser) {
+      try {
+        return JSON.parse(storedUser);
+      } catch (error) {
+        console.error("Error parsing user from localStorage:", error);
+        return null;
+      }
+    }
+    return null;
+  };
+  const localUser = getUserFromLocalStorage();
+  const userId = localUser?.id || user?.id;
+
+  const userRole = localUser?.role || user?.role || 'admin';
+  useEffect(() => {
+    const fetchListings = async () => {
+
+
+      try {
+        const queryParams = new URLSearchParams();
+        queryParams.append('userId', userId);
+        queryParams.append('role', userRole || 'admin');
+
+        const response = await fetch(`/api/admin/second-hand-cars-bikes?${queryParams.toString()}`);
+
+        if (response.ok) {
+          const data = await response.json();
+          console.log('Fetched listings in useEffect:', data);
+          // Optionally update React Query cache
+          queryClient.setQueryData(["/api/admin/second-hand-cars-bikes", userId, userRole], data);
+        }
+      } catch (error) {
+        console.error('Error fetching listings in useEffect:', error);
+      }
+    };
+
+    fetchListings();
+  }, [userId, userRole, queryClient]);
 
   const [formData, setFormData] = useState({
     title: "",
@@ -95,18 +132,39 @@ export function HeavyEquipmentForm() {
   });
 
   const { data: equipment = [], isLoading } = useQuery<HeavyEquipment[]>({
-    queryKey: ["/api/admin/heavy-equipment"],
+    queryKey: ["/api/admin/heavy-equipment", userId, userRole],
+    queryFn: async () => {
+      const storedUser = localStorage.getItem("user");
+      if (!storedUser) return [];
+
+      const userData = JSON.parse(storedUser);
+      const queryParams = new URLSearchParams();
+
+      // Always send userId for non-admin users
+      if (userData.id) {
+        queryParams.append('userId', userData.id);
+      }
+      // Always send role
+      queryParams.append('role', userData.role || 'user');
+
+      const response = await fetch(`/api/admin/heavy-equipment?${queryParams.toString()}`);
+      if (!response.ok) throw new Error("Failed to fetch equipment");
+      return response.json();
+    },
   });
 
   const createMutation = useMutation({
     mutationFn: async (data: typeof formData) => {
+      const storedUser = localStorage.getItem("user");
+      const userData = storedUser ? JSON.parse(storedUser) : null;
       const response = await fetch("/api/admin/heavy-equipment", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ...formData,
           sellerId: userId,
-          role: userRole,
+          userId: userData?.id || null,
+          role: userData?.role || 'user',
         }),
       });
       if (!response.ok) {
@@ -128,6 +186,8 @@ export function HeavyEquipmentForm() {
 
   const updateMutation = useMutation({
     mutationFn: async ({ id, data }: { id: string; data: typeof formData }) => {
+        const storedUser = localStorage.getItem("user");
+      const userData = storedUser ? JSON.parse(storedUser) : null;
       const response = await fetch(`/api/admin/heavy-equipment/${id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
