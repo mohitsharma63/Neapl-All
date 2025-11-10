@@ -839,7 +839,7 @@ export const heavyEquipment = pgTable("heavy_equipment", {
   areaName: text("area_name"),
   fullAddress: text("full_address"),
   locationId: varchar("location_id").references(() => locations.id),
-  sellerId: varchar("seller_id").references(() => users.id),
+  ownerId: varchar("owner_id").references(() => users.id),
   isActive: boolean("is_active").default(true),
   isFeatured: boolean("is_featured").default(false),
   viewCount: integer("view_count").default(0),

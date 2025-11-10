@@ -161,10 +161,10 @@ export function HeavyEquipmentForm() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          ...formData,
-          sellerId: userId,
-          userId: userData?.id || null,
-          role: userData?.role || 'user',
+          ...data,
+          sellerId: userData?.id || userId,
+          userId: userData?.id || userId,
+          role: userData?.role || userRole || 'user',
         }),
       });
       if (!response.ok) {
@@ -186,12 +186,16 @@ export function HeavyEquipmentForm() {
 
   const updateMutation = useMutation({
     mutationFn: async ({ id, data }: { id: string; data: typeof formData }) => {
-        const storedUser = localStorage.getItem("user");
+      const storedUser = localStorage.getItem("user");
       const userData = storedUser ? JSON.parse(storedUser) : null;
       const response = await fetch(`/api/admin/heavy-equipment/${id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
+        body: JSON.stringify({
+          ...data,
+          userId: userData?.id || userId,
+          role: userData?.role || userRole || 'user',
+        }),
       });
       if (!response.ok) {
         const error = await response.json();
@@ -543,7 +547,7 @@ export function HeavyEquipmentForm() {
                       <Input
                         id="hoursUsed"
                         type="number"
-                        value={formData.hoursUsed}
+                        value={formData.hoursUsed}  
                         onChange={(e) => setFormData({ ...formData, hoursUsed: e.target.value })}
                       />
                     </div>

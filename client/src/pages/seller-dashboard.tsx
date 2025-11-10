@@ -1318,16 +1318,16 @@ function HouseholdServicesSection() {
       // Get current user from localStorage
       const storedUser = localStorage.getItem("user");
       if (!storedUser) return;
-      
+
       const userData = JSON.parse(storedUser);
       const queryParams = new URLSearchParams();
-      
+
       // If not admin, filter by userId
       if (userData.role !== 'admin') {
         queryParams.append('userId', userData.id);
       }
       queryParams.append('role', userData.role || 'user');
-      
+
       const response = await fetch(`/api/admin/household-services?${queryParams.toString()}`);
       const data = await response.json();
       setServices(Array.isArray(data) ? data : []);
@@ -1763,6 +1763,7 @@ function HouseholdServicesSection() {
 }
 
 
+// Interface definitions (assuming these are needed elsewhere or were duplicates)
 interface User {
   id: string;
   username: string;
@@ -1832,16 +1833,18 @@ interface Agency {
   updatedAt: string;
 }
 
+// iconMap definition (assuming this is the only correct instance)
 const iconMap: Record<string, React.ElementType> = {
   'building': Building,
   'map-pin': MapPin,
-  'briefcase': Building,
+  'briefcase': Building, // Duplicate, but keeping as per original structure if intended
   'users': Users,
   'file-text': FileText,
   'bar-chart': BarChart3,
   'settings': Settings,
 };
 
+// AppSidebar component (assuming this is the correct instance)
 function AppSidebar({ activeSection, setActiveSection, user, onLogout }: { 
   activeSection: string; 
   setActiveSection: (section: string) => void;
@@ -2035,8 +2038,8 @@ function AppSidebar({ activeSection, setActiveSection, user, onLogout }: {
           </SidebarGroup>
         )}
 
-        
-        
+
+
       </SidebarContent>
 
       <SidebarFooter className="border-t bg-muted/30 p-3">
@@ -3187,15 +3190,15 @@ function HostelsPgSection() {
         </DialogContent>
       </Dialog>
 
-      {(!hostels || hostels.length === 0) && (
+      {(!services || services.length === 0) && (
         <Card>
           <CardContent className="py-12 text-center">
             <Building className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
-            <h3 className="text-lg font-semibold mb-2">No Hostels/PG Found</h3>
-            <p className="text-muted-foreground mb-4">Start by adding your first hostel or PG listing</p>
+            <h3 className="text-lg font-semibold mb-2">No Household Services Found</h3>
+            <p className="text-muted-foreground mb-4">Start by adding your first household service</p>
             <Button onClick={() => setShowForm(true)}>
               <Plus className="w-4 h-4 mr-2" />
-              Add Hostel/PG
+              Add Service
             </Button>
           </CardContent>
         </Card>
@@ -3203,6 +3206,7 @@ function HostelsPgSection() {
     </div>
   );
 }
+
 
 // Construction Materials Section Component
 function ConstructionMaterialsSection() {
@@ -3306,7 +3310,7 @@ function ConstructionMaterialsSection() {
       )}
 
       <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-        {Array.isArray(materials) && materials.map((material) => (
+        {Array.isArray(materials) && materials&& materials.map((material) => (
           <Card key={material.id} className="group hover:shadow-lg transition-shadow">
             <CardHeader>
               <div className="flex items-start justify-between">
@@ -4487,11 +4491,11 @@ export default function SellerDashboard() {
       "Factory Industrial Land": () => <IndustrialLandSection />,
       "Office Spaces": () => <OfficeSpacesSection />,
       "Cars & Bikes": () => <CarsBikesSection />,
-      "Heavy Equipment": () => <HeavyEquipmentSection />,
-      "Showrooms": () => <ShowroomsSection />,
+      "Heavy Equipment for Sale": () => <HeavyEquipmentForSaleSection />,
+      "Showrooms (Authorized-Second-hand)": () => <ShowroomsSection />,
       "Second-Hand Cars & Bikes": () => <SecondHandCarsBikesSection />,
       "Car & Bike Rentals": () => <CarBikeRentalsSection />,
-      "Transportation/Moving Services": () => <TransportationMovingServicesSection />,
+      "Transportation Moving Services": () => <TransportationMovingServicesSection />,
       "Vehicle License Classes": () => <VehicleLicenseClassesSection />,
       "Electronics & Gadgets": () => <ElectronicsGadgetsSection />,
       "Phones, Tablets & Accessories": () => <PhonesTabletsAccessoriesSection />,
@@ -4523,17 +4527,17 @@ export default function SellerDashboard() {
       case "settings":
         return <SettingsSection />;
       default:
-        // Check if user has access to this service based on their subcategory preferences
+        // Check if user has access to this service based on their categoryPreferences
         const hasAccess = user?.categoryPreferences?.some(pref => 
           pref.subcategoriesWithNames?.some(sub => 
             sub.slug === activeSection || sub.name === activeSection
           )
         );
-        
+
         if (hasAccess && subcategoryToSectionMap[activeSection]) {
           return subcategoryToSectionMap[activeSection]();
         }
-        
+
         // If no match found or no access, show dashboard
         return <DashboardSection />;
     }
@@ -4771,34 +4775,47 @@ function CarsBikesSection() {
 
 
 // Heavy Equipment Section Component
-function HeavyEquipmentSection() {
-  const [equipments, setEquipments] = useState<any[]>([]);
+function HeavyEquipmentForSaleSection() {
+  const [equipment, setEquipment] = useState<any[]>([]);
   const [showForm, setShowForm] = useState(false);
   const [editingEquipment, setEditingEquipment] = useState<any>(null);
+  const [viewingEquipment, setViewingEquipment] = useState<any>(null);
+  const [showDetailsDialog, setShowDetailsDialog] = useState(false);
 
   useEffect(() => {
-    fetchEquipments();
+    fetchEquipment();
   }, []);
 
-  const fetchEquipments = async () => {
+  const fetchEquipment = async () => {
     try {
-      const response = await fetch('/api/admin/heavy-equipment');
+      const storedUser = localStorage.getItem("user");
+      if (!storedUser) return;
+
+      const userData = JSON.parse(storedUser);
+      const queryParams = new URLSearchParams();
+
+      if (userData.role !== 'admin') {
+        queryParams.append('userId', userData.id);
+      }
+      queryParams.append('role', userData.role || 'user');
+
+      const response = await fetch(`/api/admin/heavy-equipment?${queryParams.toString()}`);
       const data = await response.json();
-      setEquipments(Array.isArray(data) ? data : []);
+      setEquipment(Array.isArray(data) ? data : []);
     } catch (error) {
       console.error('Error fetching heavy equipment:', error);
-      setEquipments([]);
+      setEquipment([]);
     }
   };
 
   const handleSuccess = () => {
     setShowForm(false);
     setEditingEquipment(null);
-    fetchEquipments();
+    fetchEquipment();
   };
 
-  const handleEdit = (equipment: any) => {
-    setEditingEquipment(equipment);
+  const handleEdit = (item: any) => {
+    setEditingEquipment(item);
     setShowForm(true);
   };
 
@@ -4809,7 +4826,7 @@ function HeavyEquipmentSection() {
         method: 'DELETE',
       });
       if (response.ok) {
-        fetchEquipments();
+        fetchEquipment();
       }
     } catch (error) {
       console.error('Error deleting equipment:', error);
@@ -4822,7 +4839,7 @@ function HeavyEquipmentSection() {
         method: 'PATCH',
       });
       if (response.ok) {
-        fetchEquipments();
+        fetchEquipment();
       }
     } catch (error) {
       console.error('Error toggling active status:', error);
@@ -4835,21 +4852,29 @@ function HeavyEquipmentSection() {
         method: 'PATCH',
       });
       if (response.ok) {
-        fetchEquipments();
+        fetchEquipment();
       }
     } catch (error) {
       console.error('Error toggling featured status:', error);
     }
   };
 
+  const handleViewDetails = (item: any) => {
+    setViewingEquipment(item);
+    setShowDetailsDialog(true);
+  };
+
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-bold">Heavy Equipment for Sale</h2>
-          <p className="text-muted-foreground">Manage heavy equipment listings</p>
+          <p className="text-muted-foreground">Manage heavy equipment listings for sale, rent, or lease</p>
         </div>
-        <Button onClick={() => setShowForm(true)}>
+        <Button onClick={() => {
+          setEditingEquipment(null);
+          setShowForm(true);
+        }}>
           <Plus className="w-4 h-4 mr-2" />
           Add Equipment
         </Button>
@@ -4857,33 +4882,34 @@ function HeavyEquipmentSection() {
 
       <Dialog open={showForm} onOpenChange={(open) => {
         setShowForm(open);
-        if (!open) setEditingEquipment(null);
+        if (!open) {
+          setEditingEquipment(null);
+        }
       }}>
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>{editingEquipment ? 'Edit Heavy Equipment' : 'Add New Heavy Equipment'}</DialogTitle>
+            <DialogTitle>{editingEquipment ? "Edit Heavy Equipment" : "Add New Heavy Equipment"}</DialogTitle>
             <DialogDescription>
-              {editingEquipment ? 'Update the details of this heavy equipment listing' : 'Fill in the details to create a new heavy equipment listing'}
+              Fill in the details to {editingEquipment ? "update" : "create"} a heavy equipment listing
             </DialogDescription>
           </DialogHeader>
-          <HeavyEquipmentForm 
-            editingEquipment={editingEquipment}
-            onSuccess={handleSuccess}
-          />
+          <div className="mt-4">
+            <HeavyEquipmentForm />
+          </div>
         </DialogContent>
       </Dialog>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-        {Array.isArray(equipments) && equipments.map((equipment) => (
-          <Card key={equipment.id} className="group hover:shadow-lg transition-shadow">
+        {Array.isArray(equipment) && equipment.map((item) => (
+          <Card key={item.id} className="group hover:shadow-lg transition-shadow">
             <CardHeader>
               <div className="flex items-start justify-between">
                 <div className="flex-1">
-                  <CardTitle className="text-lg mb-2">{equipment.title}</CardTitle>
+                  <CardTitle className="text-lg mb-2">{item.title}</CardTitle>
                   <div className="flex gap-2 flex-wrap">
-                    <Badge variant="secondary">{equipment.equipmentType}</Badge>
-                    <Badge variant="outline">{equipment.make}</Badge>
-                    {equipment.isFeatured && <Badge className="bg-yellow-500">Featured</Badge>}
+                    <Badge variant="secondary">{item.equipmentType}</Badge>
+                    <Badge variant="outline">{item.listingType}</Badge>
+                    {item.isFeatured && <Badge className="bg-yellow-500">Featured</Badge>}
                   </div>
                 </div>
                 <div className="flex gap-1">
@@ -4891,15 +4917,23 @@ function HeavyEquipmentSection() {
                     variant="ghost"
                     size="icon"
                     className="h-8 w-8"
-                    onClick={() => handleEdit(equipment)}
+                    onClick={() => handleViewDetails(item)}
                   >
-                    <Edit className="w-4 h-4" />
+                    <Eye className="w-4 h-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8"
+                    onClick={() => handleEdit(item)}
+                  >
+                    <Pencil className="w-4 h-4" />
                   </Button>
                   <Button
                     variant="ghost"
                     size="icon"
                     className="h-8 w-8 text-destructive"
-                    onClick={() => handleDelete(equipment.id)}
+                    onClick={() => handleDelete(item.id)}
                   >
                     <Trash2 className="w-4 h-4" />
                   </Button>
@@ -4908,46 +4942,192 @@ function HeavyEquipmentSection() {
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
-                {equipment.description && (
-                  <p className="text-sm text-muted-foreground line-clamp-2">{equipment.description}</p>
+                {item.description && (
+                  <p className="text-sm text-muted-foreground line-clamp-2">{item.description}</p>
                 )}
                 <div className="flex items-center justify-between">
-                  <span className="font-semibold text-lg text-primary">₹{equipment.price}</span>
-                  <Badge variant={equipment.isActive ? 'default' : 'secondary'}>
-                    {equipment.isActive ? 'Active' : 'Inactive'}
+                  <span className="font-semibold text-lg text-primary">₹{Number(item.price).toLocaleString()}</span>
+                  <Badge variant={item.isActive ? 'default' : 'secondary'}>
+                    {item.isActive ? 'Active' : 'Inactive'}
                   </Badge>
                 </div>
-                {equipment.city && (
+                {item.brand && (
+                  <div className="text-sm">
+                    <span className="font-medium">Brand: </span>
+                    <span className="text-muted-foreground">{item.brand}</span>
+                  </div>
+                )}
+                {item.model && (
+                  <div className="text-sm">
+                    <span className="font-medium">Model: </span>
+                    <span className="text-muted-foreground">{item.model}</span>
+                  </div>
+                )}
+                {item.condition && (
+                  <div className="text-sm">
+                    <span className="font-medium">Condition: </span>
+                    <Badge variant="outline" className="text-xs">{item.condition}</Badge>
+                  </div>
+                )}
+                {(item.city || item.areaName) && (
                   <div className="text-sm text-muted-foreground flex items-center gap-1">
                     <MapPin className="w-3 h-3" />
-                    {equipment.city}, {equipment.stateProvince}
+                    {[item.areaName, item.city].filter(Boolean).join(", ")}
                   </div>
                 )}
               </div>
             </CardContent>
             <CardFooter className="pt-0 flex gap-2">
               <Button
-                variant={equipment.isActive ? "outline" : "default"}
+                variant={item.isActive ? "outline" : "default"}
                 size="sm"
                 className="flex-1"
-                onClick={() => toggleActive(equipment.id)}
+                onClick={() => toggleActive(item.id)}
               >
-                {equipment.isActive ? "Deactivate" : "Activate"}
+                {item.isActive ? "Deactivate" : "Activate"}
               </Button>
               <Button
-                variant={equipment.isFeatured ? "secondary" : "outline"}
+                variant={item.isFeatured ? "secondary" : "outline"}
                 size="sm"
                 className="flex-1"
-                onClick={() => toggleFeatured(equipment.id)}
+                onClick={() => toggleFeatured(item.id)}
               >
-                {equipment.isFeatured ? "Unfeature" : "Feature"}
+                {item.isFeatured ? "Unfeature" : "Feature"}
               </Button>
             </CardFooter>
           </Card>
         ))}
       </div>
 
-      {(!equipments || equipments.length === 0) && (
+      {/* View Details Dialog */}
+      <Dialog open={showDetailsDialog} onOpenChange={setShowDetailsDialog}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-2xl">{viewingEquipment?.title}</DialogTitle>
+            <DialogDescription>Complete equipment details</DialogDescription>
+          </DialogHeader>
+          {viewingEquipment && (
+            <div className="space-y-6">
+              <div className="flex gap-2 flex-wrap">
+                <Badge variant="secondary">{viewingEquipment.equipmentType}</Badge>
+                <Badge variant="outline">{viewingEquipment.category}</Badge>
+                <Badge variant="outline">{viewingEquipment.listingType}</Badge>
+                {viewingEquipment.isFeatured && <Badge className="bg-yellow-500">Featured</Badge>}
+              </div>
+
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="p-4 bg-muted rounded-lg">
+                  <p className="text-sm text-muted-foreground">Price</p>
+                  <p className="text-lg font-bold text-primary">₹{Number(viewingEquipment.price).toLocaleString()}</p>
+                </div>
+                {viewingEquipment.year && (
+                  <div className="p-4 bg-muted rounded-lg">
+                    <p className="text-sm text-muted-foreground">Year</p>
+                    <p className="text-lg font-bold">{viewingEquipment.year}</p>
+                  </div>
+                )}
+                {viewingEquipment.condition && (
+                  <div className="p-4 bg-muted rounded-lg">
+                    <p className="text-sm text-muted-foreground">Condition</p>
+                    <p className="text-lg font-bold capitalize">{viewingEquipment.condition}</p>
+                  </div>
+                )}
+                {viewingEquipment.hoursUsed && (
+                  <div className="p-4 bg-muted rounded-lg">
+                    <p className="text-sm text-muted-foreground">Hours Used</p>
+                    <p className="text-lg font-bold">{viewingEquipment.hoursUsed}</p>
+                  </div>
+                )}
+              </div>
+
+              {viewingEquipment.description && (
+                <div>
+                  <h3 className="font-semibold mb-2">Description</h3>
+                  <p className="text-muted-foreground">{viewingEquipment.description}</p>
+                </div>
+              )}
+
+              <div>
+                <h3 className="font-semibold mb-2">Equipment Details</h3>
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  {viewingEquipment.brand && (
+                    <div>
+                      <span className="font-medium">Brand:</span>
+                      <span className="ml-2 text-muted-foreground">{viewingEquipment.brand}</span>
+                    </div>
+                  )}
+                  {viewingEquipment.model && (
+                    <div>
+                      <span className="font-medium">Model:</span>
+                      <span className="ml-2 text-muted-foreground">{viewingEquipment.model}</span>
+                    </div>
+                  )}
+                  {viewingEquipment.serialNumber && (
+                    <div>
+                      <span className="font-medium">Serial Number:</span>
+                      <span className="ml-2 text-muted-foreground">{viewingEquipment.serialNumber}</span>
+                    </div>
+                  )}
+                  {viewingEquipment.priceType && (
+                    <div>
+                      <span className="font-medium">Price Type:</span>
+                      <span className="ml-2 text-muted-foreground capitalize">{viewingEquipment.priceType}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {viewingEquipment.features && viewingEquipment.features.length > 0 && (
+                <div>
+                  <h3 className="font-semibold mb-2">Features</h3>
+                  <div className="flex flex-wrap gap-2">
+                    {viewingEquipment.features.map((feature: string, idx: number) => (
+                      <Badge key={idx} variant="outline">{feature}</Badge>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {viewingEquipment.maintenanceHistory && (
+                <div>
+                  <h3 className="font-semibold mb-2">Maintenance History</h3>
+                  <p className="text-sm text-muted-foreground whitespace-pre-wrap">{viewingEquipment.maintenanceHistory}</p>
+                </div>
+              )}
+
+              {viewingEquipment.warrantyInfo && (
+                <div>
+                  <h3 className="font-semibold mb-2">Warranty Information</h3>
+                  <p className="text-sm text-muted-foreground">{viewingEquipment.warrantyInfo}</p>
+                </div>
+              )}
+
+              {viewingEquipment.fullAddress && (
+                <div>
+                  <h3 className="font-semibold mb-2 flex items-center gap-2">
+                    <MapPin className="w-4 h-4" />
+                    Location
+                  </h3>
+                  <div className="space-y-1 text-sm">
+                    <p><span className="font-medium">Address:</span> {viewingEquipment.fullAddress}</p>
+                    {viewingEquipment.areaName && <p><span className="font-medium">Area:</span> {viewingEquipment.areaName}</p>}
+                    {viewingEquipment.city && <p><span className="font-medium">City:</span> {viewingEquipment.city}</p>}
+                    {viewingEquipment.stateProvince && <p><span className="font-medium">State:</span> {viewingEquipment.stateProvince}</p>}
+                  </div>
+                </div>
+              )}
+
+              <div className="pt-4 border-t text-sm text-muted-foreground">
+                <p>Created: {new Date(viewingEquipment.createdAt).toLocaleString()}</p>
+                <p>Last Updated: {new Date(viewingEquipment.updatedAt).toLocaleString()}</p>
+                {viewingEquipment.isNegotiable && <p className="text-green-600 font-medium">Price is Negotiable</p>}
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {(!equipment || equipment.length === 0) && (
         <Card>
           <CardContent className="py-12 text-center">
             <Building className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
@@ -5575,6 +5755,7 @@ function CarBikeRentalsSection() {
     </div>
   );
 }
+
 
 // Transportation & Moving Services Section Component
 function TransportationMovingServicesSection() {
@@ -6334,200 +6515,6 @@ function PhonesTabletsAccessoriesSection() {
             <Building className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
             <h3 className="text-lg font-semibold mb-2">No Items Found</h3>
             <p className="text-muted-foreground mb-4">Start by adding your first phone, tablet, or accessory</p>
-            <Button onClick={() => setShowForm(true)}>
-              <Plus className="w-4 h-4 mr-2" />
-              Add Item
-            </Button>
-          </CardContent>
-        </Card>
-      )}
-    </div>
-  );
-}
-
-// Second Hand Phones, Tablets & Accessories Section Component
-function SecondHandPhonesTabletsAccessoriesSection() {
-  const [items, setItems] = useState<any[]>([]);
-  const [showForm, setShowForm] = useState(false);
-  const [editingItem, setEditingItem] = useState<any>(null);
-
-  useEffect(() => {
-    fetchItems();
-  }, []);
-
-  const fetchItems = async () => {
-    try {
-      const response = await fetch('/api/admin/second-hand-phones-tablets-accessories');
-      const data = await response.json();
-      setItems(Array.isArray(data) ? data : []);
-    } catch (error) {
-      console.error('Error fetching second-hand phones, tablets & accessories:', error);
-      setItems([]);
-    }
-  };
-
-  const handleSuccess = () => {
-    setShowForm(false);
-    setEditingItem(null);
-    fetchItems();
-  };
-
-  const handleEdit = (item: any) => {
-    setEditingItem(item);
-    setShowForm(true);
-  };
-
-  const handleDelete = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this item?')) return;
-    try {
-      const response = await fetch(`/api/admin/second-hand-phones-tablets-accessories/${id}`, {
-        method: 'DELETE',
-      });
-      if (response.ok) {
-        fetchItems();
-      }
-    } catch (error) {
-      console.error('Error deleting item:', error);
-    }
-  };
-
-  const toggleActive = async (id: string) => {
-    try {
-      const response = await fetch(`/api/admin/second-hand-phones-tablets-accessories/${id}/toggle-active`, {
-        method: 'PATCH',
-      });
-      if (response.ok) {
-        fetchItems();
-      }
-    } catch (error) {
-      console.error('Error toggling active status:', error);
-    }
-  };
-
-  const toggleFeatured = async (id: string) => {
-    try {
-      const response = await fetch(`/api/admin/second-hand-phones-tablets-accessories/${id}/toggle-featured`, {
-        method: 'PATCH',
-      });
-      if (response.ok) {
-        fetchItems();
-      }
-    } catch (error) {
-      console.error('Error toggling featured status:', error);
-    }
-  };
-
-  return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h2 className="text-2xl font-bold">Second Hand Phones, Tablets & Accessories</h2>
-          <p className="text-muted-foreground">Manage second-hand phone, tablet and accessory listings</p>
-        </div>
-        <Button onClick={() => setShowForm(true)}>
-          <Plus className="w-4 h-4 mr-2" />
-          Add Item
-        </Button>
-      </div>
-
-      <Dialog open={showForm} onOpenChange={(open) => {
-        setShowForm(open);
-        if (!open) setEditingItem(null);
-      }}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>{editingItem ? 'Edit Second Hand Phone/Tablet/Accessory Item' : 'Add New Second Hand Phone/Tablet/Accessory Item'}</DialogTitle>
-            <DialogDescription>
-              {editingItem ? 'Update the details of this second hand phone, tablet, or accessory listing' : 'Fill in the details to create a new second hand phone, tablet, or accessory listing'}
-            </DialogDescription>
-          </DialogHeader>
-          <SecondHandPhonesTabletsAccessoriesForm 
-            editingItem={editingItem}
-            onSuccess={handleSuccess}
-          />
-        </DialogContent>
-      </Dialog>
-
-      <div className="grid grid-cols-1 lg:grid-grid-cols-2 xl:grid-cols-3 gap-6">
-        {Array.isArray(items) && items.map((item) => (
-          <Card key={item.id} className="group hover:shadow-lg transition-shadow">
-            <CardHeader>
-              <div className="flex items-start justify-between">
-                <div className="flex-1">
-                  <CardTitle className="text-lg mb-2">{item.title}</CardTitle>
-                  <div className="flex gap-2 flex-wrap">
-                    <Badge variant="secondary">{item.category}</Badge>
-                    <Badge variant="outline">{item.brand}</Badge>
-                    {item.isFeatured && <Badge className="bg-yellow-500">Featured</Badge>}
-                  </div>
-                </div>
-                <div className="flex gap-1">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8"
-                    onClick={() => handleEdit(item)}
-                  >
-                    <Edit className="w-4 h-4" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8 text-destructive"
-                    onClick={() => handleDelete(item.id)}
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                {item.description && (
-                  <p className="text-sm text-muted-foreground line-clamp-2">{item.description}</p>
-                )}
-                <div className="flex items-center justify-between">
-                  <span className="font-semibold text-lg text-primary">₹{item.price}</span>
-                  <Badge variant={item.isActive ? 'default' : 'secondary'}>
-                    {item.isActive ? 'Active' : 'Inactive'}
-                  </Badge>
-                </div>
-                {item.model && (
-                  <div className="text-sm">
-                    <span className="font-medium">Model: </span>
-                    <span className="text-muted-foreground">{item.model}</span>
-                  </div>
-                )}
-              </div>
-            </CardContent>
-            <CardFooter className="pt-0 flex gap-2">
-              <Button
-                variant={item.isActive ? "outline" : "default"}
-                size="sm"
-                className="flex-1"
-                onClick={() => toggleActive(item.id)}
-              >
-                {item.isActive ? "Deactivate" : "Activate"}
-              </Button>
-              <Button
-                variant={item.isFeatured ? "secondary" : "outline"}
-                size="sm"
-                className="flex-1"
-                onClick={() => toggleFeatured(item.id)}
-              >
-                {item.isFeatured ? "Unfeature" : "Feature"}
-              </Button>
-            </CardFooter>
-          </Card>
-        ))}
-      </div>
-
-      {(!items || items.length === 0) && (
-        <Card>
-          <CardContent className="py-12 text-center">
-            <Building className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
-            <h3 className="text-lg font-semibold mb-2">No Items Found</h3>
-            <p className="text-muted-foreground mb-4">Start by adding your first second-hand phone, tablet, or accessory</p>
             <Button onClick={() => setShowForm(true)}>
               <Plus className="w-4 h-4 mr-2" />
               Add Item
