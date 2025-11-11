@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -18,6 +17,8 @@ interface ConstructionMaterialsFormProps {
 }
 
 export function ConstructionMaterialsForm({ open, onOpenChange, material, onSuccess }: ConstructionMaterialsFormProps) {
+  const [userId, setUserId] = useState<string | null>(null);
+  const [userRole, setUserRole] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     name: "",
     category: "",
@@ -44,6 +45,29 @@ export function ConstructionMaterialsForm({ open, onOpenChange, material, onSucc
   const [newSpecKey, setNewSpecKey] = useState("");
   const [newSpecValue, setNewSpecValue] = useState("");
   const [uploadingImage, setUploadingImage] = useState(false);
+
+  useEffect(() => {
+    // Try to get from localStorage first
+    let storedUserId = localStorage.getItem('userId');
+    let storedUserRole = localStorage.getItem('userRole');
+
+    // If not found, try getting from user object in localStorage
+    if (!storedUserId) {
+      const userStr = localStorage.getItem('user');
+      if (userStr) {
+        try {
+          const user = JSON.parse(userStr);
+          storedUserId = user.id;
+          storedUserRole = user.role;
+        } catch (error) {
+          console.error('Error parsing user from localStorage:', error);
+        }
+      }
+    }
+
+    setUserId(storedUserId);
+    setUserRole(storedUserRole);
+  }, []);
 
   useEffect(() => {
     if (material) {
@@ -97,16 +121,33 @@ export function ConstructionMaterialsForm({ open, onOpenChange, material, onSucc
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Validate userId and role
+    if (!userId || !userRole) {
+      alert("User information not found. Please login again.");
+      return;
+    }
+
     try {
       const url = material
         ? `/api/admin/construction-materials/${material.id}`
         : "/api/admin/construction-materials";
       const method = material ? "PUT" : "POST";
 
+      // Clean up the data - convert empty strings to null for numeric fields
+      const cleanedData = {
+        ...formData,
+        userId: userId,
+        role: userRole,
+        // Convert empty strings to null for numeric fields
+        price: formData.price || null,
+        minimumOrder: formData.minimumOrder || null,
+      };
+
       const response = await fetch(url, {
         method,
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
+        body: JSON.stringify(cleanedData),
       });
 
       if (!response.ok) {
@@ -117,6 +158,7 @@ export function ConstructionMaterialsForm({ open, onOpenChange, material, onSucc
       onOpenChange(false);
     } catch (error) {
       console.error("Error saving construction material:", error);
+      alert("An error occurred while saving the construction material.");
     }
   };
 

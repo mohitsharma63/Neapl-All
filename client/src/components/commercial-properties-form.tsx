@@ -16,6 +16,8 @@ interface CommercialPropertiesFormProps {
 }
 
 export function CommercialPropertiesForm({ open, onOpenChange, property, onSuccess }: CommercialPropertiesFormProps) {
+  const [userId, setUserId] = useState<string | null>(null);
+  const [userRole, setUserRole] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     title: property?.title || '',
     description: property?.description || '',
@@ -39,6 +41,29 @@ export function CommercialPropertiesForm({ open, onOpenChange, property, onSucce
 
   const [loading, setLoading] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
+
+  useEffect(() => {
+    // Try to get from localStorage first
+    let storedUserId = localStorage.getItem('userId');
+    let storedUserRole = localStorage.getItem('userRole');
+
+    // If not found, try getting from user object in localStorage
+    if (!storedUserId) {
+      const userStr = localStorage.getItem('user');
+      if (userStr) {
+        try {
+          const user = JSON.parse(userStr);
+          storedUserId = user.id;
+          storedUserRole = user.role;
+        } catch (error) {
+          console.error('Error parsing user from localStorage:', error);
+        }
+      }
+    }
+
+    setUserId(storedUserId);
+    setUserRole(storedUserRole);
+  }, []);
 
   useEffect(() => {
     if (property) {
@@ -103,6 +128,13 @@ export function CommercialPropertiesForm({ open, onOpenChange, property, onSucce
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Validate userId and role
+    if (!userId || !userRole) {
+      alert("User information not found. Please login again.");
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -112,18 +144,34 @@ export function CommercialPropertiesForm({ open, onOpenChange, property, onSucce
 
       const method = property?.id ? 'PUT' : 'POST';
 
+      // Clean up the data - convert empty strings to null for numeric fields
+      const cleanedData = {
+        ...formData,
+        userId: userId,
+        role: userRole,
+        // Convert empty strings to null for numeric fields
+        price: formData.price || null,
+        area: formData.area || null,
+        floors: formData.floors || null,
+        parkingSpaces: formData.parkingSpaces || null,
+      };
+
       const response = await fetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
+        body: JSON.stringify(cleanedData),
       });
 
       if (response.ok) {
         onSuccess();
         onOpenChange(false);
+      } else {
+        const errorData = await response.json();
+        alert(`Error: ${errorData.message || 'Failed to save commercial property'}`);
       }
     } catch (error) {
       console.error('Error saving commercial property:', error);
+      alert('An error occurred while saving the commercial property.');
     } finally {
       setLoading(false);
     }
@@ -299,8 +347,8 @@ export function CommercialPropertiesForm({ open, onOpenChange, property, onSucce
                     id="commercial-image-upload"
                     disabled={uploadingImage}
                   />
-                  <label 
-                    htmlFor="commercial-image-upload" 
+                  <label
+                    htmlFor="commercial-image-upload"
                     className="cursor-pointer flex flex-col items-center gap-2"
                   >
                     {uploadingImage ? (
@@ -320,8 +368,8 @@ export function CommercialPropertiesForm({ open, onOpenChange, property, onSucce
                   <div className="grid grid-cols-3 gap-3">
                     {formData.images.map((image, index) => (
                       <div key={index} className="relative group">
-                        <img 
-                          src={image} 
+                        <img
+                          src={image}
                           alt={`Preview ${index + 1}`}
                           className="w-full h-24 object-cover rounded-lg border"
                         />

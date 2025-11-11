@@ -329,7 +329,7 @@ export const rentalListings = pgTable("rental_listings", {
 
 // Hostel PG Listings
 export const hostelPgListings = pgTable("hostel_listings", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  id: varchar("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
   name: text("name").notNull(),
   description: text("description"),
   pricePerMonth: decimal("price_per_month", { precision: 10, scale: 2 }).notNull(),
@@ -337,6 +337,10 @@ export const hostelPgListings = pgTable("hostel_listings", {
   roomType: text("room_type").notNull(),
   totalBeds: integer("total_beds").notNull(),
   availableBeds: integer("available_beds").notNull(),
+  facilities: jsonb("facilities").$type<string[]>().default([]),
+  foodIncluded: boolean("food_included").default(false),
+  images: jsonb("images").$type<string[]>().default([]),
+  rules: text("rules"),
   country: text("country").notNull(),
   stateProvince: text("state_province"),
   city: text("city").notNull(),
@@ -344,17 +348,13 @@ export const hostelPgListings = pgTable("hostel_listings", {
   fullAddress: text("full_address").notNull(),
   contactPerson: text("contact_person"),
   contactPhone: text("contact_phone"),
-  rules: text("rules"),
-  facilities: jsonb("facilities").$type<string[]>().default([]),
-  images: jsonb("images").$type<string[]>().default([]),
-  foodIncluded: boolean("food_included").default(false),
+  ownerId: varchar("owner_id"),
+  userId: varchar("user_id"),
+  role: text("role"),
   featured: boolean("featured").default(false),
   active: boolean("active").default(true),
-  ownerId: varchar("owner_id").references(() => users.id, { onDelete: "set null" }),
-  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
-  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
-  userId: varchar("user_id").references(() => users.id),
-  role: text("role"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
 });
 
 // Construction Materials
@@ -427,7 +427,6 @@ export const carsBikes = pgTable("cars_bikes", {
   role: text("role"),
 });
 
-// Property Deals
 export const propertyDeals = pgTable("property_deals", {
   id: varchar("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
   title: text("title").notNull(),
@@ -839,7 +838,7 @@ export const heavyEquipment = pgTable("heavy_equipment", {
   areaName: text("area_name"),
   fullAddress: text("full_address"),
   locationId: varchar("location_id").references(() => locations.id),
-  ownerId: varchar("owner_id").references(() => users.id),
+  sellerId: varchar("seller_id").references(() => users.id),
   isActive: boolean("is_active").default(true),
   isFeatured: boolean("is_featured").default(false),
   viewCount: integer("view_count").default(0),

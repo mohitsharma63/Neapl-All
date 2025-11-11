@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -16,6 +16,8 @@ interface OfficeSpacesFormProps {
 }
 
 export function OfficeSpacesForm({ open, onOpenChange, office, onSuccess }: OfficeSpacesFormProps) {
+  const [userId, setUserId] = useState<string | null>(null);
+  const [userRole, setUserRole] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     title: office?.title || '',
     description: office?.description || '',
@@ -44,6 +46,29 @@ export function OfficeSpacesForm({ open, onOpenChange, office, onSuccess }: Offi
 
   const [loading, setLoading] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
+
+  useEffect(() => {
+    // Try to get from localStorage first
+    let storedUserId = localStorage.getItem('userId');
+    let storedUserRole = localStorage.getItem('userRole');
+
+    // If not found, try getting from user object in localStorage
+    if (!storedUserId) {
+      const userStr = localStorage.getItem('user');
+      if (userStr) {
+        try {
+          const user = JSON.parse(userStr);
+          storedUserId = user.id;
+          storedUserRole = user.role;
+        } catch (error) {
+          console.error('Error parsing user from localStorage:', error);
+        }
+      }
+    }
+
+    setUserId(storedUserId);
+    setUserRole(storedUserRole);
+  }, []);
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -83,27 +108,54 @@ export function OfficeSpacesForm({ open, onOpenChange, office, onSuccess }: Offi
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Validate userId and role
+    if (!userId || !userRole) {
+      alert("User information not found. Please login again.");
+      return;
+    }
+
     setLoading(true);
 
     try {
       const url = office?.id
         ? `/api/admin/office-spaces/${office.id}`
         : '/api/admin/office-spaces';
-      
+
       const method = office?.id ? 'PUT' : 'POST';
+
+      // Convert empty strings to null for numeric fields
+      const dataToSubmit = {
+        ...formData,
+        price: formData.price ? parseFloat(formData.price) : null,
+        area: formData.area ? parseFloat(formData.area) : null,
+        capacity: formData.capacity ? parseInt(formData.capacity) : null,
+        cabins: formData.cabins ? parseInt(formData.cabins) : null,
+        workstations: formData.workstations ? parseInt(formData.workstations) : null,
+        meetingRooms: formData.meetingRooms ? parseInt(formData.meetingRooms) : null,
+        parkingSpaces: formData.parkingSpaces ? parseInt(formData.parkingSpaces) : null,
+        floor: formData.floor ? parseInt(formData.floor) : null,
+        totalFloors: formData.totalFloors ? parseInt(formData.totalFloors) : null,
+        userId: userId,
+        role: userRole,
+      };
 
       const response = await fetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
+        body: JSON.stringify(dataToSubmit),
       });
 
       if (response.ok) {
         onSuccess();
         onOpenChange(false);
+      } else {
+        const errorData = await response.json();
+        alert(`Error: ${errorData.message || 'Failed to save office space'}`);
       }
     } catch (error) {
       console.error('Error saving office space:', error);
+      alert('An error occurred while saving the office space.');
     } finally {
       setLoading(false);
     }

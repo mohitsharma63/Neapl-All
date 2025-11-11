@@ -67,6 +67,8 @@ interface TransportationService {
   viewCount: number;
   createdAt: string;
   updatedAt: string;
+   userId: string;
+  role: string;
 }
 
 export function TransportationMovingServicesForm() {
@@ -137,8 +139,8 @@ export function TransportationMovingServicesForm() {
     images: [],
     isActive: true,
     isFeatured: false,
-    userId: user?.id,
-    role: user?.role,
+    userId: userId,
+    role: userRole,
   });
 
   useEffect(() => {
@@ -178,13 +180,16 @@ export function TransportationMovingServicesForm() {
 
   const createMutation = useMutation({
     mutationFn: async (data: typeof formData) => {
+      const storedUser = localStorage.getItem("user");
+      const userData = storedUser ? JSON.parse(storedUser) : null;
       const response = await fetch("/api/admin/transportation-moving-services", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ...formData,
-          ownerId: userId,
-          role: userRole,
+          ownerId: userData?.id || userId,
+          userId: userData?.id || userId,
+          role: userData?.role || userRole || 'user',
         }),
       });
       if (!response.ok) {
@@ -209,10 +214,16 @@ export function TransportationMovingServicesForm() {
 
   const updateMutation = useMutation({
     mutationFn: async ({ id, data }: { id: string; data: typeof formData }) => {
+      const storedUser = localStorage.getItem("user");
+      const userData = storedUser ? JSON.parse(storedUser) : null;
       const response = await fetch(`/api/admin/transportation-moving-services/${id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
+        body: JSON.stringify({
+          ...data,
+          userId: userData?.id || userId,
+          role: userData?.role || userRole || 'user',
+        }),
       });
       if (!response.ok) {
         const error = await response.json();
@@ -314,8 +325,8 @@ export function TransportationMovingServicesForm() {
       images: [],
       isActive: true,
       isFeatured: false,
-      userId: user?.id,
-      role: user?.role,
+      userId: userId,
+      role: userRole,
     });
     setEditingItem(null);
   };
@@ -362,8 +373,8 @@ export function TransportationMovingServicesForm() {
       images: item.images || [],
       isActive: item.isActive,
       isFeatured: item.isFeatured,
-      userId: user?.id,
-      role: user?.role,
+      userId: userId,
+      role: userRole,
     });
     setIsDialogOpen(true);
   };
@@ -427,6 +438,9 @@ export function TransportationMovingServicesForm() {
       // Convert empty strings to null for numeric fields
       const formattedData = {
         ...formData,
+        userId: userId,
+        role: userRole,
+        ownerId: userId,
         basePrice: formData.basePrice === "" || formData.basePrice === undefined || formData.basePrice === null ? null : parseFloat(String(formData.basePrice)),
         pricePerKm: formData.pricePerKm === "" || formData.pricePerKm === undefined || formData.pricePerKm === null ? null : parseFloat(String(formData.pricePerKm)),
         pricePerHour: formData.pricePerHour === "" || formData.pricePerHour === undefined || formData.pricePerHour === null ? null : parseFloat(String(formData.pricePerHour)),
@@ -643,48 +657,48 @@ export function TransportationMovingServicesForm() {
                   </div>
                   <div>
                     <Label htmlFor="basePrice">Base Price *</Label>
-                    <Input 
-                      id="basePrice" 
-                      type="number" 
-                      value={formData.basePrice ?? ""} 
-                      onChange={(e) => setFormData({ ...formData, basePrice: e.target.value })} 
-                      required 
+                    <Input
+                      id="basePrice"
+                      type="number"
+                      value={formData.basePrice ?? ""}
+                      onChange={(e) => setFormData({ ...formData, basePrice: e.target.value })}
+                      required
                     />
                   </div>
                   <div>
                     <Label htmlFor="pricePerKm">Price Per KM</Label>
-                    <Input 
-                      id="pricePerKm" 
-                      type="number" 
-                      value={formData.pricePerKm ?? ""} 
-                      onChange={(e) => setFormData({ ...formData, pricePerKm: e.target.value })} 
+                    <Input
+                      id="pricePerKm"
+                      type="number"
+                      value={formData.pricePerKm ?? ""}
+                      onChange={(e) => setFormData({ ...formData, pricePerKm: e.target.value })}
                     />
                   </div>
                   <div>
                     <Label htmlFor="pricePerHour">Price Per Hour</Label>
-                    <Input 
-                      id="pricePerHour" 
-                      type="number" 
-                      value={formData.pricePerHour ?? ""} 
-                      onChange={(e) => setFormData({ ...formData, pricePerHour: e.target.value })} 
+                    <Input
+                      id="pricePerHour"
+                      type="number"
+                      value={formData.pricePerHour ?? ""}
+                      onChange={(e) => setFormData({ ...formData, pricePerHour: e.target.value })}
                     />
                   </div>
                   <div>
                     <Label htmlFor="minimumCharge">Minimum Charge</Label>
-                    <Input 
-                      id="minimumCharge" 
-                      type="number" 
-                      value={formData.minimumCharge ?? ""} 
-                      onChange={(e) => setFormData({ ...formData, minimumCharge: e.target.value })} 
+                    <Input
+                      id="minimumCharge"
+                      type="number"
+                      value={formData.minimumCharge ?? ""}
+                      onChange={(e) => setFormData({ ...formData, minimumCharge: e.target.value })}
                     />
                   </div>
                   <div>
                     <Label htmlFor="advancePaymentPercentage">Advance Payment %</Label>
-                    <Input 
-                      id="advancePaymentPercentage" 
-                      type="number" 
-                      value={formData.advancePaymentPercentage ?? ""} 
-                      onChange={(e) => setFormData({ ...formData, advancePaymentPercentage: e.target.value })} 
+                    <Input
+                      id="advancePaymentPercentage"
+                      type="number"
+                      value={formData.advancePaymentPercentage ?? ""}
+                      onChange={(e) => setFormData({ ...formData, advancePaymentPercentage: e.target.value })}
                     />
                   </div>
                 </div>
@@ -700,29 +714,29 @@ export function TransportationMovingServicesForm() {
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <Label htmlFor="crewSize">Crew Size</Label>
-                    <Input 
-                      id="crewSize" 
-                      type="number" 
-                      value={formData.crewSize ?? ""} 
-                      onChange={(e) => setFormData({ ...formData, crewSize: e.target.value })} 
+                    <Input
+                      id="crewSize"
+                      type="number"
+                      value={formData.crewSize ?? ""}
+                      onChange={(e) => setFormData({ ...formData, crewSize: e.target.value })}
                     />
                   </div>
                   <div>
                     <Label htmlFor="packingCharges">Packing Charges</Label>
-                    <Input 
-                      id="packingCharges" 
-                      type="number" 
-                      value={formData.packingCharges ?? ""} 
-                      onChange={(e) => setFormData({ ...formData, packingCharges: e.target.value })} 
+                    <Input
+                      id="packingCharges"
+                      type="number"
+                      value={formData.packingCharges ?? ""}
+                      onChange={(e) => setFormData({ ...formData, packingCharges: e.target.value })}
                     />
                   </div>
                   <div>
                     <Label htmlFor="storagePricePerDay">Storage Price Per Day</Label>
-                    <Input 
-                      id="storagePricePerDay" 
-                      type="number" 
-                      value={formData.storagePricePerDay ?? ""} 
-                      onChange={(e) => setFormData({ ...formData, storagePricePerDay: e.target.value })} 
+                    <Input
+                      id="storagePricePerDay"
+                      type="number"
+                      value={formData.storagePricePerDay ?? ""}
+                      onChange={(e) => setFormData({ ...formData, storagePricePerDay: e.target.value })}
                     />
                   </div>
                   <div>
@@ -788,20 +802,20 @@ export function TransportationMovingServicesForm() {
                   </div>
                   <div>
                     <Label htmlFor="serviceRadiusKm">Service Radius (km)</Label>
-                    <Input 
-                      id="serviceRadiusKm" 
-                      type="number" 
-                      value={formData.serviceRadiusKm ?? ""} 
-                      onChange={(e) => setFormData({ ...formData, serviceRadiusKm: e.target.value })} 
+                    <Input
+                      id="serviceRadiusKm"
+                      type="number"
+                      value={formData.serviceRadiusKm ?? ""}
+                      onChange={(e) => setFormData({ ...formData, serviceRadiusKm: e.target.value })}
                     />
                   </div>
                   <div>
                     <Label htmlFor="minimumBookingHours">Minimum Booking Hours</Label>
-                    <Input 
-                      id="minimumBookingHours" 
-                      type="number" 
-                      value={formData.minimumBookingHours ?? ""} 
-                      onChange={(e) => setFormData({ ...formData, minimumBookingHours: e.target.value })} 
+                    <Input
+                      id="minimumBookingHours"
+                      type="number"
+                      value={formData.minimumBookingHours ?? ""}
+                      onChange={(e) => setFormData({ ...formData, minimumBookingHours: e.target.value })}
                     />
                   </div>
                   <div>

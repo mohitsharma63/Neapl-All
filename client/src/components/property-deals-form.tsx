@@ -1,5 +1,4 @@
-
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -21,6 +20,8 @@ interface PropertyDealsFormProps {
 export function PropertyDealsForm({ open, onOpenChange, propertyDeal, onSuccess }: PropertyDealsFormProps) {
   const { toast } = useToast();
   const [uploadingImages, setUploadingImages] = useState(false);
+  const [userId, setUserId] = useState<string | null>(null);
+  const [userRole, setUserRole] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     title: propertyDeal?.title || '',
     description: propertyDeal?.description || '',
@@ -48,6 +49,29 @@ export function PropertyDealsForm({ open, onOpenChange, propertyDeal, onSuccess 
   });
 
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    // Try to get from localStorage first
+    let storedUserId = localStorage.getItem('userId');
+    let storedUserRole = localStorage.getItem('userRole');
+    
+    // If not found, try getting from user object in localStorage
+    if (!storedUserId) {
+      const userStr = localStorage.getItem('user');
+      if (userStr) {
+        try {
+          const user = JSON.parse(userStr);
+          storedUserId = user.id;
+          storedUserRole = user.role;
+        } catch (error) {
+          console.error('Error parsing user from localStorage:', error);
+        }
+      }
+    }
+    
+    setUserId(storedUserId);
+    setUserRole(storedUserRole);
+  }, []);
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -99,13 +123,24 @@ export function PropertyDealsForm({ open, onOpenChange, propertyDeal, onSuccess 
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Validate userId and role
+    if (!userId || !userRole) {
+      toast({
+        title: "Error",
+        description: "User information not found. Please login again.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     setLoading(true);
 
     try {
       const url = propertyDeal?.id
         ? `/api/admin/property-deals/${propertyDeal.id}`
         : '/api/admin/property-deals';
-      
+
       const method = propertyDeal?.id ? 'PUT' : 'POST';
 
       // Convert empty strings to null for numeric fields
@@ -116,6 +151,8 @@ export function PropertyDealsForm({ open, onOpenChange, propertyDeal, onSuccess 
         bedrooms: formData.bedrooms === '' ? null : parseInt(formData.bedrooms),
         bathrooms: formData.bathrooms === '' ? null : parseInt(formData.bathrooms),
         floors: formData.floors === '' ? null : parseInt(formData.floors),
+        userId: userId,
+        role: userRole,
       };
 
       const response = await fetch(url, {
@@ -324,12 +361,12 @@ export function PropertyDealsForm({ open, onOpenChange, propertyDeal, onSuccess 
                 <CardContent>
                   <div>
                     <Label htmlFor="images">Upload Images</Label>
-                    <Input 
-                      id="images" 
-                      type="file" 
-                      accept="image/*" 
-                      multiple 
-                      onChange={handleImageUpload} 
+                    <Input
+                      id="images"
+                      type="file"
+                      accept="image/*"
+                      multiple
+                      onChange={handleImageUpload}
                       className="mt-2"
                       disabled={uploadingImages}
                     />

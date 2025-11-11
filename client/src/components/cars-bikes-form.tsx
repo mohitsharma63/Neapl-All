@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -47,8 +48,17 @@ interface CarBike {
   viewCount: number;
   createdAt: string;
   updatedAt: string;
-  userId?: string; // Added userId
-  role?: string;   // Added role
+  userId?: string;
+  role?: string;
+}
+
+interface FormData extends Omit<CarBike, 'id' | 'createdAt' | 'updatedAt' | 'viewCount' | 'price' | 'year' | 'kilometersDriven' | 'ownerNumber'> {
+  price: string;
+  year: number | string;
+  kilometersDriven?: string;
+  ownerNumber?: string;
+  userId: string;
+  role: string;
 }
 
 export function CarsBikesForm() {
@@ -59,7 +69,7 @@ export function CarsBikesForm() {
   const [editingItem, setEditingItem] = useState<CarBike | null>(null);
   const [uploadingImages, setUploadingImages] = useState(false);
 
-  const getUserFromLocalStorage = () => {
+  const getUserData = () => {
     const storedUser = localStorage.getItem("user");
     if (storedUser) {
       try {
@@ -72,10 +82,52 @@ export function CarsBikesForm() {
     return null;
   };
 
-  const localUser = getUserFromLocalStorage();
-  const userId = localUser?.id || user?.id || "";
-  const userRole = localUser?.role || user?.role || "";
-  console.log("AAAAAAAAAAAAAAA",userId)
+  const localUser = getUserData();
+  const userId = localUser?.id || user?.id || '';
+  const userRole = localUser?.role || user?.role || 'user';
+
+  const [formData, setFormData] = useState<FormData>({
+    title: "",
+    description: "",
+    listingType: "sell",
+    vehicleType: "car",
+    brand: "",
+    model: "",
+    year: new Date().getFullYear(),
+    price: "",
+    kilometersDriven: "",
+    fuelType: "petrol",
+    transmission: "manual",
+    ownerNumber: "1",
+    registrationNumber: "",
+    registrationState: "",
+    insuranceValidUntil: "",
+    color: "",
+    images: [],
+    documents: [],
+    features: [],
+    condition: "good",
+    isNegotiable: false,
+    country: "India",
+    stateProvince: "",
+    city: "",
+    areaName: "",
+    fullAddress: "",
+    isActive: true,
+    isFeatured: false,
+    userId: userId,
+    role: userRole,
+  });
+
+  // Update formData when userId or userRole changes
+  useEffect(() => {
+    setFormData(prev => ({
+      ...prev,
+      userId: userId,
+      role: userRole,
+    }));
+  }, [userId, userRole]);
+
   useEffect(() => {
     const fetchListings = async () => {
       if (!userId) return;
@@ -83,10 +135,9 @@ export function CarsBikesForm() {
       try {
         const queryParams = new URLSearchParams();
         queryParams.append('userId', userId);
-        queryParams.append('role', userRole || 'user');
+        queryParams.append('role', userRole);
 
         const response = await fetch(`/api/admin/cars-bikes?${queryParams.toString()}`);
-      
         if (response.ok) {
           const data = await response.json();
           queryClient.setQueryData(["/api/admin/cars-bikes", userId, userRole], data);
@@ -107,15 +158,17 @@ export function CarsBikesForm() {
       if (userRole) params.append('role', userRole);
 
       const response = await fetch(`/api/admin/cars-bikes?${params.toString()}`);
-      
       if (!response.ok) throw new Error("Failed to fetch listings");
       return response.json();
     },
   });
 
   const createMutation = useMutation({
-    mutationFn: async (data: typeof formData) => {
-      // Convert and validate data
+    mutationFn: async (data: FormData) => {
+      if (!data.userId) {
+        throw new Error("User ID is required. Please log in again.");
+      }
+
       const payload = {
         title: data.title,
         description: data.description || null,
@@ -145,8 +198,8 @@ export function CarsBikesForm() {
         fullAddress: data.fullAddress || null,
         isActive: data.isActive,
         isFeatured: data.isFeatured,
-        userId: userId, // Added userId
-        role: userRole,   // Added role
+        userId: data.userId,
+        role: data.role,
       };
 
       const response = await fetch("/api/admin/cars-bikes", {
@@ -154,7 +207,10 @@ export function CarsBikesForm() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
-      if (!response.ok) throw new Error(await response.text());
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(errorText || "Failed to create vehicle");
+      }
       return response.json();
     },
     onSuccess: () => {
@@ -169,8 +225,11 @@ export function CarsBikesForm() {
   });
 
   const updateMutation = useMutation({
-    mutationFn: async ({ id, data }: { id: string; data: typeof formData }) => {
-      // Convert and validate data
+    mutationFn: async ({ id, data }: { id: string; data: FormData }) => {
+      if (!data.userId) {
+        throw new Error("User ID is required. Please log in again.");
+      }
+
       const payload = {
         title: data.title,
         description: data.description || null,
@@ -200,8 +259,8 @@ export function CarsBikesForm() {
         fullAddress: data.fullAddress || null,
         isActive: data.isActive,
         isFeatured: data.isFeatured,
-        userId: userId, // Added userId
-        role: userRole,   // Added role
+        userId: data.userId,
+        role: data.role,
       };
 
       const response = await fetch(`/api/admin/cars-bikes/${id}`, {
@@ -209,7 +268,10 @@ export function CarsBikesForm() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
-      if (!response.ok) throw new Error(await response.text());
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(errorText || "Failed to update vehicle");
+      }
       return response.json();
     },
     onSuccess: () => {
@@ -335,8 +397,8 @@ export function CarsBikesForm() {
       fullAddress: item.fullAddress || "",
       isActive: item.isActive,
       isFeatured: item.isFeatured,
-      userId: item.userId || userId,
-      role: item.role || userRole,
+      userId: userId,
+      role: userRole,
     });
     setIsDialogOpen(true);
   };
@@ -346,10 +408,10 @@ export function CarsBikesForm() {
     if (editingItem) {
       updateMutation.mutate({ id: editingItem.id, data: formData });
     } else {
-      
       createMutation.mutate(formData);
     }
   };
+
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
@@ -397,6 +459,7 @@ export function CarsBikesForm() {
       images: prev.images.filter((_, i) => i !== index)
     }));
   };
+
   return (
     <Card>
       <CardHeader>

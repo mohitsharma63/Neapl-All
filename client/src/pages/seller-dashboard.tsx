@@ -1938,7 +1938,7 @@ function AppSidebar({ activeSection, setActiveSection, user, onLogout }: {
                     tooltip={item.title}
                     isActive={activeSection === item.key}
                     className={`
-                      w-full justify-start cursor-pointer rounded-lg transition-all duration-200
+                      w-full justify-start rounded-lg transition-all duration-200
                       ${activeSection === item.key
                         ? 'bg-gradient-to-r from-blue-600 to-green-600 text-white shadow-md hover:shadow-lg'
                         : 'hover:bg-muted/80'
@@ -1974,7 +1974,7 @@ function AppSidebar({ activeSection, setActiveSection, user, onLogout }: {
                           tooltip={category.name}
                           isActive={activeSection === category.slug}
                           className={`
-                            w-full justify-start cursor-pointer rounded-lg transition-all duration-200
+                            w-full justify-start rounded-lg transition-all duration-200
                             ${activeSection === category.slug
                               ? 'bg-gradient-to-r from-blue-600 to-green-600 text-white shadow-md'
                               : 'hover:bg-muted/80'
@@ -3190,15 +3190,15 @@ function HostelsPgSection() {
         </DialogContent>
       </Dialog>
 
-      {(!services || services.length === 0) && (
+      {(!hostels || hostels.length === 0) && (
         <Card>
           <CardContent className="py-12 text-center">
             <Building className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
-            <h3 className="text-lg font-semibold mb-2">No Household Services Found</h3>
-            <p className="text-muted-foreground mb-4">Start by adding your first household service</p>
+            <h3 className="text-lg font-semibold mb-2">No Hostels/PG Found</h3>
+            <p className="text-muted-foreground mb-4">Start by adding your first hostel or PG listing</p>
             <Button onClick={() => setShowForm(true)}>
               <Plus className="w-4 h-4 mr-2" />
-              Add Service
+              Add Hostel/PG
             </Button>
           </CardContent>
         </Card>
@@ -4486,16 +4486,16 @@ export default function SellerDashboard() {
     const subcategoryToSectionMap: Record<string, () => JSX.Element> = {
       "Hostels & PG": () => <HostelsPgSection />,
       "Construction & Building Materials": () => <ConstructionMaterialsSection />,
-      "Property Deals (Buy/Sell)": () => <PropertyDealsSection />,
-      "Local Market Commercial Properties": () => <CommercialPropertiesSection />,
+      "Property Deals": () => <PropertyDealsSection />,
+      "Local Market Commercial Property": () => <CommercialPropertiesSection />,
       "Factory Industrial Land": () => <IndustrialLandSection />,
-      "Office Spaces": () => <OfficeSpacesSection />,
+      "Company Office Space": () => <OfficeSpacesSection />,
       "Cars & Bikes": () => <CarsBikesSection />,
-      "Heavy Equipment for Sale": () => <HeavyEquipmentForSaleSection />,
-      "Showrooms (Authorized-Second-hand)": () => <ShowroomsSection />,
+      "Heavy Equipment": () => <HeavyEquipmentForSaleSection />,
+      "Showrooms": () => <ShowroomsSection />,
       "Second-Hand Cars & Bikes": () => <SecondHandCarsBikesSection />,
       "Car & Bike Rentals": () => <CarBikeRentalsSection />,
-      "Transportation Moving Services": () => <TransportationMovingServicesSection />,
+      "Transportation/Moving Services": () => <TransportationMovingServicesSection />,
       "Vehicle License Classes": () => <VehicleLicenseClassesSection />,
       "Electronics & Gadgets": () => <ElectronicsGadgetsSection />,
       "Phones, Tablets & Accessories": () => <PhonesTabletsAccessoriesSection />,
@@ -5755,7 +5755,6 @@ function CarBikeRentalsSection() {
     </div>
   );
 }
-
 
 // Transportation & Moving Services Section Component
 function TransportationMovingServicesSection() {

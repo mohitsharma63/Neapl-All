@@ -13,6 +13,8 @@ import { Badge } from "@/components/ui/badge";
 import { Pencil, Trash2, Plus, Eye, EyeOff, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useUser } from "@/hooks/use-user";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+
 
 interface HeavyEquipment {
   id: string;
@@ -57,6 +59,8 @@ export function HeavyEquipmentForm() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<HeavyEquipment | null>(null);
   const [uploadingImages, setUploadingImages] = useState(false);
+  const [showForm, setShowForm] = useState(false); // State to control dialog visibility
+
 
   const getUserFromLocalStorage = () => {
     const storedUser = localStorage.getItem("user");
@@ -140,7 +144,7 @@ export function HeavyEquipmentForm() {
       const userData = JSON.parse(storedUser);
       const queryParams = new URLSearchParams();
 
-      // Always send userId for non-admin users
+      // Always send userId
       if (userData.id) {
         queryParams.append('userId', userData.id);
       }
@@ -149,7 +153,9 @@ export function HeavyEquipmentForm() {
 
       const response = await fetch(`/api/admin/heavy-equipment?${queryParams.toString()}`);
       if (!response.ok) throw new Error("Failed to fetch equipment");
-      return response.json();
+      const data = await response.json();
+      console.log('Fetched equipment:', data);
+      return Array.isArray(data) ? data : [];
     },
   });
 
@@ -157,14 +163,23 @@ export function HeavyEquipmentForm() {
     mutationFn: async (data: typeof formData) => {
       const storedUser = localStorage.getItem("user");
       const userData = storedUser ? JSON.parse(storedUser) : null;
+
+      // Ensure userId and role are not null
+      const finalUserId = userData?.id || userId;
+      const finalUserRole = userData?.role || userRole || 'user';
+
+      if (!finalUserId) {
+        throw new Error("User ID is required. Please log in again.");
+      }
+
       const response = await fetch("/api/admin/heavy-equipment", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ...data,
-          sellerId: userData?.id || userId,
-          userId: userData?.id || userId,
-          role: userData?.role || userRole || 'user',
+          sellerId: finalUserId,
+          userId: finalUserId,
+          role: finalUserRole,
         }),
       });
       if (!response.ok) {
@@ -187,14 +202,24 @@ export function HeavyEquipmentForm() {
   const updateMutation = useMutation({
     mutationFn: async ({ id, data }: { id: string; data: typeof formData }) => {
       const storedUser = localStorage.getItem("user");
-      const userData = storedUser ? JSON.parse(storedUser) : null;
+      const userData = storedUser ? JSON.JSON.parse(storedUser) : null;
+
+      // Ensure userId and role are not null
+      const finalUserId = userData?.id || userId;
+      const finalUserRole = userData?.role || userRole || 'user';
+
+      if (!finalUserId) {
+        throw new Error("User ID is required. Please log in again.");
+      }
+
       const response = await fetch(`/api/admin/heavy-equipment/${id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ...data,
-          userId: userData?.id || userId,
-          role: userData?.role || userRole || 'user',
+          sellerId: finalUserId,
+          userId: finalUserId,
+          role: finalUserRole,
         }),
       });
       if (!response.ok) {
@@ -322,6 +347,7 @@ export function HeavyEquipmentForm() {
       role: userRole,
     });
     setIsDialogOpen(true);
+    setShowForm(true); // Ensure dialog opens to form if editing
   };
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -387,12 +413,20 @@ export function HeavyEquipmentForm() {
         <CardHeader>
           <div className="flex items-center justify-between">
             <div>
-              <CardTitle>Heavy Equipment for Sale</CardTitle>
-              <CardDescription>Manage heavy equipment listings</CardDescription>
+              <CardTitle>Heavy Equipment Listings</CardTitle>
+              <CardDescription>Manage your heavy equipment inventory</CardDescription>
             </div>
-            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+            <Dialog open={isDialogOpen} onOpenChange={(open) => {
+              setIsDialogOpen(open);
+              if (!open) {
+                resetForm(); // Reset form when dialog is closed
+              }
+            }}>
               <DialogTrigger asChild>
-                <Button onClick={resetForm}>
+                <Button onClick={() => {
+                  resetForm();
+                  setShowForm(true); // Show the form when adding new
+                }}>
                   <Plus className="w-4 h-4 mr-2" />
                   Add Equipment
                 </Button>
@@ -547,7 +581,7 @@ export function HeavyEquipmentForm() {
                       <Input
                         id="hoursUsed"
                         type="number"
-                        value={formData.hoursUsed}  
+                        value={formData.hoursUsed}
                         onChange={(e) => setFormData({ ...formData, hoursUsed: e.target.value })}
                       />
                     </div>

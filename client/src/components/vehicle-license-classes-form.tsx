@@ -97,6 +97,7 @@ interface VehicleLicenseClassFormData {
   isVerified?: boolean;
   userId?: string;
   role?: string;
+  ownerId?: string;
 }
 
 export default function VehicleLicenseClassesForm() {
@@ -164,8 +165,8 @@ export default function VehicleLicenseClassesForm() {
       isActive: true,
       isFeatured: false,
       isVerified: false,
-      userId: user?.id,
-      role: user?.role,
+      userId: userId,
+      role: userRole,
     },
   });
 
@@ -216,6 +217,9 @@ export default function VehicleLicenseClassesForm() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ...data,
+          userId: userId,
+          role: userRole,
+          ownerId: userId,
           courseIncludes,
           syllabusCovered,
           documentsRequired,
@@ -347,16 +351,13 @@ export default function VehicleLicenseClassesForm() {
       ...data,
       nextBatchStartDate: data.nextBatchStartDate || null,
     };
-    
-    // Add userId and role from the logged-in user
-    const userId = user?.id;
-    const userRole = user?.role;
 
-    // Ensure userId and userRole are not undefined before passing them
+    // Ensure userId and role are properly set from localStorage or user context
     const formDataWithUser = {
       ...sanitizedData,
-      userId: userId || "", // Provide a default empty string or handle appropriately
-      role: userRole || "", // Provide a default empty string or handle appropriately
+      userId: userId,
+      role: userRole,
+      ownerId: userId,
     };
 
     createMutation.mutate(formDataWithUser);

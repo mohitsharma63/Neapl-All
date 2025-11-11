@@ -1241,12 +1241,21 @@ export function registerRoutes(app: Express) {
         minimumOrder,
         isActive,
         isFeatured,
+        userId,
+        role,
       } = req.body;
 
       // Validate required fields
       if (!name || !category || !price || !unit) {
         return res.status(400).json({
           message: "Missing required fields: name, category, price, unit"
+        });
+      }
+
+      // Validate userId
+      if (!userId) {
+        return res.status(400).json({
+          message: "User ID is required"
         });
       }
 
@@ -1274,6 +1283,8 @@ export function registerRoutes(app: Express) {
           minimumOrder: minimumOrder ? parseInt(minimumOrder) : null,
           isActive: isActive !== undefined ? isActive : true,
           isFeatured: isFeatured || false,
+          userId: userId,
+          role: role || 'user',
         })
         .returning();
 
@@ -1288,7 +1299,20 @@ export function registerRoutes(app: Express) {
   app.put("/api/admin/construction-materials/:id", async (req, res) => {
     try {
       const { id } = req.params;
-      const updateData = { ...req.body, updatedAt: new Date() };
+      const { userId, role, ...otherData } = req.body;
+      
+      const updateData = { 
+        ...otherData, 
+        updatedAt: new Date()
+      };
+
+      // Include userId and role if provided
+      if (userId) {
+        updateData.userId = userId;
+      }
+      if (role) {
+        updateData.role = role;
+      }
 
       const [updatedMaterial] = await db
         .update(constructionMaterials)
@@ -2352,7 +2376,7 @@ export function registerRoutes(app: Express) {
       } else if (userId) {
         // For non-admin users, filter by userId at database level
         equipment = await db.query.heavyEquipment.findMany({
-          where: eq(heavyEquipment.sellerId, userId as string),
+          where: eq(heavyEquipment.userId, userId as string),
           orderBy: desc(heavyEquipment.createdAt),
         });
       } else {
@@ -2360,8 +2384,10 @@ export function registerRoutes(app: Express) {
         equipment = [];
       }
 
+      console.log(`Fetched ${equipment.length} equipment items for user ${userId} with role ${role}`);
       res.json(equipment);
     } catch (error: any) {
+      console.error('Error fetching heavy equipment:', error);
       res.status(500).json({ message: error.message });
     }
   });
@@ -2414,11 +2440,20 @@ export function registerRoutes(app: Express) {
         fullAddress,
         isActive,
         isFeatured,
+        userId,
+        role,
+        sellerId,
       } = req.body;
 
       if (!title || !listingType || !equipmentType || !category || !price) {
         return res.status(400).json({
           message: "Missing required fields: title, listingType, equipmentType, category, price"
+        });
+      }
+
+      if (!userId) {
+        return res.status(400).json({
+          message: "userId is required"
         });
       }
 
@@ -2438,6 +2473,9 @@ export function registerRoutes(app: Express) {
           condition: condition || null,
           hoursUsed: hoursUsed ? parseInt(hoursUsed.toString()) : null,
           serialNumber: serialNumber || null,
+          sellerId: sellerId || userId,
+          userId: userId,
+          role: role || 'user',
           specifications: specifications || {},
           images: images || [],
           documents: documents || [],
@@ -2466,7 +2504,19 @@ export function registerRoutes(app: Express) {
   app.put("/api/admin/heavy-equipment/:id", async (req, res) => {
     try {
       const { id } = req.params;
-      const updateData = { ...req.body, updatedAt: new Date() };
+      const { userId, role, sellerId, ...otherData } = req.body;
+
+      if (!userId) {
+        return res.status(400).json({ message: "userId is required" });
+      }
+
+      const updateData = {
+        ...otherData,
+        userId: userId,
+        role: role || 'user',
+        sellerId: sellerId || userId,
+        updatedAt: new Date()
+      };
 
       const [updatedEquipment] = await db
         .update(heavyEquipment)
@@ -2552,7 +2602,7 @@ export function registerRoutes(app: Express) {
     }
   });
 
- 
+
   app.get("/api/admin/second-hand-cars-bikes", async (req, res) => {
     try {
       const { userId, role } = req.query;
@@ -2765,17 +2815,20 @@ export function registerRoutes(app: Express) {
         });
       } else if (userId) {
         // For non-admin users, filter by userId at database level
-        rentals = await db.query.carBikeRentals.findMany({
-          where: eq(carBikeRentals.ownerId, userId as string),
+        // Try both ownerId and userId fields for compatibility
+        const allRentals = await db.query.carBikeRentals.findMany({
           orderBy: desc(carBikeRentals.createdAt),
         });
+        rentals = allRentals.filter(r => r.ownerId === userId || r.userId === userId);
       } else {
         // If no userId provided and not admin, return empty array
         rentals = [];
       }
 
+      console.log(`Fetched ${rentals.length} car/bike rentals for user ${userId} with role ${role}`);
       res.json(rentals);
     } catch (error: any) {
+      console.error('Error fetching car/bike rentals:', error);
       res.status(500).json({ message: error.message });
     }
   });
@@ -2858,17 +2911,20 @@ export function registerRoutes(app: Express) {
         });
       } else if (userId) {
         // For non-admin users, filter by userId at database level
-        services = await db.query.transportationMovingServices.findMany({
-          where: eq(transportationMovingServices.ownerId, userId as string),
+        // Try both ownerId and userId fields for compatibility
+        const allServices = await db.query.transportationMovingServices.findMany({
           orderBy: desc(transportationMovingServices.createdAt),
         });
+        services = allServices.filter(s => s.ownerId === userId || s.userId === userId);
       } else {
         // If no userId provided and not admin, return empty array
         services = [];
       }
 
+      console.log(`Fetched ${services.length} transportation services for user ${userId} with role ${role}`);
       res.json(services);
     } catch (error: any) {
+      console.error('Error fetching transportation services:', error);
       res.status(500).json({ message: error.message });
     }
   });
@@ -3021,17 +3077,20 @@ export function registerRoutes(app: Express) {
         });
       } else if (userId) {
         // For non-admin users, filter by userId at database level
-        classes = await db.query.vehicleLicenseClasses.findMany({
-          where: eq(vehicleLicenseClasses.ownerId, userId as string),
+        // Try both ownerId and userId fields for compatibility
+        const allClasses = await db.query.vehicleLicenseClasses.findMany({
           orderBy: desc(vehicleLicenseClasses.createdAt),
         });
+        classes = allClasses.filter(c => c.ownerId === userId || c.userId === userId);
       } else {
         // If no userId provided and not admin, return empty array
         classes = [];
       }
 
+      console.log(`Fetched ${classes.length} vehicle license classes for user ${userId} with role ${role}`);
       res.json(classes);
     } catch (error: any) {
+      console.error('Error fetching vehicle license classes:', error);
       res.status(500).json({ message: error.message });
     }
   });

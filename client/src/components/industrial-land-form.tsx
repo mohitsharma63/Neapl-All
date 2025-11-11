@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -16,6 +16,8 @@ interface IndustrialLandFormProps {
 }
 
 export function IndustrialLandForm({ open, onOpenChange, land, onSuccess }: IndustrialLandFormProps) {
+  const [userId, setUserId] = useState<string | null>(null);
+  const [userRole, setUserRole] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     title: land?.title || '',
     description: land?.description || '',
@@ -41,6 +43,29 @@ export function IndustrialLandForm({ open, onOpenChange, land, onSuccess }: Indu
 
   const [loading, setLoading] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
+
+  useEffect(() => {
+    // Try to get from localStorage first
+    let storedUserId = localStorage.getItem('userId');
+    let storedUserRole = localStorage.getItem('userRole');
+
+    // If not found, try getting from user object in localStorage
+    if (!storedUserId) {
+      const userStr = localStorage.getItem('user');
+      if (userStr) {
+        try {
+          const user = JSON.parse(userStr);
+          storedUserId = user.id;
+          storedUserRole = user.role;
+        } catch (error) {
+          console.error('Error parsing user from localStorage:', error);
+        }
+      }
+    }
+
+    setUserId(storedUserId);
+    setUserRole(storedUserRole);
+  }, []);
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -80,27 +105,44 @@ export function IndustrialLandForm({ open, onOpenChange, land, onSuccess }: Indu
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Validate userId and role
+    if (!userId || !userRole) {
+      alert("User information not found. Please login again.");
+      return;
+    }
+
     setLoading(true);
 
     try {
       const url = land?.id
         ? `/api/admin/industrial-land/${land.id}`
         : '/api/admin/industrial-land';
-      
+
       const method = land?.id ? 'PUT' : 'POST';
+
+      const dataToSubmit = {
+        ...formData,
+        userId: userId,
+        role: userRole,
+      };
 
       const response = await fetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
+        body: JSON.stringify(dataToSubmit),
       });
 
       if (response.ok) {
         onSuccess();
         onOpenChange(false);
+      } else {
+        const errorData = await response.json();
+        alert(`Error: ${errorData.message || 'Failed to save industrial land'}`);
       }
     } catch (error) {
       console.error('Error saving industrial land:', error);
+      alert('An error occurred while saving the industrial land.');
     } finally {
       setLoading(false);
     }

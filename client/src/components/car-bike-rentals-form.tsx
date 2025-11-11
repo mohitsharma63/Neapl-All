@@ -113,8 +113,8 @@ function CarBikeRentalsForm() {
       isFeatured: false,
       driverAvailable: false,
       pickupDeliveryAvailable: false,
-      userId: user?.id,
-      role: user?.role,
+      userId: userId,
+      role: userRole,
     },
   });
 
@@ -148,7 +148,7 @@ function CarBikeRentalsForm() {
       if (userId) params.append('userId', userId.toString());
       if (userRole) params.append('role', userRole);
 
-      const response = await fetch(`/api/car-bike-rentals?${queryParams.toString()}`);
+      const response = await fetch(`/api/car-bike-rentals?${params.toString()}`);
       if (!response.ok) throw new Error("Failed to fetch rentals");
       return response.json();
     },
@@ -176,8 +176,8 @@ function CarBikeRentalsForm() {
         isFeatured: false,
         driverAvailable: false,
         pickupDeliveryAvailable: false,
-        userId: user?.id,
-        role: user?.role,
+        userId: userId,
+        role: userRole,
       });
       setImages([]);
       setDocuments([]);
@@ -189,8 +189,8 @@ function CarBikeRentalsForm() {
     mutationFn: async (data: CarBikeRentalFormData) => {
       const url = editingRental ? `/api/car-bike-rentals/${editingRental.id}` : "/api/car-bike-rentals";
       const method = editingRental ? "PUT" : "POST";
-      const userId = user?.id;
-      const userRole = user?.role;
+      const storedUser = localStorage.getItem("user");
+      const userData = storedUser ? JSON.parse(storedUser) : null;
 
       const response = await fetch(url, {
         method,
@@ -200,8 +200,9 @@ function CarBikeRentalsForm() {
           images,
           documents,
           features,
-          userId: userId,
-          role: userRole,
+          userId: userData?.id || userId,
+          role: userData?.role || userRole,
+          ownerId: userData?.id || userId,
         }),
       });
 

@@ -1,4 +1,3 @@
- 
 import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -18,6 +17,8 @@ interface HostelPgFormProps {
 }
 
 export function HostelPgForm({ open, onOpenChange, hostelPg, onSuccess }: HostelPgFormProps) {
+  const [userId, setUserId] = useState<string | null>(null);
+  const [userRole, setUserRole] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     name: "",
     description: "",
@@ -43,6 +44,29 @@ export function HostelPgForm({ open, onOpenChange, hostelPg, onSuccess }: Hostel
 
   const [newFacility, setNewFacility] = useState("");
   const [uploadingImage, setUploadingImage] = useState(false);
+
+  useEffect(() => {
+    // Try to get from localStorage first
+    let storedUserId = localStorage.getItem('userId');
+    let storedUserRole = localStorage.getItem('userRole');
+
+    // If not found, try getting from user object in localStorage
+    if (!storedUserId) {
+      const userStr = localStorage.getItem('user');
+      if (userStr) {
+        try {
+          const user = JSON.parse(userStr);
+          storedUserId = user.id;
+          storedUserRole = user.role;
+        } catch (error) {
+          console.error('Error parsing user from localStorage:', error);
+        }
+      }
+    }
+
+    setUserId(storedUserId);
+    setUserRole(storedUserRole);
+  }, []);
 
   useEffect(() => {
     if (hostelPg) {
@@ -96,26 +120,112 @@ export function HostelPgForm({ open, onOpenChange, hostelPg, onSuccess }: Hostel
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Validate userId and role
+    if (!userId || !userRole) {
+      alert("User information not found. Please login again.");
+      return;
+    }
+
+    // Validate required fields
+    if (!formData.name || !formData.name.trim()) {
+      alert("Please enter a name for the hostel/PG");
+      return;
+    }
+
+    if (!formData.pricePerMonth || formData.pricePerMonth === "") {
+      alert("Please enter the price per month");
+      return;
+    }
+
+    if (!formData.totalBeds || formData.totalBeds === "") {
+      alert("Please enter the total number of beds");
+      return;
+    }
+
+    if (!formData.availableBeds || formData.availableBeds === "") {
+      alert("Please enter the number of available beds");
+      return;
+    }
+
+    if (!formData.stateProvince || !formData.stateProvince.trim()) {
+      alert("Please enter the state/province");
+      return;
+    }
+
+    if (!formData.city || !formData.city.trim()) {
+      alert("Please enter the city");
+      return;
+    }
+
+    if (!formData.area || !formData.area.trim()) {
+      alert("Please enter the area");
+      return;
+    }
+
+    if (!formData.fullAddress || !formData.fullAddress.trim()) {
+      alert("Please enter the full address");
+      return;
+    }
+
+    if (!formData.contactPerson || !formData.contactPerson.trim()) {
+      alert("Please enter the contact person name");
+      return;
+    }
+
+    if (!formData.contactPhone || !formData.contactPhone.trim()) {
+      alert("Please enter the contact phone number");
+      return;
+    }
+
     try {
       const url = hostelPg
         ? `/api/admin/hostel-pg/${hostelPg.id}`
         : "/api/admin/hostel-pg";
       const method = hostelPg ? "PUT" : "POST";
 
+      const dataToSubmit = {
+        name: formData.name.trim(),
+        description: formData.description?.trim() || "",
+        pricePerMonth: formData.pricePerMonth,
+        hostelType: formData.hostelType,
+        roomType: formData.roomType,
+        totalBeds: formData.totalBeds,
+        availableBeds: formData.availableBeds,
+        facilities: formData.facilities,
+        foodIncluded: formData.foodIncluded,
+        images: formData.images,
+        rules: formData.rules?.trim() || "",
+        country: formData.country?.trim() || "India",
+        stateProvince: formData.stateProvince.trim(),
+        city: formData.city.trim(),
+        area: formData.area.trim(),
+        fullAddress: formData.fullAddress.trim(),
+        contactPerson: formData.contactPerson.trim(),
+        contactPhone: formData.contactPhone.trim(),
+        isActive: formData.isActive,
+        isFeatured: formData.isFeatured,
+        userId: userId,
+        role: userRole,
+        ownerId: userId,
+      };
+
       const response = await fetch(url, {
         method,
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
+        body: JSON.stringify(dataToSubmit),
       });
 
       if (!response.ok) {
-        throw new Error("Failed to save hostel/PG");
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Failed to save hostel/PG");
       }
 
       onSuccess();
       onOpenChange(false);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error saving hostel/PG:", error);
+      alert(error.message || "Failed to save hostel/PG. Please check all required fields.");
     }
   };
 
