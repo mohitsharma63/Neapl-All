@@ -77,6 +77,9 @@ import SareeClothingShoppingForm from "@/components/saree-clothing-shopping-form
 import PharmacyMedicalStoresForm from "@/components/pharmacy-medical-stores-form";
 import EbooksOnlineCoursesForm from "@/components/ebooks-online-courses-form";
 import CricketSportsTrainingForm from "@/components/cricket-sports-training-form"; // Assuming this component exists
+import JewelryAccessoriesForm from "@/components/jewelry-accessories-form";
+import HealthWellnessServicesForm from "@/components/health-wellness-services-form";
+
 
 // Educational Consultancy - Study Abroad Admissions Section Component
 function EducationalConsultancyStudyAbroadSection() {
@@ -1296,6 +1299,385 @@ function CricketSportsTrainingSection() {
   );
 }
 
+// Jewelry & Accessories Section Component
+function JewelryAccessoriesSection() {
+  const [items, setItems] = useState<any[]>([]);
+  const [showForm, setShowForm] = useState(false);
+  const [editingItem, setEditingItem] = useState<any>(null);
+
+  useEffect(() => {
+    fetchItems();
+  }, []);
+
+  const fetchItems = async () => {
+    try {
+      const response = await fetch('/api/admin/jewelry-accessories');
+      const data = await response.json();
+      setItems(Array.isArray(data) ? data : []);
+    } catch (error) {
+      console.error('Error fetching jewelry & accessories:', error);
+      setItems([]);
+    }
+  };
+
+  const handleSuccess = () => {
+    setShowForm(false);
+    setEditingItem(null);
+    fetchItems();
+  };
+
+  const handleEdit = (item: any) => {
+    setEditingItem(item);
+    setShowForm(true);
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!confirm('Are you sure you want to delete this item?')) return;
+    try {
+      const response = await fetch(`/api/admin/jewelry-accessories/${id}`, {
+        method: 'DELETE',
+      });
+      if (response.ok) {
+        fetchItems();
+      }
+    } catch (error) {
+      console.error('Error deleting item:', error);
+    }
+  };
+
+  const toggleActive = async (id: string) => {
+    try {
+      const response = await fetch(`/api/admin/jewelry-accessories/${id}/toggle-active`, {
+        method: 'PATCH',
+      });
+      if (response.ok) {
+        fetchItems();
+      }
+    } catch (error) {
+      console.error('Error toggling active status:', error);
+    }
+  };
+
+  const toggleFeatured = async (id: string) => {
+    try {
+      const response = await fetch(`/api/admin/jewelry-accessories/${id}/toggle-featured`, {
+        method: 'PATCH',
+      });
+      if (response.ok) {
+        fetchItems();
+      }
+    } catch (error) {
+      console.error('Error toggling featured status:', error);
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h2 className="text-2xl font-bold">Jewelry & Accessories</h2>
+          <p className="text-muted-foreground">Manage jewelry and accessory listings</p>
+        </div>
+        <Button onClick={() => setShowForm(true)}>
+          <Plus className="w-4 h-4 mr-2" />
+          Add Item
+        </Button>
+      </div>
+
+      <Dialog open={showForm} onOpenChange={setShowForm}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>{editingItem ? 'Edit Jewelry/Accessory Item' : 'Add New Jewelry/Accessory Item'}</DialogTitle>
+            <DialogDescription>Fill in the details to {editingItem ? 'update' : 'create'} a jewelry or accessory listing</DialogDescription>
+          </DialogHeader>
+          <JewelryAccessoriesForm onSuccess={handleSuccess} editingItem={editingItem} />
+        </DialogContent>
+      </Dialog>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+        {Array.isArray(items) && items.map((item) => (
+          <Card key={item.id} className="group hover:shadow-lg transition-shadow">
+            <CardHeader>
+              <div className="flex items-start justify-between">
+                <div className="flex-1">
+                  <CardTitle className="text-lg mb-2">{item.title}</CardTitle>
+                  <div className="flex gap-2 flex-wrap">
+                    <Badge variant="secondary">{item.category}</Badge>
+                    <Badge variant="outline">{item.listingType}</Badge>
+                    {item.isFeatured && <Badge className="bg-yellow-500">Featured</Badge>}
+                  </div>
+                </div>
+                <div className="flex gap-1">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8"
+                    onClick={() => handleEdit(item)}
+                  >
+                    <Edit className="w-4 h-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 text-destructive"
+                    onClick={() => handleDelete(item.id)}
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                {item.description && (
+                  <p className="text-sm text-muted-foreground line-clamp-2">{item.description}</p>
+                )}
+                <div className="flex items-center justify-between">
+                  <span className="font-semibold text-lg text-primary">₹{item.price}</span>
+                  <Badge variant={item.isActive ? 'default' : 'secondary'}>
+                    {item.isActive ? 'Active' : 'Inactive'}
+                  </Badge>
+                </div>
+                {item.brand && (
+                  <div className="text-sm">
+                    <span className="font-medium">Brand: </span>
+                    <span className="text-muted-foreground">{item.brand}</span>
+                  </div>
+                )}
+              </div>
+            </CardContent>
+            <CardFooter className="pt-0 flex gap-2">
+              <Button
+                variant={item.isActive ? "outline" : "default"}
+                size="sm"
+                className="flex-1"
+                onClick={() => toggleActive(item.id)}
+              >
+                {item.isActive ? "Deactivate" : "Activate"}
+              </Button>
+              <Button
+                variant={item.isFeatured ? "secondary" : "outline"}
+                size="sm"
+                className="flex-1"
+                onClick={() => toggleFeatured(item.id)}
+              >
+                {item.isFeatured ? "Unfeature" : "Feature"}
+              </Button>
+            </CardFooter>
+          </Card>
+        ))}
+      </div>
+
+      {(!items || items.length === 0) && (
+        <Card>
+          <CardContent className="py-12 text-center">
+            <Building className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
+            <h3 className="text-lg font-semibold mb-2">No Items Found</h3>
+            <p className="text-muted-foreground mb-4">Start by adding your first jewelry or accessory item</p>
+            <Button onClick={() => setShowForm(true)}>
+              <Plus className="w-4 h-4 mr-2" />
+              Add Item
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+    </div>
+  );
+}
+
+// Health & Wellness Services Section Component  
+function HealthWellnessServicesSection() {
+  const [services, setServices] = useState<any[]>([]);
+  const [showForm, setShowForm] = useState(false);
+  const [editingService, setEditingService] = useState<any>(null);
+
+  useEffect(() => {
+    fetchServices();
+  }, []);
+
+  const fetchServices = async () => {
+    try {
+      const response = await fetch('/api/admin/health-wellness-services');
+      const data = await response.json();
+      setServices(Array.isArray(data) ? data : []);
+    } catch (error) {
+      console.error('Error fetching health & wellness services:', error);
+      setServices([]);
+    }
+  };
+
+  const handleSuccess = () => {
+    setShowForm(false);
+    setEditingService(null);
+    fetchServices();
+  };
+
+  const handleEdit = (service: any) => {
+    setEditingService(service);
+    setShowForm(true);
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!confirm('Are you sure you want to delete this service?')) return;
+    try {
+      const response = await fetch(`/api/admin/health-wellness-services/${id}`, {
+        method: 'DELETE',
+      });
+      if (response.ok) {
+        fetchServices();
+      }
+    } catch (error) {
+      console.error('Error deleting service:', error);
+    }
+  };
+
+  const toggleActive = async (id: string) => {
+    try {
+      const response = await fetch(`/api/admin/health-wellness-services/${id}/toggle-active`, {
+        method: 'PATCH',
+      });
+      if (response.ok) {
+        fetchServices();
+      }
+    } catch (error) {
+      console.error('Error toggling active status:', error);
+    }
+  };
+
+  const toggleFeatured = async (id: string) => {
+    try {
+      const response = await fetch(`/api/admin/health-wellness-services/${id}/toggle-featured`, {
+        method: 'PATCH',
+      });
+      if (response.ok) {
+        fetchServices();
+      }
+    } catch (error) {
+      console.error('Error toggling featured status:', error);
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h2 className="text-2xl font-bold">Health & Wellness Services</h2>
+          <p className="text-muted-foreground">Manage health and wellness service providers</p>
+        </div>
+        <Button onClick={() => setShowForm(true)}>
+          <Plus className="w-4 h-4 mr-2" />
+          Add Service
+        </Button>
+      </div>
+
+      <Dialog open={showForm} onOpenChange={setShowForm}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>{editingService ? 'Edit Health & Wellness Service' : 'Add New Health & Wellness Service'}</DialogTitle>
+            <DialogDescription>Fill in the details to {editingService ? 'update' : 'create'} a health & wellness service listing</DialogDescription>
+          </DialogHeader>
+          <HealthWellnessServicesForm onSuccess={handleSuccess} editingService={editingService} />
+        </DialogContent>
+      </Dialog>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+        {Array.isArray(services) && services.map((service) => (
+          <Card key={service.id} className="group hover:shadow-lg transition-shadow">
+            <CardHeader>
+              <div className="flex items-start justify-between">
+                <div className="flex-1">
+                  <CardTitle className="text-lg mb-2">{service.title}</CardTitle>
+                  <div className="flex gap-2 flex-wrap">
+                    <Badge variant="secondary">{service.serviceType}</Badge>
+                    {service.specialization && <Badge variant="outline">{service.specialization}</Badge>}
+                    {service.isFeatured && <Badge className="bg-yellow-500">Featured</Badge>}
+                  </div>
+                </div>
+                <div className="flex gap-1">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8"
+                    onClick={() => handleEdit(service)}
+                  >
+                    <Edit className="w-4 h-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 text-destructive"
+                    onClick={() => handleDelete(service.id)}
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                {service.description && (
+                  <p className="text-sm text-muted-foreground line-clamp-2">{service.description}</p>
+                )}
+                <div className="flex items-center justify-between">
+                  {service.consultationFee && (
+                    <span className="font-semibold text-lg text-primary">₹{service.consultationFee}</span>
+                  )}
+                  <Badge variant={service.isActive ? 'default' : 'secondary'}>
+                    {service.isActive ? 'Active' : 'Inactive'}
+                  </Badge>
+                </div>
+                {service.doctorName && (
+                  <div className="text-sm">
+                    <span className="font-medium">Doctor: </span>
+                    <span className="text-muted-foreground">{service.doctorName}</span>
+                  </div>
+                )}
+                {service.city && (
+                  <div className="text-sm text-muted-foreground flex items-center gap-1">
+                    <MapPin className="w-3 h-3" />
+                    {service.city}
+                  </div>
+                )}
+              </div>
+            </CardContent>
+            <CardFooter className="pt-0 flex gap-2">
+              <Button
+                variant={service.isActive ? "outline" : "default"}
+                size="sm"
+                className="flex-1"
+                onClick={() => toggleActive(service.id)}
+              >
+                {service.isActive ? "Deactivate" : "Activate"}
+              </Button>
+              <Button
+                variant={service.isFeatured ? "secondary" : "outline"}
+                size="sm"
+                className="flex-1"
+                onClick={() => toggleFeatured(service.id)}
+              >
+                {service.isFeatured ? "Unfeature" : "Feature"}
+              </Button>
+            </CardFooter>
+          </Card>
+        ))}
+      </div>
+
+      {(!services || services.length === 0) && (
+        <Card>
+          <CardContent className="py-12 text-center">
+            <Building className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
+            <h3 className="text-lg font-semibold mb-2">No Services Found</h3>
+            <p className="text-muted-foreground mb-4">Start by adding your first health & wellness service</p>
+            <Button onClick={() => setShowForm(true)}>
+              <Plus className="w-4 h-4 mr-2" />
+              Add Service
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+    </div>
+  );
+}
 
 // Household Services Section Component
 function HouseholdServicesSection() {
@@ -3440,7 +3822,7 @@ function ConstructionMaterialsSection() {
               <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                 <div className="p-4 bg-muted rounded-lg">
                   <p className="text-sm text-muted-foreground">Price</p>
-                  <p className="text-lg font-bold text-primary">₹{viewingViewingMaterial.price}/{viewingMaterial.unit}</p>
+                  <p className="text-lg font-bold text-primary">₹{viewingMaterial.price}/{viewingMaterial.unit}</p>
                 </div>
                 {viewingMaterial.minimumOrder && (
                   <div className="p-4 bg-muted rounded-lg">
@@ -4528,7 +4910,13 @@ export default function AdminDashboard() {
         return <CricketSportsTrainingSection />;
       case "educational-consultancy-study-abroad":
         return <EducationalConsultancyStudyAbroadSection />;
-      default:
+      case "jewelry-&-accessories":
+      case "jewelry-accessories":
+        return <JewelryAccessoriesSection />;
+      case "health-&-wellness-services":
+      case "health-wellness-services":
+        return <HealthWellnessServicesSection />;
+            default:
         return <DashboardSection />;
     }
   };

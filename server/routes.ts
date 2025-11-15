@@ -39,6 +39,7 @@ import {
   ebooksOnlineCourses,
   cricketSportsTraining,
   // educationalConsultancyStudyAbroad,
+  pharmacyMedicalStores, // Import pharmacyMedicalStores
 } from "../shared/schema";
 import { eq, sql, desc } from "drizzle-orm";
 
@@ -1300,9 +1301,9 @@ export function registerRoutes(app: Express) {
     try {
       const { id } = req.params;
       const { userId, role, ...otherData } = req.body;
-      
-      const updateData = { 
-        ...otherData, 
+
+      const updateData = {
+        ...otherData,
         updatedAt: new Date()
       };
 
@@ -4858,6 +4859,167 @@ export function registerRoutes(app: Express) {
       res.status(500).json({ message: error.message });
     }
   });
+
+  // Pharmacy & Medical Stores Routes - Full CRUD
+  app.get("/api/admin/pharmacy-medical-stores", async (req, res) => {
+    try {
+      const { userId, role } = req.query;
+
+      let stores;
+
+      // If user is admin, fetch all stores
+      if (role === 'admin') {
+        stores = await db.query.pharmacyMedicalStores.findMany({
+          orderBy: desc(pharmacyMedicalStores.createdAt),
+        });
+      } else if (userId) {
+        // For non-admin users, filter by userId at database level
+        stores = await db.query.pharmacyMedicalStores.findMany({
+          where: eq(pharmacyMedicalStores.userId, userId as string),
+          orderBy: desc(pharmacyMedicalStores.createdAt),
+        });
+      } else {
+        // If no userId provided and not admin, return empty array
+        stores = [];
+      }
+
+      res.json(stores);
+    } catch (error: any) {
+      console.error('Error fetching pharmacy/medical stores:', error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // GET single pharmacy/medical store by ID
+  app.get("/api/admin/pharmacy-medical-stores/:id", async (req, res) => {
+    try {
+      const store = await db.query.pharmacyMedicalStores.findFirst({
+        where: eq(pharmacyMedicalStores.id, req.params.id),
+      });
+
+      if (!store) {
+        return res.status(404).json({ message: "Pharmacy/Medical store not found" });
+      }
+
+      res.json(store);
+    } catch (error: any) {
+      console.error('Error fetching pharmacy/medical store by ID:', error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // CREATE new pharmacy/medical store
+  app.post("/api/admin/pharmacy-medical-stores", async (req, res) => {
+    try {
+      const data = req.body;
+
+      // Ensure userId and role are included
+      const pharmacyData = {
+        ...data,
+        userId: data.userId || null,
+        role: data.role || null,
+      };
+
+      const [result] = await db.insert(pharmacyMedicalStores).values(pharmacyData).returning();
+      res.json(result);
+    } catch (error) {
+      console.error("Error creating pharmacy:", error);
+      res.status(500).json({ message: "Failed to create pharmacy", error: error.message });
+    }
+  });
+
+  // UPDATE pharmacy/medical store
+  app.put("/api/admin/pharmacy-medical-stores/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const updateData = { ...req.body, updatedAt: new Date() };
+
+      const [updatedStore] = await db
+        .update(pharmacyMedicalStores)
+        .set(updateData)
+        .where(eq(pharmacyMedicalStores.id, id))
+        .returning();
+
+      if (!updatedStore) {
+        return res.status(404).json({ message: "Pharmacy/Medical store not found" });
+      }
+
+      res.json(updatedStore);
+    } catch (error: any) {
+      console.error("Error updating pharmacy/medical store:", error);
+      res.status(400).json({ message: error.message });
+    }
+  });
+
+  // DELETE pharmacy/medical store
+  app.delete("/api/admin/pharmacy-medical-stores/:id", async (req, res) => {
+    try {
+      const deletedRows = await db
+        .delete(pharmacyMedicalStores)
+        .where(eq(pharmacyMedicalStores.id, req.params.id))
+        .returning();
+
+      if (deletedRows.length === 0) {
+        return res.status(404).json({ message: "Pharmacy/Medical store not found" });
+      }
+
+      res.json({ message: "Pharmacy/Medical store deleted successfully", id: req.params.id });
+    } catch (error: any) {
+      console.error("Error deleting pharmacy/medical store:", error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // PATCH - Toggle active status
+  app.patch("/api/admin/pharmacy-medical-stores/:id/toggle-active", async (req, res) => {
+    try {
+      const store = await db.query.pharmacyMedicalStores.findFirst({
+        where: eq(pharmacyMedicalStores.id, req.params.id),
+      });
+
+      if (!store) {
+        return res.status(404).json({ message: "Pharmacy/Medical store not found" });
+      }
+
+      const [updated] = await db
+        .update(pharmacyMedicalStores)
+        .set({ isActive: !store.isActive, updatedAt: new Date() })
+        .where(eq(pharmacyMedicalStores.id, req.params.id))
+        .returning();
+
+      res.json(updated);
+    } catch (error: any) {
+      console.error("Error toggling active status:", error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // PATCH - Toggle featured status
+  app.patch("/api/admin/pharmacy-medical-stores/:id/toggle-featured", async (req, res) => {
+    try {
+      const store = await db.query.pharmacyMedicalStores.findFirst({
+        where: eq(pharmacyMedicalStores.id, req.params.id),
+      });
+
+      if (!store) {
+        return res.status(404).json({ message: "Pharmacy/Medical store not found" });
+      }
+
+      const [updated] = await db
+        .update(pharmacyMedicalStores)
+        .set({ isFeatured: !store.isFeatured, updatedAt: new Date() })
+        .where(eq(pharmacyMedicalStores.id, req.params.id))
+        .returning();
+
+      res.json(updated);
+    } catch (error: any) {
+      console.error("Error toggling featured status:", error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Health & Wellness Services Routes - Commented out until schema is added
+  // Jewelry & Accessories Routes - Commented out until schema is added
 
   const httpServer = createServer(app);
   return httpServer;

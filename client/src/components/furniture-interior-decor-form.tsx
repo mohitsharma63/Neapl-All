@@ -1,5 +1,4 @@
-
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -69,7 +68,32 @@ interface FurnitureInteriorDecorFormProps {
 export default function FurnitureInteriorDecorForm({ editingItem, onSuccess }: FurnitureInteriorDecorFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [uploadingImages, setUploadingImages] = useState(false);
+  const [userId, setUserId] = useState<string | null>(null);
+  const [userRole, setUserRole] = useState<string | null>(null);
   const { toast } = useToast();
+
+  useEffect(() => {
+    // Get userId and role from localStorage
+    let storedUserId = localStorage.getItem('userId');
+    let storedUserRole = localStorage.getItem('userRole');
+
+    // If not found, try getting from user object in localStorage
+    if (!storedUserId) {
+      const userStr = localStorage.getItem('user');
+      if (userStr) {
+        try {
+          const user = JSON.parse(userStr);
+          storedUserId = user.id;
+          storedUserRole = user.role;
+        } catch (error) {
+          console.error('Error parsing user from localStorage:', error);
+        }
+      }
+    }
+
+    setUserId(storedUserId);
+    setUserRole(storedUserRole);
+  }, []);
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -214,6 +238,8 @@ export default function FurnitureInteriorDecorForm({ editingItem, onSuccess }: F
       // Convert empty strings to null for numeric fields
       const sanitizedData = {
         ...data,
+        userId,
+        role: userRole,
         price: data.price || null,
         originalPrice: data.originalPrice || null,
         rentalPricePerDay: data.rentalPricePerDay || null,

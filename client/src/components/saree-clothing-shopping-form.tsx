@@ -1,5 +1,4 @@
-
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm, useFieldArray } from "react-hook-form";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -198,6 +197,31 @@ export default function SareeClothingShoppingForm() {
   const [editingItem, setEditingItem] = useState<SareeProductApi | null>(null);
   const [viewingItem, setViewingItem] = useState<SareeProductApi | null>(null);
   const [uploadingImages, setUploadingImages] = useState(false);
+  const [userId, setUserId] = useState<string | null>(null);
+  const [userRole, setUserRole] = useState<string | null>(null);
+
+  useEffect(() => {
+    // Get userId and role from localStorage
+    let storedUserId = localStorage.getItem('userId');
+    let storedUserRole = localStorage.getItem('userRole');
+
+    // If not found, try getting from user object in localStorage
+    if (!storedUserId) {
+      const userStr = localStorage.getItem('user');
+      if (userStr) {
+        try {
+          const user = JSON.parse(userStr);
+          storedUserId = user.id;
+          storedUserRole = user.role;
+        } catch (error) {
+          console.error('Error parsing user from localStorage:', error);
+        }
+      }
+    }
+
+    setUserId(storedUserId);
+    setUserRole(storedUserRole);
+  }, []);
 
   const { register, handleSubmit, reset, setValue, watch, control } = useForm<SareeClothingFormData>({
     defaultValues: {
@@ -265,6 +289,8 @@ export default function SareeClothingShoppingForm() {
     mutationFn: async (data: SareeClothingFormData) => {
       const formattedData = {
         ...data,
+        userId,
+        role: userRole,
         price: data.price ? parseFloat(data.price.toString()) : 0,
         mrp: data.mrp ? parseFloat(data.mrp.toString()) : null,
         discountPercentage: data.discountPercentage ? parseFloat(data.discountPercentage.toString()) : null,
@@ -323,6 +349,8 @@ export default function SareeClothingShoppingForm() {
     mutationFn: async ({ id, data }: { id: string; data: SareeClothingFormData }) => {
       const formattedData = {
         ...data,
+        userId,
+        role: userRole,
         price: data.price ? parseFloat(data.price.toString()) : 0,
         mrp: data.mrp ? parseFloat(data.mrp.toString()) : null,
         discountPercentage: data.discountPercentage ? parseFloat(data.discountPercentage.toString()) : null,

@@ -1,5 +1,4 @@
-
-import { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -17,7 +16,32 @@ interface FashionBeautyProductsFormProps {
 export default function FashionBeautyProductsForm({ onSuccess }: FashionBeautyProductsFormProps) {
   const { register, handleSubmit, watch, setValue } = useForm();
   const [images, setImages] = useState<string[]>([]);
+  const [userId, setUserId] = useState<string | null>(null);
+  const [userRole, setUserRole] = useState<string | null>(null);
   const listingType = watch("listingType");
+
+  useEffect(() => {
+    // Get userId and role from localStorage
+    let storedUserId = localStorage.getItem('userId');
+    let storedUserRole = localStorage.getItem('userRole');
+
+    // If not found, try getting from user object in localStorage
+    if (!storedUserId) {
+      const userStr = localStorage.getItem('user');
+      if (userStr) {
+        try {
+          const user = JSON.parse(userStr);
+          storedUserId = user.id;
+          storedUserRole = user.role;
+        } catch (error) {
+          console.error('Error parsing user from localStorage:', error);
+        }
+      }
+    }
+
+    setUserId(storedUserId);
+    setUserRole(storedUserRole);
+  }, []);
 
   const onSubmit = async (data: any) => {
     try {
@@ -25,6 +49,8 @@ export default function FashionBeautyProductsForm({ onSuccess }: FashionBeautyPr
       const formattedData = {
         ...data,
         images,
+        userId,
+        role: userRole,
         price: data.price ? parseFloat(data.price) : null,
         mrp: data.mrp ? parseFloat(data.mrp) : null,
         discountPercentage: data.discountPercentage ? parseFloat(data.discountPercentage) : null,

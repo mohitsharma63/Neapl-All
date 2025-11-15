@@ -1,5 +1,4 @@
-
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -115,6 +114,8 @@ type PharmacyFormData = {
   isActive?: boolean;
   isFeatured?: boolean;
   isVerified?: boolean;
+  userId?: string | null; // Added userId
+  role?: string | null; // Added role
 };
 
 export default function PharmacyMedicalStoresForm() {
@@ -123,6 +124,31 @@ export default function PharmacyMedicalStoresForm() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingPharmacy, setEditingPharmacy] = useState<any>(null);
   const [viewingPharmacy, setViewingPharmacy] = useState<any>(null);
+  const [userId, setUserId] = useState<string | null>(null);
+  const [userRole, setUserRole] = useState<string | null>(null);
+
+  useEffect(() => {
+    // Get userId and role from localStorage
+    let storedUserId = localStorage.getItem('userId');
+    let storedUserRole = localStorage.getItem('userRole');
+
+    // If not found, try getting from user object in localStorage
+    if (!storedUserId) {
+      const userStr = localStorage.getItem('user');
+      if (userStr) {
+        try {
+          const user = JSON.parse(userStr);
+          storedUserId = user.id;
+          storedUserRole = user.role;
+        } catch (error) {
+          console.error('Error parsing user from localStorage:', error);
+        }
+      }
+    }
+
+    setUserId(storedUserId);
+    setUserRole(storedUserRole);
+  }, []);
 
   const { register, handleSubmit, reset, setValue, watch } = useForm<PharmacyFormData>();
 
@@ -213,10 +239,16 @@ export default function PharmacyMedicalStoresForm() {
   };
 
   const onSubmit = (data: PharmacyFormData) => {
+    const dataWithUser = {
+      ...data,
+      userId,
+      role: userRole,
+    };
+
     if (editingPharmacy) {
-      updateMutation.mutate({ id: editingPharmacy.id, data });
+      updateMutation.mutate({ id: editingPharmacy.id, data: dataWithUser });
     } else {
-      createMutation.mutate(data);
+      createMutation.mutate(dataWithUser);
     }
   };
 
