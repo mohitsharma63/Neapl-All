@@ -76,10 +76,15 @@ import FashionBeautyProductsForm from "@/components/fashion-beauty-products-form
 import SareeClothingShoppingForm from "@/components/saree-clothing-shopping-form"; // Assuming this component exists
 import PharmacyMedicalStoresForm from "@/components/pharmacy-medical-stores-form";
 import EbooksOnlineCoursesForm from "@/components/ebooks-online-courses-form";
-import CricketSportsTrainingForm from "@/components/cricket-sports-training-form"; // Assuming this component exists
+import CricketSportsTrainingForm from "@/components/cricket-sports-training-form";
 import JewelryAccessoriesForm from "@/components/jewelry-accessories-form";
 import HealthWellnessServicesForm from "@/components/health-wellness-services-form";
-
+import TuitionPrivateClassesForm from "@/components/tuition-private-classes-form";
+import DanceKarateGymYogaForm from "@/components/dance-karate-gym-yoga-form";
+import SchoolsCollegesCoachingForm from "@/components/schools-colleges-coaching-form";
+import LanguageClassesForm from "@/components/language-classes-form";
+import AcademiesMusicArtsSportsForm from "@/components/academies-music-arts-sports-form";
+import SkillTrainingCertificationForm from "@/components/skill-training-certification-form";
 
 // Educational Consultancy - Study Abroad Admissions Section Component
 function EducationalConsultancyStudyAbroadSection() {
@@ -4826,6 +4831,8 @@ export default function AdminDashboard() {
   const renderSection = () => {
     // Normalize the active section to handle different slug formats
     const normalizedSection = activeSection.toLowerCase().replace(/\s+/g, '-');
+    console.log('LanguageClassesForm loaded',normalizedSection);
+
     switch (normalizedSection) {
       case "dashboard":
         return <DashboardSection />;
@@ -4916,7 +4923,20 @@ export default function AdminDashboard() {
       case "health-&-wellness-services":
       case "health-wellness-services":
         return <HealthWellnessServicesSection />;
-            default:
+      case "tuitionprivatclasses":
+        return <TuitionPrivateClassesSection />;
+      case "dancekarategymyoga-classes":
+        return <DanceKarateGymYogaSection />;
+      case "schools,-colleges,-coaching-institutes":
+        return <SchoolsCollegesCoachingSection />;
+      case "languageclasses":
+        return <LanguageClassesSection />;
+      case "academies-music-arts-sports":
+      case "academies":
+        return <AcademiesMusicArtsSportsSection />;
+      case "skill-training--certification":
+        return <SkillTrainingCertificationSection />;
+      default:
         return <DashboardSection />;
     }
   };
@@ -4952,6 +4972,1008 @@ export default function AdminDashboard() {
         </SidebarInset>
       </div>
     </SidebarProvider>
+  );
+}
+
+// Tuition & Private Classes Section Component
+function TuitionPrivateClassesSection() {
+  const [classes, setClasses] = useState<any[]>([]);
+  const [showForm, setShowForm] = useState(false);
+  const [editingClass, setEditingClass] = useState(null);
+
+  useEffect(() => {
+    fetchClasses();
+  }, []);
+
+  const fetchClasses = async () => {
+    try {
+      const response = await fetch('/api/admin/tuition-private-classes');
+      const data = await response.json();
+      setClasses(Array.isArray(data) ? data : []);
+    } catch (error) {
+      console.error('Error fetching tuition classes:', error);
+      setClasses([]);
+    }
+  };
+
+  const handleSuccess = () => {
+    setShowForm(false);
+    setEditingClass(null);
+    fetchClasses();
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!confirm('Are you sure you want to delete this class?')) return;
+    try {
+      const response = await fetch(`/api/admin/tuition-private-classes/${id}`, {
+        method: 'DELETE',
+      });
+      if (response.ok) {
+        fetchClasses();
+      }
+    } catch (error) {
+      console.error('Error deleting class:', error);
+    }
+  };
+
+  const toggleActive = async (id: string) => {
+    try {
+      const response = await fetch(`/api/admin/tuition-private-classes/${id}/toggle-active`, {
+        method: 'PATCH',
+      });
+      if (response.ok) {
+        fetchClasses();
+      }
+    } catch (error) {
+      console.error('Error toggling active status:', error);
+    }
+  };
+
+  const toggleFeatured = async (id: string) => {
+    try {
+      const response = await fetch(`/api/admin/tuition-private-classes/${id}/toggle-featured`, {
+        method: 'PATCH',
+      });
+      if (response.ok) {
+        fetchClasses();
+      }
+    } catch (error) {
+      console.error('Error toggling featured status:', error);
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-2xl font-bold">Tuition & Private Classes</h2>
+          <p className="text-muted-foreground">Manage tuition and private class listings</p>
+        </div>
+        <Button onClick={() => setShowForm(true)}>
+          <Plus className="w-4 h-4 mr-2" />
+          Add Class
+        </Button>
+      </div>
+
+      <Dialog open={showForm} onOpenChange={setShowForm}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Add New Tuition/Private Class</DialogTitle>
+            <DialogDescription>Fill in the details to create a new class listing</DialogDescription>
+          </DialogHeader>
+          <TuitionPrivateClassesForm onSuccess={handleSuccess} editingClass={editingClass} />
+        </DialogContent>
+      </Dialog>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+        {Array.isArray(classes) && classes.map((classItem) => (
+          <Card key={classItem.id} className="group hover:shadow-lg transition-shadow">
+            <CardHeader>
+              <div className="flex items-start justify-between">
+                <div className="flex-1">
+                  <CardTitle className="text-lg mb-2">{classItem.title}</CardTitle>
+                  <div className="flex gap-2 flex-wrap">
+                    <Badge variant="secondary">{classItem.subjectCategory}</Badge>
+                    <Badge variant="outline">{classItem.teachingMode}</Badge>
+                    {classItem.isFeatured && <Badge className="bg-yellow-500">Featured</Badge>}
+                  </div>
+                </div>
+                <div className="flex gap-1">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 text-destructive"
+                    onClick={() => handleDelete(classItem.id)}
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                {classItem.description && (
+                  <p className="text-sm text-muted-foreground line-clamp-2">{classItem.description}</p>
+                )}
+                <div className="flex items-center justify-between">
+                  <span className="font-semibold text-lg text-primary">₹{classItem.feePerMonth || classItem.feePerHour}/month</span>
+                  <Badge variant={classItem.isActive ? 'default' : 'secondary'}>
+                    {classItem.isActive ? 'Active' : 'Inactive'}
+                  </Badge>
+                </div>
+              </div>
+            </CardContent>
+            <CardFooter className="pt-0 flex gap-2">
+              <Button
+                variant={classItem.isActive ? "outline" : "default"}
+                size="sm"
+                className="flex-1"
+                onClick={() => toggleActive(classItem.id)}
+              >
+                {classItem.isActive ? "Deactivate" : "Activate"}
+              </Button>
+              <Button
+                variant={classItem.isFeatured ? "secondary" : "outline"}
+                size="sm"
+                className="flex-1"
+                onClick={() => toggleFeatured(classItem.id)}
+              >
+                {classItem.isFeatured ? "Unfeature" : "Feature"}
+              </Button>
+            </CardFooter>
+          </Card>
+        ))}
+      </div>
+
+      {(!classes || classes.length === 0) && (
+        <Card>
+          <CardContent className="py-12 text-center">
+            <Building className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
+            <h3 className="text-lg font-semibold mb-2">No Classes Found</h3>
+            <p className="text-muted-foreground mb-4">Start by adding your first tuition/private class</p>
+            <Button onClick={() => setShowForm(true)}>
+              <Plus className="w-4 h-4 mr-2" />
+              Add Class
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+    </div>
+  );
+}
+
+// Dance, Karate, Gym, Yoga Section Component
+function DanceKarateGymYogaSection() {
+  const [classes, setClasses] = useState<any[]>([]);
+  const [showForm, setShowForm] = useState(false);
+  const [editingClass, setEditingClass] = useState(null);
+
+  useEffect(() => {
+    fetchClasses();
+  }, []);
+
+  const fetchClasses = async () => {
+    try {
+      const response = await fetch('/api/admin/dance-karate-gym-yoga');
+      const data = await response.json();
+      setClasses(Array.isArray(data) ? data : []);
+    } catch (error) {
+      console.error('Error fetching classes:', error);
+      setClasses([]);
+    }
+  };
+
+  const handleSuccess = () => {
+    setShowForm(false);
+    setEditingClass(null);
+    fetchClasses();
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!confirm('Are you sure you want to delete this class?')) return;
+    try {
+      const response = await fetch(`/api/admin/dance-karate-gym-yoga/${id}`, {
+        method: 'DELETE',
+      });
+      if (response.ok) {
+        fetchClasses();
+      }
+    } catch (error) {
+      console.error('Error deleting class:', error);
+    }
+  };
+
+  const toggleActive = async (id: string) => {
+    try {
+      const response = await fetch(`/api/admin/dance-karate-gym-yoga/${id}/toggle-active`, {
+        method: 'PATCH',
+      });
+      if (response.ok) {
+        fetchClasses();
+      }
+    } catch (error) {
+      console.error('Error toggling active status:', error);
+    }
+  };
+
+  const toggleFeatured = async (id: string) => {
+    try {
+      const response = await fetch(`/api/admin/dance-karate-gym-yoga/${id}/toggle-featured`, {
+        method: 'PATCH',
+      });
+      if (response.ok) {
+        fetchClasses();
+      }
+    } catch (error) {
+      console.error('Error toggling featured status:', error);
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-2xl font-bold">Dance, Karate, Gym & Yoga Classes</h2>
+          <p className="text-muted-foreground">Manage fitness and martial arts class listings</p>
+        </div>
+        <Button onClick={() => setShowForm(true)}>
+          <Plus className="w-4 h-4 mr-2" />
+          Add Class
+        </Button>
+      </div>
+
+      <Dialog open={showForm} onOpenChange={setShowForm}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Add New Fitness/Martial Arts Class</DialogTitle>
+            <DialogDescription>Fill in the details to create a new class listing</DialogDescription>
+          </DialogHeader>
+          <DanceKarateGymYogaForm onSuccess={handleSuccess} editingClass={editingClass} />
+        </DialogContent>
+      </Dialog>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+        {Array.isArray(classes) && classes.map((classItem) => (
+          <Card key={classItem.id} className="group hover:shadow-lg transition-shadow">
+            <CardHeader>
+              <div className="flex items-start justify-between">
+                <div className="flex-1">
+                  <CardTitle className="text-lg mb-2">{classItem.title}</CardTitle>
+                  <div className="flex gap-2 flex-wrap">
+                    <Badge variant="secondary">{classItem.classCategory}</Badge>
+                    <Badge variant="outline">{classItem.classType}</Badge>
+                    {classItem.isFeatured && <Badge className="bg-yellow-500">Featured</Badge>}
+                  </div>
+                </div>
+                <div className="flex gap-1">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 text-destructive"
+                    onClick={() => handleDelete(classItem.id)}
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                {classItem.description && (
+                  <p className="text-sm text-muted-foreground line-clamp-2">{classItem.description}</p>
+                )}
+                <div className="flex items-center justify-between">
+                  <span className="font-semibold text-lg text-primary">₹{classItem.feePerMonth}/month</span>
+                  <Badge variant={classItem.isActive ? 'default' : 'secondary'}>
+                    {classItem.isActive ? 'Active' : 'Inactive'}
+                  </Badge>
+                </div>
+              </div>
+            </CardContent>
+            <CardFooter className="pt-0 flex gap-2">
+              <Button
+                variant={classItem.isActive ? "outline" : "default"}
+                size="sm"
+                className="flex-1"
+                onClick={() => toggleActive(classItem.id)}
+              >
+                {classItem.isActive ? "Deactivate" : "Activate"}
+              </Button>
+              <Button
+                variant={classItem.isFeatured ? "secondary" : "outline"}
+                size="sm"
+                className="flex-1"
+                onClick={() => toggleFeatured(classItem.id)}
+              >
+                {classItem.isFeatured ? "Unfeature" : "Feature"}
+              </Button>
+            </CardFooter>
+          </Card>
+        ))}
+      </div>
+
+      {(!classes || classes.length === 0) && (
+        <Card>
+          <CardContent className="py-12 text-center">
+            <Building className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
+            <h3 className="text-lg font-semibold mb-2">No Classes Found</h3>
+            <p className="text-muted-foreground mb-4">Start by adding your first fitness/martial arts class</p>
+            <Button onClick={() => setShowForm(true)}>
+              <Plus className="w-4 h-4 mr-2" />
+              Add Class
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+    </div>
+  );
+}
+
+// Language Classes Section Component
+function LanguageClassesSection() {
+  const [classes, setClasses] = useState<any[]>([]);
+  const [showForm, setShowForm] = useState(false);
+
+  useEffect(() => {
+    fetchClasses();
+  }, []);
+
+  const fetchClasses = async () => {
+    try {
+      const response = await fetch('/api/admin/language-classes');
+      const data = await response.json();
+      setClasses(Array.isArray(data) ? data : []);
+    } catch (error) {
+      console.error('Error fetching language classes:', error);
+      setClasses([]);
+    }
+  };
+
+  const handleSuccess = () => {
+    setShowForm(false);
+    fetchClasses();
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!confirm('Are you sure you want to delete this class?')) return;
+    try {
+      const response = await fetch(`/api/admin/language-classes/${id}`, {
+        method: 'DELETE',
+      });
+      if (response.ok) {
+        fetchClasses();
+      }
+    } catch (error) {
+      console.error('Error deleting class:', error);
+    }
+  };
+
+  const toggleActive = async (id: string) => {
+    try {
+      const response = await fetch(`/api/admin/language-classes/${id}/toggle-active`, {
+        method: 'PATCH',
+      });
+      if (response.ok) {
+        fetchClasses();
+      }
+    } catch (error) {
+      console.error('Error toggling active status:', error);
+    }
+  };
+
+  const toggleFeatured = async (id: string) => {
+    try {
+      const response = await fetch(`/api/admin/language-classes/${id}/toggle-featured`, {
+        method: 'PATCH',
+      });
+      if (response.ok) {
+        fetchClasses();
+      }
+    } catch (error) {
+      console.error('Error toggling featured status:', error);
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-2xl font-bold">Language Classes</h2>
+          <p className="text-muted-foreground">Manage language learning class listings</p>
+        </div>
+        <Button onClick={() => setShowForm(true)}>
+          <Plus className="w-4 h-4 mr-2" />
+          Add Language Class
+        </Button>
+      </div>
+
+      <Dialog open={showForm} onOpenChange={setShowForm}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Add New Language Class</DialogTitle>
+            <DialogDescription>Fill in the details to create a new language class listing</DialogDescription>
+          </DialogHeader>
+          <LanguageClassesForm onSuccess={handleSuccess} editingClass={null} />
+        </DialogContent>
+      </Dialog>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+        {Array.isArray(classes) && classes.map((classItem) => (
+          <Card key={classItem.id} className="group hover:shadow-lg transition-shadow">
+            <CardHeader>
+              <div className="flex items-start justify-between">
+                <div className="flex-1">
+                  <CardTitle className="text-lg mb-2">{classItem.title}</CardTitle>
+                  <div className="flex gap-2 flex-wrap">
+                    <Badge variant="secondary">{classItem.languageName}</Badge>
+                    <Badge variant="outline">{classItem.proficiencyLevel}</Badge>
+                    {classItem.isFeatured && <Badge className="bg-yellow-500">Featured</Badge>}
+                  </div>
+                </div>
+                <div className="flex gap-1">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 text-destructive"
+                    onClick={() => handleDelete(classItem.id)}
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                {classItem.description && (
+                  <p className="text-sm text-muted-foreground line-clamp-2">{classItem.description}</p>
+                )}
+                <div className="flex items-center justify-between">
+                  <span className="font-semibold text-lg text-primary">₹{classItem.feePerMonth}/month</span>
+                  <Badge variant={classItem.isActive ? 'default' : 'secondary'}>
+                    {classItem.isActive ? 'Active' : 'Inactive'}
+                  </Badge>
+                </div>
+              </div>
+            </CardContent>
+            <CardFooter className="pt-0 flex gap-2">
+              <Button
+                variant={classItem.isActive ? "outline" : "default"}
+                size="sm"
+                className="flex-1"
+                onClick={() => toggleActive(classItem.id)}
+              >
+                {classItem.isActive ? "Deactivate" : "Activate"}
+              </Button>
+              <Button
+                variant={classItem.isFeatured ? "secondary" : "outline"}
+                size="sm"
+                className="flex-1"
+                onClick={() => toggleFeatured(classItem.id)}
+              >
+                {classItem.isFeatured ? "Unfeature" : "Feature"}
+              </Button>
+            </CardFooter>
+          </Card>
+        ))}
+      </div>
+
+      {(!classes || classes.length === 0) && (
+        <Card>
+          <CardContent className="py-12 text-center">
+            <Building className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
+            <h3 className="text-lg font-semibold mb-2">No Language Classes Found</h3>
+            <p className="text-muted-foreground mb-4">Start by adding your first language class</p>
+            <Button onClick={() => setShowForm(true)}>
+              <Plus className="w-4 h-4 mr-2" />
+              Add Language Class
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+    </div>
+  );
+}
+
+// Academies - Music, Arts, Sports Section Component
+function AcademiesMusicArtsSportsSection() {
+  const [academies, setAcademies] = useState<any[]>([]);
+  const [showForm, setShowForm] = useState(false);
+
+  useEffect(() => {
+    fetchAcademies();
+  }, []);
+
+  const fetchAcademies = async () => {
+    try {
+      const response = await fetch('/api/admin/academies-music-arts-sports');
+      const data = await response.json();
+      setAcademies(Array.isArray(data) ? data : []);
+    } catch (error) {
+      console.error('Error fetching academies:', error);
+      setAcademies([]);
+    }
+  };
+
+  const handleSuccess = () => {
+    setShowForm(false);
+    fetchAcademies();
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!confirm('Are you sure you want to delete this academy?')) return;
+    try {
+      const response = await fetch(`/api/admin/academies-music-arts-sports/${id}`, {
+        method: 'DELETE',
+      });
+      if (response.ok) {
+        fetchAcademies();
+      }
+    } catch (error) {
+      console.error('Error deleting academy:', error);
+    }
+  };
+
+  const toggleActive = async (id: string) => {
+    try {
+      const response = await fetch(`/api/admin/academies-music-arts-sports/${id}/toggle-active`, {
+        method: 'PATCH',
+      });
+      if (response.ok) {
+        fetchAcademies();
+      }
+    } catch (error) {
+      console.error('Error toggling active status:', error);
+    }
+  };
+
+  const toggleFeatured = async (id: string) => {
+    try {
+      const response = await fetch(`/api/admin/academies-music-arts-sports/${id}/toggle-featured`, {
+        method: 'PATCH',
+      });
+      if (response.ok) {
+        fetchAcademies();
+      }
+    } catch (error) {
+      console.error('Error toggling featured status:', error);
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-2xl font-bold">Academies - Music, Arts, Sports</h2>
+          <p className="text-muted-foreground">Manage academy listings</p>
+        </div>
+        <Button onClick={() => setShowForm(true)}>
+          <Plus className="w-4 h-4 mr-2" />
+          Add Academy
+        </Button>
+      </div>
+
+      <Dialog open={showForm} onOpenChange={setShowForm}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Add New Academy</DialogTitle>
+            <DialogDescription>Fill in the details to create a new academy listing</DialogDescription>
+          </DialogHeader>
+          <AcademiesMusicArtsSportsForm onSuccess={handleSuccess} editingAcademy={null} />
+        </DialogContent>
+      </Dialog>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+        {Array.isArray(academies) && academies.map((academy) => (
+          <Card key={academy.id} className="group hover:shadow-lg transition-shadow">
+            <CardHeader>
+              <div className="flex items-start justify-between">
+                <div className="flex-1">
+                  <CardTitle className="text-lg mb-2">{academy.title}</CardTitle>
+                  <div className="flex gap-2 flex-wrap">
+                    <Badge variant="secondary">{academy.academyCategory}</Badge>
+                    {academy.specialization && <Badge variant="outline">{academy.specialization}</Badge>}
+                    {academy.isFeatured && <Badge className="bg-yellow-500">Featured</Badge>}
+                  </div>
+                </div>
+                <div className="flex gap-1">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 text-destructive"
+                    onClick={() => handleDelete(academy.id)}
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                {academy.description && (
+                  <p className="text-sm text-muted-foreground line-clamp-2">{academy.description}</p>
+                )}
+                <div className="flex items-center justify-between">
+                  <span className="font-semibold text-lg text-primary">₹{academy.feePerMonth}/month</span>
+                  <Badge variant={academy.isActive ? 'default' : 'secondary'}>
+                    {academy.isActive ? 'Active' : 'Inactive'}
+                  </Badge>
+                </div>
+              </div>
+            </CardContent>
+            <CardFooter className="pt-0 flex gap-2">
+              <Button
+                variant={academy.isActive ? "outline" : "default"}
+                size="sm"
+                className="flex-1"
+                onClick={() => toggleActive(academy.id)}
+              >
+                {academy.isActive ? "Deactivate" : "Activate"}
+              </Button>
+              <Button
+                variant={academy.isFeatured ? "secondary" : "outline"}
+                size="sm"
+                className="flex-1"
+                onClick={() => toggleFeatured(academy.id)}
+              >
+                {academy.isFeatured ? "Unfeature" : "Feature"}
+              </Button>
+            </CardFooter>
+          </Card>
+        ))}
+      </div>
+
+      {(!academies || academies.length === 0) && (
+        <Card>
+          <CardContent className="py-12 text-center">
+            <Building className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
+            <h3 className="text-lg font-semibold mb-2">No Academies Found</h3>
+            <p className="text-muted-foreground mb-4">Start by adding your first academy</p>
+            <Button onClick={() => setShowForm(true)}>
+              <Plus className="w-4 h-4 mr-2" />
+              Add Academy
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+    </div>
+  );
+}
+
+// Skill Training & Certification Section Component
+function SkillTrainingCertificationSection() {
+  const [trainings, setTrainings] = useState<any[]>([]);
+  const [showForm, setShowForm] = useState(false);
+
+  useEffect(() => {
+    fetchTrainings();
+  }, []);
+
+  const fetchTrainings = async () => {
+    try {
+      const response = await fetch('/api/admin/skill-training-certification');
+      const data = await response.json();
+      setTrainings(Array.isArray(data) ? data : []);
+    } catch (error) {
+      console.error('Error fetching skill trainings:', error);
+      setTrainings([]);
+    }
+  };
+
+  const handleSuccess = () => {
+    setShowForm(false);
+    fetchTrainings();
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!confirm('Are you sure you want to delete this training?')) return;
+    try {
+      const response = await fetch(`/api/admin/skill-training-certification/${id}`, {
+        method: 'DELETE',
+      });
+      if (response.ok) {
+        fetchTrainings();
+      }
+    } catch (error) {
+      console.error('Error deleting training:', error);
+    }
+  };
+
+  const toggleActive = async (id: string) => {
+    try {
+      const response = await fetch(`/api/admin/skill-training-certification/${id}/toggle-active`, {
+        method: 'PATCH',
+      });
+      if (response.ok) {
+        fetchTrainings();
+      }
+    } catch (error) {
+      console.error('Error toggling active status:', error);
+    }
+  };
+
+  const toggleFeatured = async (id: string) => {
+    try {
+      const response = await fetch(`/api/admin/skill-training-certification/${id}/toggle-featured`, {
+        method: 'PATCH',
+      });
+      if (response.ok) {
+        fetchTrainings();
+      }
+    } catch (error) {
+      console.error('Error toggling featured status:', error);
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-2xl font-bold">Skill Training & Certification</h2>
+          <p className="text-muted-foreground">Manage skill training and certification programs</p>
+        </div>
+        <Button onClick={() => setShowForm(true)}>
+          <Plus className="w-4 h-4 mr-2" />
+          Add Training Program
+        </Button>
+      </div>
+
+      <Dialog open={showForm} onOpenChange={setShowForm}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Add New Training Program</DialogTitle>
+            <DialogDescription>Fill in the details to create a new skill training & certification program</DialogDescription>
+          </DialogHeader>
+          <SkillTrainingCertificationForm onSuccess={handleSuccess} editingTraining={null} />
+        </DialogContent>
+      </Dialog>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+        {Array.isArray(trainings) && trainings.map((training) => (
+          <Card key={training.id} className="group hover:shadow-lg transition-shadow">
+            <CardHeader>
+              <div className="flex items-start justify-between">
+                <div className="flex-1">
+                  <CardTitle className="text-lg mb-2">{training.title}</CardTitle>
+                  <div className="flex gap-2 flex-wrap">
+                    <Badge variant="secondary">{training.skillCategory}</Badge>
+                    <Badge variant="outline">{training.trainingType}</Badge>
+                    {training.isFeatured && <Badge className="bg-yellow-500">Featured</Badge>}
+                  </div>
+                </div>
+                <div className="flex gap-1">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 text-destructive"
+                    onClick={() => handleDelete(training.id)}
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                {training.description && (
+                  <p className="text-sm text-muted-foreground line-clamp-2">{training.description}</p>
+                )}
+                <div className="flex items-center justify-between">
+                  <span className="font-semibold text-lg text-primary">₹{training.totalFee}</span>
+                  <Badge variant={training.isActive ? 'default' : 'secondary'}>
+                    {training.isActive ? 'Active' : 'Inactive'}
+                  </Badge>
+                </div>
+              </div>
+            </CardContent>
+            <CardFooter className="pt-0 flex gap-2">
+              <Button
+                variant={training.isActive ? "outline" : "default"}
+                size="sm"
+                className="flex-1"
+                onClick={() => toggleActive(training.id)}
+              >
+                {training.isActive ? "Deactivate" : "Activate"}
+              </Button>
+              <Button
+                variant={training.isFeatured ? "secondary" : "outline"}
+                size="sm"
+                className="flex-1"
+                onClick={() => toggleFeatured(training.id)}
+              >
+                {training.isFeatured ? "Unfeature" : "Feature"}
+              </Button>
+            </CardFooter>
+          </Card>
+        ))}
+      </div>
+
+      {(!trainings || trainings.length === 0) && (
+        <Card>
+          <CardContent className="py-12 text-center">
+            <Building className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
+            <h3 className="text-lg font-semibold mb-2">No Training Programs Found</h3>
+            <p className="text-muted-foreground mb-4">Start by adding your first skill training program</p>
+            <Button onClick={() => setShowForm(true)}>
+              <Plus className="w-4 h-4 mr-2" />
+              Add Training Program
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+    </div>
+  );
+}
+
+// Schools, Colleges & Coaching Institutes Section Component
+function SchoolsCollegesCoachingSection() {
+  const [institutions, setInstitutions] = useState<any[]>([]);
+  const [showForm, setShowForm] = useState(false);
+
+  useEffect(() => {
+    fetchInstitutions();
+  }, []);
+
+  const fetchInstitutions = async () => {
+    try {
+      const response = await fetch('/api/admin/schools-colleges-coaching');
+      const data = await response.json();
+      setInstitutions(Array.isArray(data) ? data : []);
+    } catch (error) {
+      console.error('Error fetching institutions:', error);
+      setInstitutions([]);
+    }
+  };
+
+  const handleSuccess = () => {
+    setShowForm(false);
+    fetchInstitutions();
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!confirm('Are you sure you want to delete this institution?')) return;
+    try {
+      const response = await fetch(`/api/admin/schools-colleges-coaching/${id}`, {
+        method: 'DELETE',
+      });
+      if (response.ok) {
+        fetchInstitutions();
+      }
+    } catch (error) {
+      console.error('Error deleting institution:', error);
+    }
+  };
+
+  const toggleActive = async (id: string) => {
+    try {
+      const response = await fetch(`/api/admin/schools-colleges-coaching/${id}/toggle-active`, {
+        method: 'PATCH',
+      });
+      if (response.ok) {
+        fetchInstitutions();
+      }
+    } catch (error) {
+      console.error('Error toggling active status:', error);
+    }
+  };
+
+  const toggleFeatured = async (id: string) => {
+    try {
+      const response = await fetch(`/api/admin/schools-colleges-coaching/${id}/toggle-featured`, {
+        method: 'PATCH',
+      });
+      if (response.ok) {
+        fetchInstitutions();
+      }
+    } catch (error) {
+      console.error('Error toggling featured status:', error);
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-2xl font-bold">Schools, Colleges & Coaching Institutes</h2>
+          <p className="text-muted-foreground">Manage educational institution listings</p>
+        </div>
+        <Button onClick={() => setShowForm(true)}>
+          <Plus className="w-4 h-4 mr-2" />
+          Add Institution
+        </Button>
+      </div>
+
+      <Dialog open={showForm} onOpenChange={setShowForm}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Add New Educational Institution</DialogTitle>
+            <DialogDescription>Fill in the details to create a new institution listing</DialogDescription>
+          </DialogHeader>
+          <SchoolsCollegesCoachingForm onSuccess={handleSuccess} />
+        </DialogContent>
+      </Dialog>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+        {Array.isArray(institutions) && institutions.map((institution) => (
+          <Card key={institution.id} className="group hover:shadow-lg transition-shadow">
+            <CardHeader>
+              <div className="flex items-start justify-between">
+                <div className="flex-1">
+                  <CardTitle className="text-lg mb-2">{institution.institutionName}</CardTitle>
+                  <div className="flex gap-2 flex-wrap">
+                    <Badge variant="secondary">{institution.listingType}</Badge>
+                    <Badge variant="outline">{institution.institutionType}</Badge>
+                    {institution.isFeatured && <Badge className="bg-yellow-500">Featured</Badge>}
+                  </div>
+                </div>
+                <div className="flex gap-1">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 text-destructive"
+                    onClick={() => handleDelete(institution.id)}
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                {institution.description && (
+                  <p className="text-sm text-muted-foreground line-clamp-2">{institution.description}</p>
+                )}
+                <div className="flex items-center justify-between">
+                  {institution.annualTuitionFee && (
+                    <span className="font-semibold text-lg text-primary">₹{institution.annualTuitionFee}/year</span>
+                  )}
+                  <Badge variant={institution.isActive ? 'default' : 'secondary'}>
+                    {institution.isActive ? 'Active' : 'Inactive'}
+                  </Badge>
+                </div>
+                {institution.city && (
+                  <div className="text-sm text-muted-foreground flex items-center gap-1">
+                    <MapPin className="w-3 h-3" />
+                    {institution.city}
+                  </div>
+                )}
+              </div>
+            </CardContent>
+            <CardFooter className="pt-0 flex gap-2">
+              <Button
+                variant={institution.isActive ? "outline" : "default"}
+                size="sm"
+                className="flex-1"
+                onClick={() => toggleActive(institution.id)}
+              >
+                {institution.isActive ? "Deactivate" : "Activate"}
+              </Button>
+              <Button
+                variant={institution.isFeatured ? "secondary" : "outline"}
+                size="sm"
+                className="flex-1"
+                onClick={() => toggleFeatured(institution.id)}
+              >
+                {institution.isFeatured ? "Unfeature" : "Feature"}
+              </Button>
+            </CardFooter>
+          </Card>
+        ))}
+      </div>
+
+      {(!institutions || institutions.length === 0) && (
+        <Card>
+          <CardContent className="py-12 text-center">
+            <Building className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
+            <h3 className="text-lg font-semibold mb-2">No Institutions Found</h3>
+            <p className="text-muted-foreground mb-4">Start by adding your first educational institution</p>
+            <Button onClick={() => setShowForm(true)}>
+              <Plus className="w-4 h-4 mr-2" />
+              Add Institution
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+    </div>
   );
 }
 
@@ -5331,7 +6353,7 @@ function FurnitureInteriorDecorSection() {
 
       {/* View Details Dialog */}
       <Dialog open={showDetailsDialog} onOpenChange={setShowDetailsDialog}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-4xl max-h-[90vhoverflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-2xl">{viewingItem?.title}</DialogTitle>
             <DialogDescription>Complete furniture/decor item details</DialogDescription>
@@ -5417,3 +6439,4 @@ function FurnitureInteriorDecorSection() {
     </div>
   );
 }
+  
