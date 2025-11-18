@@ -5096,6 +5096,261 @@ export function registerRoutes(app: Express) {
     }
   });
 
+  // Academies - Music, Arts, Sports Routes - Full CRUD
+
+  // GET all academies
+  app.get("/api/admin/academies-music-arts-sports", async (req, res) => {
+    try {
+      const { userId, role } = req.query;
+
+      let academies;
+
+      // If user is admin, fetch all academies
+      if (role === 'admin') {
+        academies = await db.query.academiesMusicArtsSports.findMany({
+          orderBy: desc(academiesMusicArtsSports.createdAt),
+        });
+      } else if (userId) {
+        // For non-admin users, filter by userId at database level
+        academies = await db.query.academiesMusicArtsSports.findMany({
+          where: eq(academiesMusicArtsSports.userId, userId as string),
+          orderBy: desc(academiesMusicArtsSports.createdAt),
+        });
+      } else {
+        // If no userId provided and not admin, return empty array
+        academies = [];
+      }
+
+      console.log(`Fetched ${academies.length} academies for user ${userId} with role ${role}`);
+      res.json(academies);
+    } catch (error: any) {
+      console.error('Error fetching academies:', error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // GET single academy by ID
+  app.get("/api/admin/academies-music-arts-sports/:id", async (req, res) => {
+    try {
+      const academy = await db.query.academiesMusicArtsSports.findFirst({
+        where: eq(academiesMusicArtsSports.id, req.params.id),
+      });
+
+      if (!academy) {
+        return res.status(404).json({ message: "Academy not found" });
+      }
+
+      res.json(academy);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // CREATE new academy
+  app.post("/api/admin/academies-music-arts-sports", async (req, res) => {
+    try {
+      const {
+        title,
+        description,
+        academyCategory,
+        specialization,
+        establishedYear,
+        coursesOffered,
+        classType,
+        ageGroup,
+        courseDurationMonths,
+        feePerMonth,
+        admissionFee,
+        instrumentRentalFee,
+        certificationOffered,
+        freeTrialClass,
+        facilities,
+        airConditioned,
+        parkingAvailable,
+        changingRooms,
+        equipmentProvided,
+        headInstructor,
+        totalInstructors,
+        instructorQualification,
+        awardsAchievements,
+        contactPerson,
+        contactPhone,
+        contactEmail,
+        website,
+        country,
+        stateProvince,
+        city,
+        areaName,
+        fullAddress,
+        isActive,
+        isFeatured,
+        userId,
+        role,
+      } = req.body;
+
+      // Validate required fields
+      if (!title || !academyCategory || !feePerMonth || !contactPerson || !contactPhone || !fullAddress) {
+        return res.status(400).json({
+          message: "Missing required fields: title, academyCategory, feePerMonth, contactPerson, contactPhone, fullAddress"
+        });
+      }
+
+      if (!userId) {
+        return res.status(400).json({
+          message: "userId is required"
+        });
+      }
+
+      const [newAcademy] = await db
+        .insert(academiesMusicArtsSports)
+        .values({
+          title,
+          description: description || null,
+          academyCategory,
+          specialization: specialization || null,
+          establishedYear: establishedYear ? parseInt(establishedYear.toString()) : null,
+          coursesOffered: coursesOffered || [],
+          classType: classType || null,
+          ageGroup: ageGroup || null,
+          courseDurationMonths: courseDurationMonths ? parseInt(courseDurationMonths.toString()) : null,
+          feePerMonth: parseFloat(feePerMonth.toString()),
+          admissionFee: admissionFee ? parseFloat(admissionFee.toString()) : null,
+          instrumentRentalFee: instrumentRentalFee ? parseFloat(instrumentRentalFee.toString()) : null,
+          certificationOffered: certificationOffered || false,
+          freeTrialClass: freeTrialClass || false,
+          facilities: facilities || [],
+          airConditioned: airConditioned || false,
+          parkingAvailable: parkingAvailable || false,
+          changingRooms: changingRooms || false,
+          equipmentProvided: equipmentProvided || false,
+          headInstructor: headInstructor || null,
+          totalInstructors: totalInstructors ? parseInt(totalInstructors.toString()) : null,
+          instructorQualification: instructorQualification || null,
+          awardsAchievements: awardsAchievements || null,
+          contactPerson,
+          contactPhone,
+          contactEmail: contactEmail || null,
+          website: website || null,
+          country: country || "India",
+          stateProvince: stateProvince || null,
+          city: city || null,
+          areaName: areaName || null,
+          fullAddress,
+          isActive: isActive !== undefined ? isActive : true,
+          isFeatured: isFeatured || false,
+          userId: userId,
+          role: role || 'user',
+        })
+        .returning();
+
+      res.status(201).json(newAcademy);
+    } catch (error: any) {
+      console.error("Error creating academy:", error);
+      res.status(400).json({ message: error.message });
+    }
+  });
+
+  // UPDATE academy
+  app.put("/api/admin/academies-music-arts-sports/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { userId, role, ...otherData } = req.body;
+
+      if (!userId) {
+        return res.status(400).json({ message: "userId is required" });
+      }
+
+      const updateData = {
+        ...otherData,
+        userId: userId,
+        role: role || 'user',
+        updatedAt: new Date()
+      };
+
+      const [updatedAcademy] = await db
+        .update(academiesMusicArtsSports)
+        .set(updateData)
+        .where(eq(academiesMusicArtsSports.id, id))
+        .returning();
+
+      if (!updatedAcademy) {
+        return res.status(404).json({ message: "Academy not found" });
+      }
+
+      res.json(updatedAcademy);
+    } catch (error: any) {
+      console.error("Error updating academy:", error);
+      res.status(400).json({ message: error.message });
+    }
+  });
+
+  // DELETE academy
+  app.delete("/api/admin/academies-music-arts-sports/:id", async (req, res) => {
+    try {
+      const deletedRows = await db
+        .delete(academiesMusicArtsSports)
+        .where(eq(academiesMusicArtsSports.id, req.params.id))
+        .returning();
+
+      if (deletedRows.length === 0) {
+        return res.status(404).json({ message: "Academy not found" });
+      }
+
+      res.json({ message: "Academy deleted successfully", id: req.params.id });
+    } catch (error: any) {
+      console.error("Error deleting academy:", error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // PATCH - Toggle active status
+  app.patch("/api/admin/academies-music-arts-sports/:id/toggle-active", async (req, res) => {
+    try {
+      const academy = await db.query.academiesMusicArtsSports.findFirst({
+        where: eq(academiesMusicArtsSports.id, req.params.id),
+      });
+
+      if (!academy) {
+        return res.status(404).json({ message: "Academy not found" });
+      }
+
+      const [updated] = await db
+        .update(academiesMusicArtsSports)
+        .set({ isActive: !academy.isActive, updatedAt: new Date() })
+        .where(eq(academiesMusicArtsSports.id, req.params.id))
+        .returning();
+
+      res.json(updated);
+    } catch (error: any) {
+      console.error("Error toggling active status:", error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // PATCH - Toggle featured status
+  app.patch("/api/admin/academies-music-arts-sports/:id/toggle-featured", async (req, res) => {
+    try {
+      const academy = await db.query.academiesMusicArtsSports.findFirst({
+        where: eq(academiesMusicArtsSports.id, req.params.id),
+      });
+
+      if (!academy) {
+        return res.status(404).json({ message: "Academy not found" });
+      }
+
+      const [updated] = await db
+        .update(academiesMusicArtsSports)
+        .set({ isFeatured: !academy.isFeatured, updatedAt: new Date() })
+        .where(eq(academiesMusicArtsSports.id, req.params.id))
+        .returning();
+
+      res.json(updated);
+    } catch (error: any) {
+      console.error("Error toggling featured status:", error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+
   // Tuition & Private Classes Routes - Full CRUD
 
   // GET all tuition classes
@@ -5607,26 +5862,84 @@ export function registerRoutes(app: Express) {
   app.post("/api/admin/language-classes", async (req, res) => {
     try {
       const {
+        title,
+        description,
+        listingType,
+        languageName,
+        proficiencyLevel,
+        courseDurationMonths,
+        classesPerWeek,
+        classDurationHours,
+        teachingMode,
+        classType,
+        batchSize,
+        instructorName,
+        instructorQualification,
+        instructorExperience,
+        nativeSpeaker,
+        feePerMonth,
+        registrationFee,
+        totalCourseFee,
         studyMaterialsProvided,
         certificationProvided,
         freeDemoClass,
-        nativeSpeaker,
+        contactPerson,
+        contactPhone,
+        contactEmail,
+        country,
+        stateProvince,
+        city,
+        areaName,
+        fullAddress,
         isActive,
         isFeatured,
-        ...otherData
+        userId,
+        role,
       } = req.body;
+
+      // Validate required fields
+      if (!title || !languageName || !proficiencyLevel || !courseDurationMonths || !feePerMonth || !contactPerson || !contactPhone) {
+        return res.status(400).json({
+          message: "Missing required fields: title, languageName, proficiencyLevel, courseDurationMonths, feePerMonth, contactPerson, contactPhone"
+        });
+      }
 
       const [newClass] = await db
         .insert(languageClasses)
         .values({
-          ...otherData,
+          title,
+          description: description || null,
+          listingType: listingType || "language_class",
+          languageName,
+          proficiencyLevel,
+          courseDurationMonths: courseDurationMonths ? parseInt(courseDurationMonths.toString()) : null,
+          classesPerWeek: classesPerWeek ? parseInt(classesPerWeek.toString()) : null,
+          classDurationHours: classDurationHours ? parseFloat(classDurationHours.toString()) : null,
+          teachingMode: teachingMode || null,
+          classType: classType || null,
+          batchSize: batchSize ? parseInt(batchSize.toString()) : null,
+          instructorName: instructorName || null,
+          instructorQualification: instructorQualification || null,
+          instructorExperience: instructorExperience ? parseInt(instructorExperience.toString()) : null,
+          nativeSpeaker: nativeSpeaker === true || nativeSpeaker === "true",
+          feePerMonth: feePerMonth ? parseFloat(feePerMonth.toString()) : null,
+          registrationFee: registrationFee ? parseFloat(registrationFee.toString()) : null,
+          totalCourseFee: totalCourseFee ? parseFloat(totalCourseFee.toString()) : null,
           studyMaterialsProvided: Array.isArray(studyMaterialsProvided) ? studyMaterialsProvided : [],
-          certificationProvided: Boolean(certificationProvided),
-          freeDemoClass: Boolean(freeDemoClass),
-          nativeSpeaker: Boolean(nativeSpeaker),
-          isActive: isActive !== false,
-          isFeatured: Boolean(isFeatured),
-          country: otherData.country || "India",
+          certificationProvided: certificationProvided === true || certificationProvided === "true",
+          freeDemoClass: freeDemoClass === true || freeDemoClass === "true",
+          contactPerson,
+          contactPhone,
+          contactEmail: contactEmail || null,
+          country: country || "India",
+          stateProvince: stateProvince || null,
+          city: city || null,
+          areaName: areaName || null,
+          fullAddress: fullAddress || null,
+          isActive: isActive === true || isActive === "true",
+          isFeatured: isFeatured === true || isFeatured === "true",
+          userId: userId || null,
+          role: role || null,
         })
         .returning();
 
@@ -5769,7 +6082,7 @@ export function registerRoutes(app: Express) {
       res.json(services);
     } catch (error: any) {
       console.error('Error fetching health wellness services:', error);
-      res.status(500).json({ message: error.message });
+      res.status(500).json({message: error.message });
     }
   });
 

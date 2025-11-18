@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { Button } from "@/components/ui/button";
@@ -10,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Plus, X } from "lucide-react";
+import { useUser } from "@/hooks/use-user";
 
 interface AcademiesMusicArtsSportsFormProps {
   onSuccess: () => void;
@@ -17,6 +17,7 @@ interface AcademiesMusicArtsSportsFormProps {
 }
 
 export default function AcademiesMusicArtsSportsForm({ onSuccess, editingAcademy }: AcademiesMusicArtsSportsFormProps) {
+  const { user } = useUser();
   const { register, handleSubmit, setValue, watch } = useForm({
     defaultValues: editingAcademy || {
       academyCategory: "music",
@@ -33,10 +34,10 @@ export default function AcademiesMusicArtsSportsForm({ onSuccess, editingAcademy
 
   const onSubmit = async (data: any) => {
     try {
-      const url = editingAcademy 
+      const url = editingAcademy
         ? `/api/admin/academies-music-arts-sports/${editingAcademy.id}`
         : '/api/admin/academies-music-arts-sports';
-      
+
       const response = await fetch(url, {
         method: editingAcademy ? 'PUT' : 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -44,14 +45,21 @@ export default function AcademiesMusicArtsSportsForm({ onSuccess, editingAcademy
           ...data,
           coursesOffered,
           facilities,
+          userId: user?.id,
+          role: user?.role || 'user',
         }),
       });
 
       if (response.ok) {
         onSuccess();
+      } else {
+        const errorData = await response.json();
+        console.error('Error response:', errorData);
+        alert(errorData.message || 'Failed to save academy');
       }
     } catch (error) {
       console.error('Error saving academy:', error);
+      alert('Failed to save academy');
     }
   };
 
