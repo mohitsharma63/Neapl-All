@@ -85,6 +85,7 @@ import SchoolsCollegesCoachingForm from "@/components/schools-colleges-coaching-
 import LanguageClassesForm from "@/components/language-classes-form";
 import AcademiesMusicArtsSportsForm from "@/components/academies-music-arts-sports-form";
 import SkillTrainingCertificationForm from "@/components/skill-training-certification-form";
+import { useUser } from '@/hooks/use-user';
 
 // Educational Consultancy - Study Abroad Admissions Section Component
 function EducationalConsultancyStudyAbroadSection() {
@@ -1490,7 +1491,7 @@ function JewelryAccessoriesSection() {
   );
 }
 
-// Health & Wellness Services Section Component  
+// Health & Wellness Services Section Component
 function HealthWellnessServicesSection() {
   const [services, setServices] = useState<any[]>([]);
   const [showForm, setShowForm] = useState(false);
@@ -2258,7 +2259,7 @@ function AppSidebar({ activeSection, setActiveSection }: { activeSection: string
                     tooltip={item.title}
                     isActive={activeSection === item.key}
                     className={`
-                      w-full justify-start cursor-pointer rounded-lg transition-all duration-200
+                      w-full justify-start rounded-lg transition-all duration-200
                       ${activeSection === item.key
                         ? 'bg-gradient-to-r from-blue-600 to-green-600 text-white shadow-md hover:shadow-lg'
                         : 'hover:bg-muted/80'
@@ -2294,7 +2295,7 @@ function AppSidebar({ activeSection, setActiveSection }: { activeSection: string
                           tooltip={category.name}
                           isActive={activeSection === category.slug}
                           className={`
-                            w-full justify-start cursor-pointer rounded-lg transition-all duration-200
+                            w-full justify-start rounded-lg transition-all duration-200
                             ${activeSection === category.slug
                               ? 'bg-gradient-to-r from-blue-600 to-green-600 text-white shadow-md'
                               : 'hover:bg-muted/80'
@@ -2369,7 +2370,7 @@ function AppSidebar({ activeSection, setActiveSection }: { activeSection: string
                   tooltip="Users"
                   isActive={activeSection === "users"}
                   className={`
-                    w-full justify-start cursor-pointer rounded-lg transition-all duration-200
+                    w-full justify-start rounded-lg transition-all duration-200
                     ${activeSection === "users"
                       ? 'bg-gradient-to-r from-blue-600 to-green-600 text-white shadow-md'
                       : 'hover:bg-muted/80'
@@ -2386,7 +2387,7 @@ function AppSidebar({ activeSection, setActiveSection }: { activeSection: string
                   tooltip="Agencies"
                   isActive={activeSection === "agencies"}
                   className={`
-                    w-full justify-start cursor-pointer rounded-lg transition-all duration-200
+                    w-full justify-start rounded-lg transition-all duration-200
                     ${activeSection === "agencies"
                       ? 'bg-gradient-to-r from-blue-600 to-green-600 text-white shadow-md'
                       : 'hover:bg-muted/80'
@@ -2403,7 +2404,7 @@ function AppSidebar({ activeSection, setActiveSection }: { activeSection: string
                   tooltip="Analytics"
                   isActive={activeSection === "analytics"}
                   className={`
-                    w-full justify-start cursor-pointer rounded-lg transition-all duration-200
+                    w-full justify-start rounded-lg transition-all duration-200
                     ${activeSection === "analytics"
                       ? 'bg-gradient-to-r from-blue-600 to-green-600 text-white shadow-md'
                       : 'hover:bg-muted/80'
@@ -2420,7 +2421,7 @@ function AppSidebar({ activeSection, setActiveSection }: { activeSection: string
                   tooltip="Settings"
                   isActive={activeSection === "settings"}
                   className={`
-                    w-full justify-start cursor-pointer rounded-lg transition-all duration-200
+                    w-full justify-start rounded-lg transition-all duration-200
                     ${activeSection === "settings"
                       ? 'bg-gradient-to-r from-blue-600 to-green-600 text-white shadow-md'
                       : 'hover:bg-muted/80'
@@ -2443,8 +2444,7 @@ function AppSidebar({ activeSection, setActiveSection }: { activeSection: string
           <SidebarGroupContent>
             <SidebarMenu className="gap-1">
               <SidebarMenuItem>
-                <SidebarMenuButton
-                  className="w-full justify-start cursor-pointer rounded-lg transition-all duration-200 hover:bg-green-600/10 text-green-600 hover:text-green-700 border border-green-200 hover:border-green-300"
+                <SidebarMenuButton className="w-full justify-start cursor-pointer rounded-lg transition-all duration-200 hover:bg-green-600/10 text-green-600 hover:text-green-700 border border-green-200 hover:border-green-300"
                   onClick={() => setActiveSection('categories')}
                 >
                   <Plus className="w-5 h-5" />
@@ -2549,7 +2549,7 @@ function CategoriesSection() {
   const [editingSubcategory, setEditingSubcategory] = useState<AdminSubcategory | undefined>(undefined);
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(() => {
     const saved = localStorage.getItem('expandedCategories');
-    return saved ? new Set(JSON.parse(saved)) : new Set();
+    return saved ? new Set(JSON.JSON.parse(saved)) : new Set();
   });
 
   useEffect(() => {
@@ -2557,7 +2557,7 @@ function CategoriesSection() {
   }, []);
 
   useEffect(() => {
-    localStorage.setItem('expandedCategories', JSON.stringify(Array.from(expandedCategories)));
+    localStorage.setItem('expandedCategories', JSON.JSON.stringify(Array.from(expandedCategories)));
   }, [expandedCategories]);
 
   const toggleCategoryExpand = (categoryId: string) => {
@@ -2604,7 +2604,7 @@ function CategoriesSection() {
       const response = await fetch(`/api/admin/categories/${category.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...category, isActive: !category.isActive }),
+        body: JSON.JSON.stringify({ ...category, isActive: !category.isActive }),
       });
 
       if (response.ok) {
@@ -2636,7 +2636,7 @@ function CategoriesSection() {
       const response = await fetch(`/api/admin/subcategories/${subcategory.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...subcategory, isActive: !subcategory.isActive }),
+        body: JSON.JSON.stringify({ ...subcategory, isActive: !subcategory.isActive }),
       });
 
       if (response.ok) {
@@ -2887,7 +2887,7 @@ function UsersSection() {
       const response = await fetch('/api/admin/users', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(userForm),
+        body: JSON.JSON.stringify(userForm),
       });
 
       if (response.ok) {
@@ -4979,7 +4979,9 @@ export default function AdminDashboard() {
 function TuitionPrivateClassesSection() {
   const [classes, setClasses] = useState<any[]>([]);
   const [showForm, setShowForm] = useState(false);
-  const [editingClass, setEditingClass] = useState(null);
+  const [editingClass, setEditingClass] = useState<any>(null);
+  const [viewingClass, setViewingClass] = useState<any>(null);
+  const [showDetailsDialog, setShowDetailsDialog] = useState(false);
 
   useEffect(() => {
     fetchClasses();
@@ -4987,8 +4989,9 @@ function TuitionPrivateClassesSection() {
 
   const fetchClasses = async () => {
     try {
-      const response = await fetch('/api/admin/tuition-private-classes');
+      const response = await fetch('/api/admin/tuition-private-classes?role=admin');
       const data = await response.json();
+      console.log('Fetched tuition classes:', data);
       setClasses(Array.isArray(data) ? data : []);
     } catch (error) {
       console.error('Error fetching tuition classes:', error);
@@ -5000,6 +5003,11 @@ function TuitionPrivateClassesSection() {
     setShowForm(false);
     setEditingClass(null);
     fetchClasses();
+  };
+
+  const handleEdit = (classItem: any) => {
+    setEditingClass(classItem);
+    setShowForm(true);
   };
 
   const handleDelete = async (id: string) => {
@@ -5014,6 +5022,11 @@ function TuitionPrivateClassesSection() {
     } catch (error) {
       console.error('Error deleting class:', error);
     }
+  };
+
+  const handleViewDetails = (classItem: any) => {
+    setViewingClass(classItem);
+    setShowDetailsDialog(true);
   };
 
   const toggleActive = async (id: string) => {
@@ -5049,17 +5062,23 @@ function TuitionPrivateClassesSection() {
           <h2 className="text-2xl font-bold">Tuition & Private Classes</h2>
           <p className="text-muted-foreground">Manage tuition and private class listings</p>
         </div>
-        <Button onClick={() => setShowForm(true)}>
+        <Button onClick={() => {
+          setEditingClass(null);
+          setShowForm(true);
+        }}>
           <Plus className="w-4 h-4 mr-2" />
           Add Class
         </Button>
       </div>
 
-      <Dialog open={showForm} onOpenChange={setShowForm}>
+      <Dialog open={showForm} onOpenChange={(open) => {
+        setShowForm(open);
+        if (!open) setEditingClass(null);
+      }}>
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Add New Tuition/Private Class</DialogTitle>
-            <DialogDescription>Fill in the details to create a new class listing</DialogDescription>
+            <DialogTitle>{editingClass ? 'Edit Tuition/Private Class' : 'Add New Tuition/Private Class'}</DialogTitle>
+            <DialogDescription>Fill in the details to {editingClass ? 'update' : 'create'} a class listing</DialogDescription>
           </DialogHeader>
           <TuitionPrivateClassesForm onSuccess={handleSuccess} editingClass={editingClass} />
         </DialogContent>
@@ -5082,8 +5101,27 @@ function TuitionPrivateClassesSection() {
                   <Button
                     variant="ghost"
                     size="icon"
+                    className="h-8 w-8"
+                    onClick={() => handleViewDetails(classItem)}
+                    title="View Details"
+                  >
+                    <Eye className="w-4 h-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8"
+                    onClick={() => handleEdit(classItem)}
+                    title="Edit"
+                  >
+                    <Edit className="w-4 h-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
                     className="h-8 w-8 text-destructive"
                     onClick={() => handleDelete(classItem.id)}
+                    title="Delete"
                   >
                     <Trash2 className="w-4 h-4" />
                   </Button>
@@ -5096,11 +5134,26 @@ function TuitionPrivateClassesSection() {
                   <p className="text-sm text-muted-foreground line-clamp-2">{classItem.description}</p>
                 )}
                 <div className="flex items-center justify-between">
-                  <span className="font-semibold text-lg text-primary">₹{classItem.feePerMonth || classItem.feePerHour}/month</span>
+                  <span className="font-semibold text-lg text-primary">
+                    ₹{classItem.feePerMonth || classItem.feePerHour || 'N/A'}
+                    {classItem.feePerMonth ? '/month' : classItem.feePerHour ? '/hour' : ''}
+                  </span>
                   <Badge variant={classItem.isActive ? 'default' : 'secondary'}>
                     {classItem.isActive ? 'Active' : 'Inactive'}
                   </Badge>
                 </div>
+                {classItem.tutorName && (
+                  <div className="text-sm">
+                    <span className="font-medium">Tutor: </span>
+                    <span className="text-muted-foreground">{classItem.tutorName}</span>
+                  </div>
+                )}
+                {classItem.city && (
+                  <div className="text-sm text-muted-foreground flex items-center gap-1">
+                    <MapPin className="w-3 h-3" />
+                    {classItem.city}
+                  </div>
+                )}
               </div>
             </CardContent>
             <CardFooter className="pt-0 flex gap-2">
@@ -5125,6 +5178,133 @@ function TuitionPrivateClassesSection() {
         ))}
       </div>
 
+      {/* View Details Dialog */}
+      <Dialog open={showDetailsDialog} onOpenChange={setShowDetailsDialog}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-2xl">{viewingClass?.title}</DialogTitle>
+            <DialogDescription>Complete class details</DialogDescription>
+          </DialogHeader>
+          {viewingClass && (
+            <div className="space-y-6">
+              <div className="flex gap-2 flex-wrap">
+                <Badge variant="secondary">{viewingClass.subjectCategory}</Badge>
+                <Badge variant="outline">{viewingClass.teachingMode}</Badge>
+                <Badge variant="outline">{viewingClass.classType}</Badge>
+                {viewingClass.isFeatured && <Badge className="bg-yellow-500">Featured</Badge>}
+              </div>
+
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                {viewingClass.feePerHour && (
+                  <div className="p-4 bg-muted rounded-lg">
+                    <p className="text-sm text-muted-foreground">Fee Per Hour</p>
+                    <p className="text-lg font-bold text-primary">₹{viewingClass.feePerHour}</p>
+                  </div>
+                )}
+                {viewingClass.feePerMonth && (
+                  <div className="p-4 bg-muted rounded-lg">
+                    <p className="text-sm text-muted-foreground">Fee Per Month</p>
+                    <p className="text-lg font-bold text-primary">₹{viewingClass.feePerMonth}</p>
+                  </div>
+                )}
+                {viewingClass.batchSize && (
+                  <div className="p-4 bg-muted rounded-lg">
+                    <p className="text-sm text-muted-foreground">Batch Size</p>
+                    <p className="text-lg font-bold">{viewingClass.batchSize}</p>
+                  </div>
+                )}
+              </div>
+
+              {viewingClass.description && (
+                <div>
+                  <h3 className="font-semibold mb-2">Description</h3>
+                  <p className="text-muted-foreground">{viewingClass.description}</p>
+                </div>
+              )}
+
+              {viewingClass.subjectsOffered && viewingClass.subjectsOffered.length > 0 && (
+                <div>
+                  <h3 className="font-semibold mb-2">Subjects Offered</h3>
+                  <div className="flex flex-wrap gap-2">
+                    {viewingClass.subjectsOffered.map((subject: string, idx: number) => (
+                      <Badge key={idx} variant="outline">{subject}</Badge>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <div>
+                <h3 className="font-semibold mb-2">Tutor Information</h3>
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <span className="font-medium">Name:</span>
+                    <span className="ml-2 text-muted-foreground">{viewingClass.tutorName}</span>
+                  </div>
+                  {viewingClass.tutorQualification && (
+                    <div>
+                      <span className="font-medium">Qualification:</span>
+                      <span className="ml-2 text-muted-foreground">{viewingClass.tutorQualification}</span>
+                    </div>
+                  )}
+                  {viewingClass.tutorExperienceYears && (
+                    <div>
+                      <span className="font-medium">Experience:</span>
+                      <span className="ml-2 text-muted-foreground">{viewingClass.tutorExperienceYears} years</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div>
+                <h3 className="font-semibold mb-2">Features</h3>
+                <div className="flex flex-wrap gap-2">
+                  {viewingClass.demoClassAvailable && <Badge variant="outline">Demo Class Available</Badge>}
+                  {viewingClass.studyMaterialProvided && <Badge variant="outline">Study Material Provided</Badge>}
+                  {viewingClass.testSeriesIncluded && <Badge variant="outline">Test Series Included</Badge>}
+                  {viewingClass.doubtClearingSessions && <Badge variant="outline">Doubt Clearing Sessions</Badge>}
+                  {viewingClass.flexibleTimings && <Badge variant="outline">Flexible Timings</Badge>}
+                  {viewingClass.weekendClasses && <Badge variant="outline">Weekend Classes</Badge>}
+                  {viewingClass.homeTuitionAvailable && <Badge variant="outline">Home Tuition Available</Badge>}
+                  {viewingClass.onlineClassesAvailable && <Badge variant="outline">Online Classes Available</Badge>}
+                </div>
+              </div>
+
+              <div>
+                <h3 className="font-semibold mb-2 flex items-center gap-2">
+                  <Phone className="w-4 h-4" />
+                  Contact Information
+                </h3>
+                <div className="space-y-1 text-sm">
+                  <p><span className="font-medium">Contact Person:</span> {viewingClass.contactPerson}</p>
+                  <p><span className="font-medium">Phone:</span> {viewingClass.contactPhone}</p>
+                  {viewingClass.contactEmail && <p><span className="font-medium">Email:</span> {viewingClass.contactEmail}</p>}
+                </div>
+              </div>
+
+              {viewingClass.fullAddress && (
+                <div>
+                  <h3 className="font-semibold mb-2 flex items-center gap-2">
+                    <MapPin className="w-4 h-4" />
+                    Location
+                  </h3>
+                  <div className="space-y-1 text-sm">
+                    <p><span className="font-medium">Address:</span> {viewingClass.fullAddress}</p>
+                    {viewingClass.areaName && <p><span className="font-medium">Area:</span> {viewingClass.areaName}</p>}
+                    {viewingClass.city && <p><span className="font-medium">City:</span> {viewingClass.city}</p>}
+                    {viewingClass.stateProvince && <p><span className="font-medium">State:</span> {viewingClass.stateProvince}</p>}
+                  </div>
+                </div>
+              )}
+
+              <div className="pt-4 border-t text-sm text-muted-foreground">
+                <p>Created: {new Date(viewingClass.createdAt).toLocaleString()}</p>
+                <p>Last Updated: {new Date(viewingClass.updatedAt).toLocaleString()}</p>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
       {(!classes || classes.length === 0) && (
         <Card>
           <CardContent className="py-12 text-center">
@@ -5146,7 +5326,9 @@ function TuitionPrivateClassesSection() {
 function DanceKarateGymYogaSection() {
   const [classes, setClasses] = useState<any[]>([]);
   const [showForm, setShowForm] = useState(false);
-  const [editingClass, setEditingClass] = useState(null);
+  const [editingClass, setEditingClass] = useState<any>(null);
+  const [viewingClass, setViewingClass] = useState<any>(null);
+  const [showDetailsDialog, setShowDetailsDialog] = useState(false);
 
   useEffect(() => {
     fetchClasses();
@@ -5154,11 +5336,23 @@ function DanceKarateGymYogaSection() {
 
   const fetchClasses = async () => {
     try {
-      const response = await fetch('/api/admin/dance-karate-gym-yoga');
+      // Get user from localStorage
+      const userStr = localStorage.getItem('user');
+      const user = userStr ? JSON.parse(userStr) : null;
+
+      // Build query params for admin or user-specific filtering
+      const queryParams = new URLSearchParams();
+      if (user) {
+        queryParams.append('userId', user.id);
+        queryParams.append('role', user.role || 'user');
+      }
+
+      const url = `/api/admin/dance-karate-gym-yoga${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
+      const response = await fetch(url);
       const data = await response.json();
       setClasses(Array.isArray(data) ? data : []);
     } catch (error) {
-      console.error('Error fetching classes:', error);
+      console.error('Error fetching dance/karate/gym/yoga classes:', error);
       setClasses([]);
     }
   };
@@ -5167,6 +5361,11 @@ function DanceKarateGymYogaSection() {
     setShowForm(false);
     setEditingClass(null);
     fetchClasses();
+  };
+
+  const handleEdit = (classItem: any) => {
+    setEditingClass(classItem);
+    setShowForm(true);
   };
 
   const handleDelete = async (id: string) => {
@@ -5181,6 +5380,11 @@ function DanceKarateGymYogaSection() {
     } catch (error) {
       console.error('Error deleting class:', error);
     }
+  };
+
+  const handleViewDetails = (classItem: any) => {
+    setViewingClass(classItem);
+    setShowDetailsDialog(true);
   };
 
   const toggleActive = async (id: string) => {
@@ -5216,17 +5420,23 @@ function DanceKarateGymYogaSection() {
           <h2 className="text-2xl font-bold">Dance, Karate, Gym & Yoga Classes</h2>
           <p className="text-muted-foreground">Manage fitness and martial arts class listings</p>
         </div>
-        <Button onClick={() => setShowForm(true)}>
+        <Button onClick={() => {
+          setEditingClass(null);
+          setShowForm(true);
+        }}>
           <Plus className="w-4 h-4 mr-2" />
           Add Class
         </Button>
       </div>
 
-      <Dialog open={showForm} onOpenChange={setShowForm}>
+      <Dialog open={showForm} onOpenChange={(open) => {
+        setShowForm(open);
+        if (!open) setEditingClass(null);
+      }}>
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Add New Fitness/Martial Arts Class</DialogTitle>
-            <DialogDescription>Fill in the details to create a new class listing</DialogDescription>
+            <DialogTitle>{editingClass ? 'Edit' : 'Add New'} Dance/Karate/Gym/Yoga Class</DialogTitle>
+            <DialogDescription>Fill in the details to {editingClass ? 'update' : 'create'} a class listing</DialogDescription>
           </DialogHeader>
           <DanceKarateGymYogaForm onSuccess={handleSuccess} editingClass={editingClass} />
         </DialogContent>
@@ -5249,8 +5459,27 @@ function DanceKarateGymYogaSection() {
                   <Button
                     variant="ghost"
                     size="icon"
+                    className="h-8 w-8"
+                    onClick={() => handleViewDetails(classItem)}
+                    title="View Details"
+                  >
+                    <Eye className="w-4 h-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8"
+                    onClick={() => handleEdit(classItem)}
+                    title="Edit"
+                  >
+                    <Edit className="w-4 h-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
                     className="h-8 w-8 text-destructive"
                     onClick={() => handleDelete(classItem.id)}
+                    title="Delete"
                   >
                     <Trash2 className="w-4 h-4" />
                   </Button>
@@ -5268,6 +5497,24 @@ function DanceKarateGymYogaSection() {
                     {classItem.isActive ? 'Active' : 'Inactive'}
                   </Badge>
                 </div>
+                {classItem.instructorName && (
+                  <div className="text-sm">
+                    <span className="font-medium">Instructor: </span>
+                    <span className="text-muted-foreground">{classItem.instructorName}</span>
+                  </div>
+                )}
+                {classItem.batchSize && (
+                  <div className="text-sm">
+                    <span className="font-medium">Batch Size: </span>
+                    <span className="text-muted-foreground">{classItem.batchSize} students</span>
+                  </div>
+                )}
+                {classItem.city && (
+                  <div className="text-sm text-muted-foreground flex items-center gap-1">
+                    <MapPin className="w-3 h-3" />
+                    {classItem.city}
+                  </div>
+                )}
               </div>
             </CardContent>
             <CardFooter className="pt-0 flex gap-2">
@@ -5292,12 +5539,151 @@ function DanceKarateGymYogaSection() {
         ))}
       </div>
 
+      {/* View Details Dialog */}
+      <Dialog open={showDetailsDialog} onOpenChange={setShowDetailsDialog}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-2xl">{viewingClass?.title}</DialogTitle>
+            <DialogDescription>Complete class details</DialogDescription>
+          </DialogHeader>
+          {viewingClass && (
+            <div className="space-y-6">
+              <div className="flex gap-2 flex-wrap">
+                <Badge variant="secondary">{viewingClass.classCategory}</Badge>
+                <Badge variant="outline">{viewingClass.skillLevel}</Badge>
+                {viewingClass.isFeatured && <Badge className="bg-yellow-500">Featured</Badge>}
+              </div>
+
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                {viewingClass.feePerMonth && (
+                  <div className="p-4 bg-muted rounded-lg">
+                    <p className="text-sm text-muted-foreground">Fee Per Month</p>
+                    <p className="text-lg font-bold text-primary">₹{viewingClass.feePerMonth}</p>
+                  </div>
+                )}
+                {viewingClass.feePerSession && (
+                  <div className="p-4 bg-muted rounded-lg">
+                    <p className="text-sm text-muted-foreground">Fee Per Session</p>
+                    <p className="text-lg font-bold">₹{viewingClass.feePerSession}</p>
+                  </div>
+                )}
+                {viewingClass.sessionDurationMinutes && (
+                  <div className="p-4 bg-muted rounded-lg">
+                    <p className="text-sm text-muted-foreground">Duration</p>
+                    <p className="text-lg font-bold">{viewingClass.sessionDurationMinutes} min</p>
+                  </div>
+                )}
+                {viewingClass.batchSize && (
+                  <div className="p-4 bg-muted rounded-lg">
+                    <p className="text-sm text-muted-foreground">Batch Size</p>
+                    <p className="text-lg font-bold">{viewingClass.batchSize}</p>
+                  </div>
+                )}
+              </div>
+
+              {viewingClass.description && (
+                <div>
+                  <h3 className="font-semibold mb-2">Description</h3>
+                  <p className="text-muted-foreground">{viewingClass.description}</p>
+                </div>
+              )}
+
+              {viewingClass.instructorName && (
+                <div>
+                  <h3 className="font-semibold mb-2">Instructor Details</h3>
+                  <div className="grid grid-cols-2 gap-4 text-sm">
+                    <div>
+                      <span className="font-medium">Name:</span>
+                      <span className="ml-2 text-muted-foreground">{viewingClass.instructorName}</span>
+                    </div>
+                    {viewingClass.instructorQualification && (
+                      <div>
+                        <span className="font-medium">Qualification:</span>
+                        <span className="ml-2 text-muted-foreground">{viewingClass.instructorQualification}</span>
+                      </div>
+                    )}
+                    {viewingClass.instructorExperienceYears && (
+                      <div>
+                        <span className="font-medium">Experience:</span>
+                        <span className="ml-2 text-muted-foreground">{viewingClass.instructorExperienceYears} years</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {(viewingClass.sessionDurationMinutes || viewingClass.registrationFee) && (
+                <div>
+                  <h3 className="font-semibold mb-2">Class Details</h3>
+                  <div className="grid grid-cols-2 gap-4 text-sm">
+                    {viewingClass.sessionDurationMinutes && (
+                      <div>
+                        <span className="font-medium">Session Duration:</span>
+                        <span className="ml-2 text-muted-foreground">{viewingClass.sessionDurationMinutes} minutes</span>
+                      </div>
+                    )}
+                    {viewingClass.registrationFee && (
+                      <div>
+                        <span className="font-medium">Registration Fee:</span>
+                        <span className="ml-2 text-muted-foreground">₹{viewingClass.registrationFee}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              <div>
+                <h3 className="font-semibold mb-2">Features</h3>
+                <div className="flex flex-wrap gap-2">
+                  {viewingClass.trialClassAvailable && <Badge variant="outline">Trial Class Available</Badge>}
+                  {viewingClass.certificationProvided && <Badge variant="outline">Certification Provided</Badge>}
+                  {viewingClass.equipmentProvided && <Badge variant="outline">Equipment Provided</Badge>}
+                  {viewingClass.weekendBatches && <Badge variant="outline">Weekend Batches</Badge>}
+                </div>
+              </div>
+
+              <div>
+                <h3 className="font-semibold mb-2 flex items-center gap-2">
+                  <Phone className="w-4 h-4" />
+                  Contact Information
+                </h3>
+                <div className="space-y-1 text-sm">
+                  <p><span className="font-medium">Contact Person:</span> {viewingClass.contactPerson}</p>
+                  <p><span className="font-medium">Phone:</span> {viewingClass.contactPhone}</p>
+                  {viewingClass.contactEmail && <p><span className="font-medium">Email:</span> {viewingClass.contactEmail}</p>}
+                </div>
+              </div>
+
+              {viewingClass.fullAddress && (
+                <div>
+                  <h3 className="font-semibold mb-2 flex items-center gap-2">
+                    <MapPin className="w-4 h-4" />
+                    Location
+                  </h3>
+                  <div className="space-y-1 text-sm">
+                    <p><span className="font-medium">Address:</span> {viewingClass.fullAddress}</p>
+                    {viewingClass.areaName && <p><span className="font-medium">Area:</span> {viewingClass.areaName}</p>}
+                    {viewingClass.city && <p><span className="font-medium">City:</span> {viewingClass.city}</p>}
+                    {viewingClass.stateProvince && <p><span className="font-medium">State:</span> {viewingClass.stateProvince}</p>}
+                  </div>
+                </div>
+              )}
+
+              <div className="pt-4 border-t text-sm text-muted-foreground">
+                <p>Created: {new Date(viewingClass.createdAt).toLocaleString()}</p>
+                <p>Last Updated: {new Date(viewingClass.updatedAt).toLocaleString()}</p>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
       {(!classes || classes.length === 0) && (
         <Card>
           <CardContent className="py-12 text-center">
             <Building className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
             <h3 className="text-lg font-semibold mb-2">No Classes Found</h3>
-            <p className="text-muted-foreground mb-4">Start by adding your first fitness/martial arts class</p>
+            <p className="text-muted-foreground mb-4">Start by adding your first dance, karate, gym, or yoga class</p>
             <Button onClick={() => setShowForm(true)}>
               <Plus className="w-4 h-4 mr-2" />
               Add Class
@@ -5311,16 +5697,21 @@ function DanceKarateGymYogaSection() {
 
 // Language Classes Section Component
 function LanguageClassesSection() {
+  const { user } = useUser();
   const [classes, setClasses] = useState<any[]>([]);
   const [showForm, setShowForm] = useState(false);
 
   useEffect(() => {
     fetchClasses();
-  }, []);
+  }, [user]);
 
   const fetchClasses = async () => {
     try {
-      const response = await fetch('/api/admin/language-classes');
+      const params = new URLSearchParams();
+      if (user?.id) params.append('userId', user.id.toString());
+      if (user?.role) params.append('role', user.role);
+
+      const response = await fetch(`/api/admin/language-classes?${params.toString()}`);
       const data = await response.json();
       setClasses(Array.isArray(data) ? data : []);
     } catch (error) {
@@ -6353,7 +6744,7 @@ function FurnitureInteriorDecorSection() {
 
       {/* View Details Dialog */}
       <Dialog open={showDetailsDialog} onOpenChange={setShowDetailsDialog}>
-        <DialogContent className="max-w-4xl max-h-[90vhoverflow-y-auto">
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-2xl">{viewingItem?.title}</DialogTitle>
             <DialogDescription>Complete furniture/decor item details</DialogDescription>
@@ -6439,4 +6830,3 @@ function FurnitureInteriorDecorSection() {
     </div>
   );
 }
-  

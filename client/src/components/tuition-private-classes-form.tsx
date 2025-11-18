@@ -10,6 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Plus, X } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 interface TuitionPrivateClassesFormProps {
   onSuccess: () => void;
@@ -17,6 +18,7 @@ interface TuitionPrivateClassesFormProps {
 }
 
 export default function TuitionPrivateClassesForm({ onSuccess, editingClass }: TuitionPrivateClassesFormProps) {
+  const { toast } = useToast();
   const { register, handleSubmit, setValue, watch } = useForm({
     defaultValues: editingClass || {
       listingType: "tuition",
@@ -25,6 +27,15 @@ export default function TuitionPrivateClassesForm({ onSuccess, editingClass }: T
       classType: "group",
       country: "India",
       isActive: true,
+      isFeatured: false,
+      demoClassAvailable: false,
+      studyMaterialProvided: false,
+      testSeriesIncluded: false,
+      doubtClearingSessions: false,
+      flexibleTimings: false,
+      weekendClasses: false,
+      homeTuitionAvailable: false,
+      onlineClassesAvailable: false,
     }
   });
 
@@ -33,6 +44,32 @@ export default function TuitionPrivateClassesForm({ onSuccess, editingClass }: T
 
   const onSubmit = async (data: any) => {
     try {
+      // Clean up the data
+      const cleanedData = {
+        ...data,
+        subjectsOffered: subjects,
+        // Convert numeric fields
+        batchSize: data.batchSize ? parseInt(data.batchSize) : null,
+        minGrade: data.minGrade ? parseInt(data.minGrade) : null,
+        maxGrade: data.maxGrade ? parseInt(data.maxGrade) : null,
+        tutorExperienceYears: data.tutorExperienceYears ? parseInt(data.tutorExperienceYears) : null,
+        // Convert decimal fields
+        feePerHour: data.feePerHour ? parseFloat(data.feePerHour) : null,
+        feePerMonth: data.feePerMonth ? parseFloat(data.feePerMonth) : null,
+        feePerSubject: data.feePerSubject ? parseFloat(data.feePerSubject) : null,
+        // Ensure boolean fields are actual booleans
+        demoClassAvailable: !!data.demoClassAvailable,
+        studyMaterialProvided: !!data.studyMaterialProvided,
+        testSeriesIncluded: !!data.testSeriesIncluded,
+        doubtClearingSessions: !!data.doubtClearingSessions,
+        flexibleTimings: !!data.flexibleTimings,
+        weekendClasses: !!data.weekendClasses,
+        homeTuitionAvailable: !!data.homeTuitionAvailable,
+        onlineClassesAvailable: !!data.onlineClassesAvailable,
+        isActive: !!data.isActive,
+        isFeatured: !!data.isFeatured,
+      };
+
       const url = editingClass 
         ? `/api/admin/tuition-private-classes/${editingClass.id}`
         : '/api/admin/tuition-private-classes';
@@ -40,17 +77,30 @@ export default function TuitionPrivateClassesForm({ onSuccess, editingClass }: T
       const response = await fetch(url, {
         method: editingClass ? 'PUT' : 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ...data,
-          subjectsOffered: subjects,
-        }),
+        body: JSON.stringify(cleanedData),
       });
 
       if (response.ok) {
+        toast({
+          title: "Success",
+          description: `Tuition class ${editingClass ? 'updated' : 'created'} successfully`,
+        });
         onSuccess();
+      } else {
+        const error = await response.json();
+        toast({
+          title: "Error",
+          description: error.message || "Failed to save tuition class",
+          variant: "destructive",
+        });
       }
     } catch (error) {
       console.error('Error saving tuition class:', error);
+      toast({
+        title: "Error",
+        description: "An unexpected error occurred",
+        variant: "destructive",
+      });
     }
   };
 
@@ -117,6 +167,12 @@ export default function TuitionPrivateClassesForm({ onSuccess, editingClass }: T
                 value={newSubject}
                 onChange={(e) => setNewSubject(e.target.value)}
                 placeholder="Add subject"
+                onKeyPress={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    addSubject();
+                  }
+                }}
               />
               <Button type="button" onClick={addSubject}>
                 <Plus className="w-4 h-4" />
@@ -242,42 +298,66 @@ export default function TuitionPrivateClassesForm({ onSuccess, editingClass }: T
         <CardContent className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div className="flex items-center space-x-2">
-              <Switch {...register("demoClassAvailable")} />
+              <Switch 
+                checked={watch("demoClassAvailable")}
+                onCheckedChange={(checked) => setValue("demoClassAvailable", checked)}
+              />
               <Label>Demo Class Available</Label>
             </div>
 
             <div className="flex items-center space-x-2">
-              <Switch {...register("studyMaterialProvided")} />
+              <Switch 
+                checked={watch("studyMaterialProvided")}
+                onCheckedChange={(checked) => setValue("studyMaterialProvided", checked)}
+              />
               <Label>Study Material Provided</Label>
             </div>
 
             <div className="flex items-center space-x-2">
-              <Switch {...register("testSeriesIncluded")} />
+              <Switch 
+                checked={watch("testSeriesIncluded")}
+                onCheckedChange={(checked) => setValue("testSeriesIncluded", checked)}
+              />
               <Label>Test Series Included</Label>
             </div>
 
             <div className="flex items-center space-x-2">
-              <Switch {...register("doubtClearingSessions")} />
+              <Switch 
+                checked={watch("doubtClearingSessions")}
+                onCheckedChange={(checked) => setValue("doubtClearingSessions", checked)}
+              />
               <Label>Doubt Clearing Sessions</Label>
             </div>
 
             <div className="flex items-center space-x-2">
-              <Switch {...register("flexibleTimings")} />
+              <Switch 
+                checked={watch("flexibleTimings")}
+                onCheckedChange={(checked) => setValue("flexibleTimings", checked)}
+              />
               <Label>Flexible Timings</Label>
             </div>
 
             <div className="flex items-center space-x-2">
-              <Switch {...register("weekendClasses")} />
+              <Switch 
+                checked={watch("weekendClasses")}
+                onCheckedChange={(checked) => setValue("weekendClasses", checked)}
+              />
               <Label>Weekend Classes</Label>
             </div>
 
             <div className="flex items-center space-x-2">
-              <Switch {...register("homeTuitionAvailable")} />
+              <Switch 
+                checked={watch("homeTuitionAvailable")}
+                onCheckedChange={(checked) => setValue("homeTuitionAvailable", checked)}
+              />
               <Label>Home Tuition Available</Label>
             </div>
 
             <div className="flex items-center space-x-2">
-              <Switch {...register("onlineClassesAvailable")} />
+              <Switch 
+                checked={watch("onlineClassesAvailable")}
+                onCheckedChange={(checked) => setValue("onlineClassesAvailable", checked)}
+              />
               <Label>Online Classes Available</Label>
             </div>
           </div>
@@ -343,12 +423,18 @@ export default function TuitionPrivateClassesForm({ onSuccess, editingClass }: T
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex items-center space-x-2">
-            <Switch {...register("isActive")} defaultChecked />
+            <Switch 
+              checked={watch("isActive")}
+              onCheckedChange={(checked) => setValue("isActive", checked)}
+            />
             <Label>Active</Label>
           </div>
 
           <div className="flex items-center space-x-2">
-            <Switch {...register("isFeatured")} />
+            <Switch 
+              checked={watch("isFeatured")}
+              onCheckedChange={(checked) => setValue("isFeatured", checked)}
+            />
             <Label>Featured</Label>
           </div>
         </CardContent>

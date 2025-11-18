@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { Button } from "@/components/ui/button";
@@ -8,6 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
+import { useUser } from "@/hooks/use-user";
 
 interface DanceKarateGymYogaFormProps {
   onSuccess: () => void;
@@ -15,6 +15,7 @@ interface DanceKarateGymYogaFormProps {
 }
 
 export default function DanceKarateGymYogaForm({ onSuccess, editingClass }: DanceKarateGymYogaFormProps) {
+  const { user } = useUser();
   const { register, handleSubmit, setValue, watch } = useForm({
     defaultValues: editingClass || {
       classCategory: "dance",
@@ -25,21 +26,39 @@ export default function DanceKarateGymYogaForm({ onSuccess, editingClass }: Danc
 
   const onSubmit = async (data: any) => {
     try {
+      // Convert empty strings to null for numeric fields
+      const sanitizedData = {
+        ...data,
+        userId: user?.id,
+        role: user?.role,
+        instructorExperienceYears: data.instructorExperienceYears && data.instructorExperienceYears !== '' ? parseInt(data.instructorExperienceYears) : null,
+        feePerMonth: parseFloat(data.feePerMonth), // Required field, should always have a value
+        feePerSession: data.feePerSession && data.feePerSession !== '' ? parseFloat(data.feePerSession) : null,
+        registrationFee: data.registrationFee && data.registrationFee !== '' ? parseFloat(data.registrationFee) : null,
+        sessionDurationMinutes: data.sessionDurationMinutes && data.sessionDurationMinutes !== '' ? parseInt(data.sessionDurationMinutes) : null,
+        sessionsPerWeek: data.sessionsPerWeek && data.sessionsPerWeek !== '' ? parseInt(data.sessionsPerWeek) : null,
+        batchSize: data.batchSize && data.batchSize !== '' ? parseInt(data.batchSize) : null,
+      };
+
       const url = editingClass 
         ? `/api/admin/dance-karate-gym-yoga/${editingClass.id}`
         : '/api/admin/dance-karate-gym-yoga';
-      
+
       const response = await fetch(url, {
         method: editingClass ? 'PUT' : 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
+        body: JSON.stringify(sanitizedData),
       });
 
       if (response.ok) {
         onSuccess();
+      } else {
+        const error = await response.json();
+        alert(`Error: ${error.message}`);
       }
     } catch (error) {
       console.error('Error saving class:', error);
+      alert('Failed to save class. Please try again.');
     }
   };
 

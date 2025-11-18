@@ -38,8 +38,15 @@ import {
   sareeClothingShopping,
   ebooksOnlineCourses,
   cricketSportsTraining,
-  // educationalConsultancyStudyAbroad,
+  // educationalConsultancyStudyAbroad, // This line is commented out in the original code
   pharmacyMedicalStores, // Import pharmacyMedicalStores
+  tuitionPrivateClasses, // Added
+  danceKarateGymYoga, // Added
+  languageClasses, // Added
+  academiesMusicArtsSports, // Added
+  skillTrainingCertification, // Added
+  schoolsCollegesCoaching, // Added
+  educationalConsultancyStudyAbroad, // Added, uncommented
 } from "../shared/schema";
 import { eq, sql, desc } from "drizzle-orm";
 
@@ -3091,7 +3098,6 @@ export function registerRoutes(app: Express) {
       console.log(`Fetched ${classes.length} vehicle license classes for user ${userId} with role ${role}`);
       res.json(classes);
     } catch (error: any) {
-      console.error('Error fetching vehicle license classes:', error);
       res.status(500).json({ message: error.message });
     }
   });
@@ -4698,15 +4704,322 @@ export function registerRoutes(app: Express) {
     }
   });
 
-  // Household Services Routes - Full CRUD
+  // Dance, Karate, Gym & Yoga Classes Routes - Full CRUD
 
-  // GET all household services
-  app.get("/api/admin/household-services", async (_req, res) => {
+  // GET all dance/karate/gym/yoga classes
+  app.get("/api/admin/dance-karate-gym-yoga", async (req, res) => {
     try {
-      const services = await db.query.householdServices.findMany({
-        orderBy: desc(householdServices.createdAt),
+      const { userId, role } = req.query;
+
+      let classes;
+
+      if (role === 'admin') {
+        classes = await db.query.danceKarateGymYoga.findMany({
+          orderBy: desc(danceKarateGymYoga.createdAt),
+        });
+      } else if (userId) {
+        classes = await db.query.danceKarateGymYoga.findMany({
+          where: eq(danceKarateGymYoga.userId, userId as string),
+          orderBy: desc(danceKarateGymYoga.createdAt),
+        });
+      } else {
+        classes = [];
+      }
+
+      res.json(classes);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // GET single dance/karate/gym/yoga class by ID
+  app.get("/api/admin/dance-karate-gym-yoga/:id", async (req, res) => {
+    try {
+      const classItem = await db.query.danceKarateGymYoga.findFirst({
+        where: eq(danceKarateGymYoga.id, req.params.id),
       });
-      res.json(services);
+
+      if (!classItem) {
+        return res.status(404).json({ message: "Class not found" });
+      }
+
+      res.json(classItem);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // CREATE new dance/karate/gym/yoga class
+  app.post("/api/admin/dance-karate-gym-yoga", async (req, res) => {
+    try {
+      // Sanitize numeric fields
+      const sanitizedData = {
+        ...req.body,
+        country: req.body.country || "India",
+        instructorExperienceYears: req.body.instructorExperienceYears ? parseInt(req.body.instructorExperienceYears) : null,
+        feePerMonth: req.body.feePerMonth ? parseFloat(req.body.feePerMonth) : null,
+        feePerSession: req.body.feePerSession ? parseFloat(req.body.feePerSession) : null,
+        registrationFee: req.body.registrationFee ? parseFloat(req.body.registrationFee) : null,
+        sessionDurationMinutes: req.body.sessionDurationMinutes ? parseInt(req.body.sessionDurationMinutes) : null,
+        sessionsPerWeek: req.body.sessionsPerWeek ? parseInt(req.body.sessionsPerWeek) : null,
+        batchSize: req.body.batchSize ? parseInt(req.body.batchSize) : null,
+      };
+
+      const [newClass] = await db
+        .insert(danceKarateGymYoga)
+        .values(sanitizedData)
+        .returning();
+
+      res.status(201).json(newClass);
+    } catch (error: any) {
+      console.error("Error creating class:", error);
+      res.status(400).json({ message: error.message });
+    }
+  });
+
+  // UPDATE dance/karate/gym/yoga class
+  app.put("/api/admin/dance-karate-gym-yoga/:id", async (req, res) => {
+    try {
+      // Sanitize numeric fields
+      const sanitizedData = {
+        ...req.body,
+        instructorExperienceYears: req.body.instructorExperienceYears ? parseInt(req.body.instructorExperienceYears) : null,
+        feePerMonth: req.body.feePerMonth ? parseFloat(req.body.feePerMonth) : null,
+        feePerSession: req.body.feePerSession ? parseFloat(req.body.feePerSession) : null,
+        registrationFee: req.body.registrationFee ? parseFloat(req.body.registrationFee) : null,
+        sessionDurationMinutes: req.body.sessionDurationMinutes ? parseInt(req.body.sessionDurationMinutes) : null,
+        sessionsPerWeek: req.body.sessionsPerWeek ? parseInt(req.body.sessionsPerWeek) : null,
+        batchSize: req.body.batchSize ? parseInt(req.body.batchSize) : null,
+        updatedAt: new Date()
+      };
+
+      const [updatedClass] = await db
+        .update(danceKarateGymYoga)
+        .set(sanitizedData)
+        .where(eq(danceKarateGymYoga.id, req.params.id))
+        .returning();
+
+      if (!updatedClass) {
+        return res.status(404).json({ message: "Class not found" });
+      }
+
+      res.json(updatedClass);
+    } catch (error: any) {
+      console.error("Error updating class:", error);
+      res.status(400).json({ message: error.message });
+    }
+  });
+
+  // DELETE dance/karate/gym/yoga class
+  app.delete("/api/admin/dance-karate-gym-yoga/:id", async (req, res) => {
+    try {
+      const deletedRows = await db
+        .delete(danceKarateGymYoga)
+        .where(eq(danceKarateGymYoga.id, req.params.id))
+        .returning();
+
+      if (deletedRows.length === 0) {
+        return res.status(404).json({ message: "Class not found" });
+      }
+
+      res.json({ message: "Class deleted successfully", id: req.params.id });
+    } catch (error: any) {
+      console.error("Error deleting class:", error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // PATCH - Toggle active status
+  app.patch("/api/admin/dance-karate-gym-yoga/:id/toggle-active", async (req, res) => {
+    try {
+      const classItem = await db.query.danceKarateGymYoga.findFirst({
+        where: eq(danceKarateGymYoga.id, req.params.id),
+      });
+
+      if (!classItem) {
+        return res.status(404).json({ message: "Class not found" });
+      }
+
+      const [updated] = await db
+        .update(danceKarateGymYoga)
+        .set({ isActive: !classItem.isActive, updatedAt: new Date() })
+        .where(eq(danceKarateGymYoga.id, req.params.id))
+        .returning();
+
+      res.json(updated);
+    } catch (error: any) {
+      console.error("Error toggling active status:", error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // PATCH - Toggle featured status
+  app.patch("/api/admin/dance-karate-gym-yoga/:id/toggle-featured", async (req, res) => {
+    try {
+      const classItem = await db.query.danceKarateGymYoga.findFirst({
+        where: eq(danceKarateGymYoga.id, req.params.id),
+      });
+
+      if (!classItem) {
+        return res.status(404).json({ message: "Class not found" });
+      }
+
+      const [updated] = await db
+        .update(danceKarateGymYoga)
+        .set({ isFeatured: !classItem.isFeatured, updatedAt: new Date() })
+        .where(eq(danceKarateGymYoga.id, req.params.id))
+        .returning();
+
+      res.json(updated);
+    } catch (error: any) {
+      console.error("Error toggling featured status:", error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Tuition & Private Classes Routes - Full CRUD
+
+  // GET all tuition classes
+  app.get("/api/admin/tuition-private-classes", async (req, res) => {
+    try {
+      const { userId, role } = req.query;
+
+      let classes;
+
+      if (role === 'admin') {
+        classes = await db.query.tuitionPrivateClasses.findMany({
+          orderBy: desc(tuitionPrivateClasses.createdAt),
+        });
+      } else if (userId) {
+        classes = await db.query.tuitionPrivateClasses.findMany({
+          where: eq(tuitionPrivateClasses.userId, userId as string),
+          orderBy: desc(tuitionPrivateClasses.createdAt),
+        });
+      } else {
+        classes = [];
+      }
+
+      res.json(classes);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // GET single tuition class by ID
+  app.get("/api/admin/tuition-private-classes/:id", async (req, res) => {
+    try {
+      const tuitionClass = await db.query.tuitionPrivateClasses.findFirst({
+        where: eq(tuitionPrivateClasses.id, req.params.id),
+      });
+
+      if (!tuitionClass) {
+        return res.status(404).json({ message: "Tuition class not found" });
+      }
+
+      res.json(tuitionClass);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // CREATE new tuition class
+  app.post("/api/admin/tuition-private-classes", async (req, res) => {
+    try {
+      const [newClass] = await db
+        .insert(tuitionPrivateClasses)
+        .values({
+          ...req.body,
+          country: req.body.country || "India",
+        })
+        .returning();
+
+      res.status(201).json(newClass);
+    } catch (error: any) {
+      console.error("Error creating tuition class:", error);
+      res.status(400).json({ message: error.message });
+    }
+  });
+
+  // UPDATE tuition class
+  app.put("/api/admin/tuition-private-classes/:id", async (req, res) => {
+    try {
+      const [updatedClass] = await db
+        .update(tuitionPrivateClasses)
+        .set({ ...req.body, updatedAt: new Date() })
+        .where(eq(tuitionPrivateClasses.id, req.params.id))
+        .returning();
+
+      if (!updatedClass) {
+        return res.status(404).json({ message: "Tuition class not found" });
+      }
+
+      res.json(updatedClass);
+    } catch (error: any) {
+      console.error("Error updating tuition class:", error);
+      res.status(400).json({ message: error.message });
+    }
+  });
+
+  // DELETE tuition class
+  app.delete("/api/admin/tuition-private-classes/:id", async (req, res) => {
+    try {
+      const deletedRows = await db
+        .delete(tuitionPrivateClasses)
+        .where(eq(tuitionPrivateClasses.id, req.params.id))
+        .returning();
+
+      if (deletedRows.length === 0) {
+        return res.status(404).json({ message: "Tuition class not found" });
+      }
+
+      res.json({ message: "Tuition class deleted successfully", id: req.params.id });
+    } catch (error: any) {
+      console.error("Error deleting tuition class:", error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // PATCH - Toggle active status
+  app.patch("/api/admin/tuition-private-classes/:id/toggle-active", async (req, res) => {
+    try {
+      const tuitionClass = await db.query.tuitionPrivateClasses.findFirst({
+        where: eq(tuitionPrivateClasses.id, req.params.id),
+      });
+
+      if (!tuitionClass) {
+        return res.status(404).json({ message: "Tuition class not found" });
+      }
+
+      const [updated] = await db
+        .update(tuitionPrivateClasses)
+        .set({ isActive: !tuitionClass.isActive, updatedAt: new Date() })
+        .where(eq(tuitionPrivateClasses.id, req.params.id))
+        .returning();
+
+      res.json(updated);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // PATCH - Toggle featured status
+  app.patch("/api/admin/tuition-private-classes/:id/toggle-featured", async (req, res) => {
+    try {
+      const tuitionClass = await db.query.tuitionPrivateClasses.findFirst({
+        where: eq(tuitionPrivateClasses.id, req.params.id),
+      });
+
+      if (!tuitionClass) {
+        return res.status(404).json({ message: "Tuition class not found" });
+      }
+
+      const [updated] = await db
+        .update(tuitionPrivateClasses)
+        .set({ isFeatured: !tuitionClass.isFeatured, updatedAt: new Date() })
+        .where(eq(tuitionPrivateClasses.id, req.params.id))
+        .returning();
+
+      res.json(updated);
     } catch (error: any) {
       res.status(500).json({ message: error.message });
     }
@@ -5020,6 +5333,194 @@ export function registerRoutes(app: Express) {
 
   // Health & Wellness Services Routes - Commented out until schema is added
   // Jewelry & Accessories Routes - Commented out until schema is added
+
+  // Language Classes Routes - Full CRUD
+
+  // GET all language classes
+  app.get("/api/admin/language-classes", async (req, res) => {
+    try {
+      const { userId, role } = req.query;
+
+      let classes;
+
+      // If user is admin, fetch all classes
+      if (role === 'admin') {
+        classes = await db.query.languageClasses.findMany({
+          orderBy: desc(languageClasses.createdAt),
+        });
+      } else if (userId) {
+        // For non-admin users, filter by userId at database level
+        const allClasses = await db.query.languageClasses.findMany({
+          orderBy: desc(languageClasses.createdAt),
+        });
+        classes = allClasses.filter(c => c.userId === userId);
+      } else {
+        // If no userId provided and not admin, return empty array
+        classes = [];
+      }
+
+      console.log(`Fetched ${classes.length} language classes for user ${userId} with role ${role}`);
+      res.json(classes);
+    } catch (error: any) {
+      console.error('Error fetching language classes:', error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // GET single language class by ID
+  app.get("/api/admin/language-classes/:id", async (req, res) => {
+    try {
+      const languageClass = await db.query.languageClasses.findFirst({
+        where: eq(languageClasses.id, req.params.id),
+      });
+
+      if (!languageClass) {
+        return res.status(404).json({ message: "Language class not found" });
+      }
+
+      res.json(languageClass);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // CREATE new language class
+  app.post("/api/admin/language-classes", async (req, res) => {
+    try {
+      const {
+        studyMaterialsProvided,
+        certificationProvided,
+        freeDemoClass,
+        nativeSpeaker,
+        isActive,
+        isFeatured,
+        ...otherData
+      } = req.body;
+
+      const [newClass] = await db
+        .insert(languageClasses)
+        .values({
+          ...otherData,
+          studyMaterialsProvided: Array.isArray(studyMaterialsProvided) ? studyMaterialsProvided : [],
+          certificationProvided: Boolean(certificationProvided),
+          freeDemoClass: Boolean(freeDemoClass),
+          nativeSpeaker: Boolean(nativeSpeaker),
+          isActive: isActive !== false,
+          isFeatured: Boolean(isFeatured),
+          country: otherData.country || "India",
+        })
+        .returning();
+
+      res.status(201).json(newClass);
+    } catch (error: any) {
+      console.error("Error creating language class:", error);
+      res.status(400).json({ message: error.message });
+    }
+  });
+
+  // UPDATE language class
+  app.put("/api/admin/language-classes/:id", async (req, res) => {
+    try {
+      const {
+        studyMaterialsProvided,
+        certificationProvided,
+        freeDemoClass,
+        nativeSpeaker,
+        isActive,
+        isFeatured,
+        ...otherData
+      } = req.body;
+
+      const [updatedClass] = await db
+        .update(languageClasses)
+        .set({
+          ...otherData,
+          studyMaterialsProvided: Array.isArray(studyMaterialsProvided) ? studyMaterialsProvided : [],
+          certificationProvided: Boolean(certificationProvided),
+          freeDemoClass: Boolean(freeDemoClass),
+          nativeSpeaker: Boolean(nativeSpeaker),
+          isActive: isActive !== false,
+          isFeatured: Boolean(isFeatured),
+          updatedAt: new Date(),
+        })
+        .where(eq(languageClasses.id, req.params.id))
+        .returning();
+
+      if (!updatedClass) {
+        return res.status(404).json({ message: "Language class not found" });
+      }
+
+      res.json(updatedClass);
+    } catch (error: any) {
+      console.error("Error updating language class:", error);
+      res.status(400).json({ message: error.message });
+    }
+  });
+
+  // DELETE language class
+  app.delete("/api/admin/language-classes/:id", async (req, res) => {
+    try {
+      const deletedRows = await db
+        .delete(languageClasses)
+        .where(eq(languageClasses.id, req.params.id))
+        .returning();
+
+      if (deletedRows.length === 0) {
+        return res.status(404).json({ message: "Language class not found" });
+      }
+
+      res.json({ message: "Language class deleted successfully", id: req.params.id });
+    } catch (error: any) {
+      console.error("Error deleting language class:", error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // PATCH - Toggle active status
+  app.patch("/api/admin/language-classes/:id/toggle-active", async (req, res) => {
+    try {
+      const languageClass = await db.query.languageClasses.findFirst({
+        where: eq(languageClasses.id, req.params.id),
+      });
+
+      if (!languageClass) {
+        return res.status(404).json({ message: "Language class not found" });
+      }
+
+      const [updated] = await db
+        .update(languageClasses)
+        .set({ isActive: !languageClass.isActive, updatedAt: new Date() })
+        .where(eq(languageClasses.id, req.params.id))
+        .returning();
+
+      res.json(updated);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // PATCH - Toggle featured status
+  app.patch("/api/admin/language-classes/:id/toggle-featured", async (req, res) => {
+    try {
+      const languageClass = await db.query.languageClasses.findFirst({
+        where: eq(languageClasses.id, req.params.id),
+      });
+
+      if (!languageClass) {
+        return res.status(404).json({ message: "Language class not found" });
+      }
+
+      const [updated] = await db
+        .update(languageClasses)
+        .set({ isFeatured: !languageClass.isFeatured, updatedAt: new Date() })
+        .where(eq(languageClasses.id, req.params.id))
+        .returning();
+
+      res.json(updated);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
 
   const httpServer = createServer(app);
   return httpServer;

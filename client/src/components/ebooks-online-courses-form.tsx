@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
@@ -61,7 +60,7 @@ export default function EbooksOnlineCoursesForm() {
       const response = await fetch(`/api/admin/ebooks-online-courses/${id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
+        body: JSON.JSON.stringify(data),
       });
       if (!response.ok) throw new Error("Failed to update item");
       return response.json();
@@ -120,6 +119,12 @@ export default function EbooksOnlineCoursesForm() {
       prerequisites,
       price: parseFloat(data.price),
       originalPrice: data.originalPrice ? parseFloat(data.originalPrice) : null,
+      discountPercentage: data.discountPercentage ? parseFloat(data.discountPercentage) : null,
+      publicationYear: data.publicationYear ? parseInt(data.publicationYear) : null,
+      pageCount: data.pageCount ? parseInt(data.pageCount) : null,
+      fileSizeMb: data.fileSizeMb ? parseFloat(data.fileSizeMb) : null,
+      courseDurationHours: data.courseDurationHours ? parseFloat(data.courseDurationHours) : null,
+      totalLectures: data.totalLectures ? parseInt(data.totalLectures) : null,
     };
 
     if (editingItem) {

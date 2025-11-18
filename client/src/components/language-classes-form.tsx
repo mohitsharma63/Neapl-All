@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { Button } from "@/components/ui/button";
@@ -10,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Plus, X } from "lucide-react";
+import { useUser } from "@/hooks/use-user";
 
 interface LanguageClassesFormProps {
   onSuccess: () => void;
@@ -17,14 +17,20 @@ interface LanguageClassesFormProps {
 }
 
 export default function LanguageClassesForm({ onSuccess, editingClass }: LanguageClassesFormProps) {
+  const { user } = useUser();
   const { register, handleSubmit, setValue, watch } = useForm({
-    defaultValues: editingClass || {
+    defaultValues: {
       listingType: "language_class",
-      proficiencyLevel: "beginner",
-      teachingMode: "offline",
-      classType: "group",
-      country: "India",
-      isActive: true,
+      proficiencyLevel: editingClass?.proficiencyLevel || "beginner",
+      teachingMode: editingClass?.teachingMode || "offline",
+      classType: editingClass?.classType || "group",
+      country: editingClass?.country || "India",
+      isActive: editingClass?.isActive !== undefined ? editingClass.isActive : true,
+      isFeatured: editingClass?.isFeatured || false,
+      certificationProvided: editingClass?.certificationProvided || false,
+      freeDemoClass: editingClass?.freeDemoClass || false,
+      nativeSpeaker: editingClass?.nativeSpeaker || false,
+      ...editingClass,
     }
   });
 
@@ -36,21 +42,35 @@ export default function LanguageClassesForm({ onSuccess, editingClass }: Languag
       const url = editingClass 
         ? `/api/admin/language-classes/${editingClass.id}`
         : '/api/admin/language-classes';
-      
+
+      const payload = {
+        ...data,
+        studyMaterialsProvided: Array.isArray(studyMaterials) ? studyMaterials : [],
+        userId: user?.id,
+        role: user?.role,
+        certificationProvided: Boolean(data.certificationProvided),
+        freeDemoClass: Boolean(data.freeDemoClass),
+        nativeSpeaker: Boolean(data.nativeSpeaker),
+        isActive: data.isActive !== false,
+        isFeatured: Boolean(data.isFeatured),
+      };
+
       const response = await fetch(url, {
         method: editingClass ? 'PUT' : 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ...data,
-          studyMaterialsProvided: studyMaterials,
-        }),
+        body: JSON.stringify(payload),
       });
 
       if (response.ok) {
         onSuccess();
+      } else {
+        const error = await response.json();
+        console.error('Error creating language class:', error);
+        alert(`Error: ${error.message || 'Failed to save language class'}`);
       }
     } catch (error) {
       console.error('Error saving language class:', error);
+      alert('Failed to save language class. Please try again.');
     }
   };
 
