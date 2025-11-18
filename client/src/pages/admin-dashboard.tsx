@@ -591,7 +591,9 @@ function EventDecorationServicesSection() {
 function FashionBeautyProductsSection() {
   const [products, setProducts] = useState<any[]>([]);
   const [showForm, setShowForm] = useState(false);
-  const [editingProduct, setEditingProduct] = useState(null);
+  const [editingProduct, setEditingProduct] = useState<any>(null);
+  const [viewingProduct, setViewingProduct] = useState<any>(null);
+  const [showDetailsDialog, setShowDetailsDialog] = useState(false);
 
   useEffect(() => {
     fetchProducts();
@@ -612,6 +614,16 @@ function FashionBeautyProductsSection() {
     setShowForm(false);
     setEditingProduct(null);
     fetchProducts();
+  };
+
+  const handleEdit = (product: any) => {
+    setEditingProduct(product);
+    setShowForm(true);
+  };
+
+  const handleViewDetails = (product: any) => {
+    setViewingProduct(product);
+    setShowDetailsDialog(true);
   };
 
   const handleDelete = async (id: string) => {
@@ -661,19 +673,169 @@ function FashionBeautyProductsSection() {
           <h2 className="text-2xl font-bold">Fashion & Beauty Products</h2>
           <p className="text-muted-foreground">Manage fashion items, clothing, accessories, and beauty products</p>
         </div>
-        <Button onClick={() => setShowForm(true)}>
+        <Button onClick={() => {
+          setEditingProduct(null);
+          setShowForm(true);
+        }}>
           <Plus className="w-4 h-4 mr-2" />
           Add Product
         </Button>
       </div>
 
-      <Dialog open={showForm} onOpenChange={setShowForm}>
+      <Dialog open={showForm} onOpenChange={(open) => {
+        setShowForm(open);
+        if (!open) setEditingProduct(null);
+      }}>
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Add New Fashion & Beauty Product</DialogTitle>
-            <DialogDescription>Fill in the details to create a new fashion or beauty product listing</DialogDescription>
+            <DialogTitle>{editingProduct ? 'Edit Fashion & Beauty Product' : 'Add New Fashion & Beauty Product'}</DialogTitle>
+            <DialogDescription>Fill in the details to {editingProduct ? 'update' : 'create'} a fashion or beauty product listing</DialogDescription>
           </DialogHeader>
-          <FashionBeautyProductsForm onSuccess={handleSuccess} />
+          <FashionBeautyProductsForm onSuccess={handleSuccess} editingProduct={editingProduct} />
+        </DialogContent>
+      </Dialog>
+
+      {/* View Details Dialog */}
+      <Dialog open={showDetailsDialog} onOpenChange={setShowDetailsDialog}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-2xl">{viewingProduct?.title}</DialogTitle>
+            <DialogDescription>Complete product details</DialogDescription>
+          </DialogHeader>
+          {viewingProduct && (
+            <div className="space-y-6">
+              <div className="flex gap-2 flex-wrap">
+                <Badge variant="secondary">{viewingProduct.category}</Badge>
+                <Badge variant="outline">{viewingProduct.listingType}</Badge>
+                {viewingProduct.condition && <Badge variant="outline">{viewingProduct.condition}</Badge>}
+                {viewingProduct.isFeatured && <Badge className="bg-yellow-500">Featured</Badge>}
+              </div>
+
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="p-4 bg-muted rounded-lg">
+                  <p className="text-sm text-muted-foreground">Price</p>
+                  <p className="text-lg font-bold text-primary">₹{Number(viewingProduct.price).toLocaleString('en-IN')}</p>
+                </div>
+                {viewingProduct.mrp && (
+                  <div className="p-4 bg-muted rounded-lg">
+                    <p className="text-sm text-muted-foreground">MRP</p>
+                    <p className="text-lg font-bold line-through">₹{Number(viewingProduct.mrp).toLocaleString('en-IN')}</p>
+                  </div>
+                )}
+                {viewingProduct.discountPercentage && (
+                  <div className="p-4 bg-muted rounded-lg">
+                    <p className="text-sm text-muted-foreground">Discount</p>
+                    <p className="text-lg font-bold text-green-600">{viewingProduct.discountPercentage}%</p>
+                  </div>
+                )}
+                {viewingProduct.stockQuantity && (
+                  <div className="p-4 bg-muted rounded-lg">
+                    <p className="text-sm text-muted-foreground">Stock</p>
+                    <p className="text-lg font-bold">{viewingProduct.stockQuantity}</p>
+                  </div>
+                )}
+              </div>
+
+              {viewingProduct.description && (
+                <div>
+                  <h3 className="font-semibold mb-2">Description</h3>
+                  <p className="text-muted-foreground">{viewingProduct.description}</p>
+                </div>
+              )}
+
+              <div>
+                <h3 className="font-semibold mb-2">Product Details</h3>
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  {viewingProduct.brand && (
+                    <div>
+                      <span className="font-medium">Brand:</span>
+                      <span className="ml-2 text-muted-foreground">{viewingProduct.brand}</span>
+                    </div>
+                  )}
+                  {viewingProduct.color && (
+                    <div>
+                      <span className="font-medium">Color:</span>
+                      <span className="ml-2 text-muted-foreground">{viewingProduct.color}</span>
+                    </div>
+                  )}
+                  {viewingProduct.size && (
+                    <div>
+                      <span className="font-medium">Size:</span>
+                      <span className="ml-2 text-muted-foreground">{viewingProduct.size}</span>
+                    </div>
+                  )}
+                  {viewingProduct.material && (
+                    <div>
+                      <span className="font-medium">Material:</span>
+                      <span className="ml-2 text-muted-foreground">{viewingProduct.material}</span>
+                    </div>
+                  )}
+                  {viewingProduct.gender && (
+                    <div>
+                      <span className="font-medium">Gender:</span>
+                      <span className="ml-2 text-muted-foreground capitalize">{viewingProduct.gender}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div>
+                <h3 className="font-semibold mb-2">Features</h3>
+                <div className="flex flex-wrap gap-2">
+                  {viewingProduct.isOriginal && <Badge variant="outline">Original</Badge>}
+                  {viewingProduct.brandAuthorized && <Badge variant="outline">Brand Authorized</Badge>}
+                  {viewingProduct.customizationAvailable && <Badge variant="outline">Customizable</Badge>}
+                  {viewingProduct.crueltyFree && <Badge variant="outline">Cruelty Free</Badge>}
+                  {viewingProduct.vegan && <Badge variant="outline">Vegan</Badge>}
+                  {viewingProduct.parabenFree && <Badge variant="outline">Paraben Free</Badge>}
+                  {viewingProduct.exchangeAvailable && <Badge variant="outline">Exchange Available</Badge>}
+                  {viewingProduct.codAvailable && <Badge variant="outline">COD Available</Badge>}
+                </div>
+              </div>
+
+              {viewingProduct.images && viewingProduct.images.length > 0 && (
+                <div>
+                  <h3 className="font-semibold mb-2">Product Images</h3>
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                    {viewingProduct.images.map((img: string, idx: number) => (
+                      <img key={idx} src={img} alt={`Product ${idx + 1}`} className="w-full h-32 object-cover rounded-lg border-2 border-pink-200" />
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <div>
+                <h3 className="font-semibold mb-2 flex items-center gap-2">
+                  <Phone className="w-4 h-4" />
+                  Contact Information
+                </h3>
+                <div className="space-y-1 text-sm">
+                  {viewingProduct.contactPerson && <p><span className="font-medium">Contact Person:</span> {viewingProduct.contactPerson}</p>}
+                  <p><span className="font-medium">Phone:</span> {viewingProduct.contactPhone}</p>
+                  {viewingProduct.contactEmail && <p><span className="font-medium">Email:</span> {viewingProduct.contactEmail}</p>}
+                </div>
+              </div>
+
+              {(viewingProduct.city || viewingProduct.shopName) && (
+                <div>
+                  <h3 className="font-semibold mb-2 flex items-center gap-2">
+                    <MapPin className="w-4 h-4" />
+                    Location & Shop
+                  </h3>
+                  <div className="space-y-1 text-sm">
+                    {viewingProduct.shopName && <p><span className="font-medium">Shop:</span> {viewingProduct.shopName}</p>}
+                    {viewingProduct.city && <p><span className="font-medium">City:</span> {viewingProduct.city}</p>}
+                    {viewingProduct.areaName && <p><span className="font-medium">Area:</span> {viewingProduct.areaName}</p>}
+                  </div>
+                </div>
+              )}
+
+              <div className="pt-4 border-t text-sm text-muted-foreground">
+                <p>Created: {new Date(viewingProduct.createdAt).toLocaleString()}</p>
+                <p>Last Updated: {new Date(viewingProduct.updatedAt).toLocaleString()}</p>
+              </div>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
 
@@ -694,8 +856,27 @@ function FashionBeautyProductsSection() {
                   <Button
                     variant="ghost"
                     size="icon"
+                    className="h-8 w-8"
+                    onClick={() => handleViewDetails(product)}
+                    title="View Details"
+                  >
+                    <Eye className="w-4 h-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8"
+                    onClick={() => handleEdit(product)}
+                    title="Edit"
+                  >
+                    <Pencil className="w-4 h-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
                     className="h-8 w-8 text-destructive"
                     onClick={() => handleDelete(product.id)}
+                    title="Delete"
                   >
                     <Trash2 className="w-4 h-4" />
                   </Button>
@@ -708,7 +889,7 @@ function FashionBeautyProductsSection() {
                   <p className="text-sm text-muted-foreground line-clamp-2">{product.description}</p>
                 )}
                 <div className="flex items-center justify-between">
-                  <span className="font-semibold text-lg text-primary">₹{product.price}</span>
+                  <span className="font-semibold text-lg text-primary">₹{Number(product.price).toLocaleString('en-IN')}</span>
                   <Badge variant={product.isActive ? 'default' : 'secondary'}>
                     {product.isActive ? 'Active' : 'Inactive'}
                   </Badge>
@@ -764,7 +945,9 @@ function FashionBeautyProductsSection() {
 function SareeClothingShoppingSection() {
   const [products, setProducts] = useState<any[]>([]);
   const [showForm, setShowForm] = useState(false);
-  const [editingProduct, setEditingProduct] = useState(null);
+  const [editingProduct, setEditingProduct] = useState<any>(null);
+  const [viewingProduct, setViewingProduct] = useState<any>(null);
+  const [showDetailsDialog, setShowDetailsDialog] = useState(false);
 
   useEffect(() => {
     fetchProducts();
@@ -785,6 +968,16 @@ function SareeClothingShoppingSection() {
     setShowForm(false);
     setEditingProduct(null);
     fetchProducts();
+  };
+
+  const handleEdit = (product: any) => {
+    setEditingProduct(product);
+    setShowForm(true);
+  };
+
+  const handleViewDetails = (product: any) => {
+    setViewingProduct(product);
+    setShowDetailsDialog(true);
   };
 
   const handleDelete = async (id: string) => {
@@ -834,19 +1027,147 @@ function SareeClothingShoppingSection() {
           <h2 className="text-2xl font-bold">Saree, Clothing & Shopping</h2>
           <p className="text-muted-foreground">Manage saree, clothing, and shopping products</p>
         </div>
-        <Button onClick={() => setShowForm(true)}>
+        <Button onClick={() => {
+          setEditingProduct(null);
+          setShowForm(true);
+        }}>
           <Plus className="w-4 h-4 mr-2" />
           Add Product
         </Button>
       </div>
 
-      <Dialog open={showForm} onOpenChange={setShowForm}>
+      <Dialog open={showForm} onOpenChange={(open) => {
+        setShowForm(open);
+        if (!open) setEditingProduct(null);
+      }}>
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Add New Saree/Clothing/Shopping Product</DialogTitle>
-            <DialogDescription>Fill in the details to create a new product listing</DialogDescription>
+            <DialogTitle>{editingProduct ? 'Edit Product' : 'Add New Product'}</DialogTitle>
+            <DialogDescription>Fill in the details to {editingProduct ? 'update' : 'create'} a product listing</DialogDescription>
           </DialogHeader>
-          <SareeClothingShoppingForm onSuccess={handleSuccess} />
+          <SareeClothingShoppingForm onSuccess={handleSuccess} editingItem={editingProduct} />
+        </DialogContent>
+      </Dialog>
+
+      {/* View Details Dialog */}
+      <Dialog open={showDetailsDialog} onOpenChange={setShowDetailsDialog}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-2xl">{viewingProduct?.title}</DialogTitle>
+            <DialogDescription>Complete product details</DialogDescription>
+          </DialogHeader>
+          {viewingProduct && (
+            <div className="space-y-6">
+              <div className="flex gap-2 flex-wrap">
+                <Badge variant="secondary">{viewingProduct.category}</Badge>
+                <Badge variant="outline">{viewingProduct.listingType}</Badge>
+                {viewingProduct.isFeatured && <Badge className="bg-yellow-500">Featured</Badge>}
+              </div>
+
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="p-4 bg-muted rounded-lg">
+                  <p className="text-sm text-muted-foreground">Price</p>
+                  <p className="text-lg font-bold text-primary">₹{Number(viewingProduct.price).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+                </div>
+                {viewingProduct.mrp && (
+                  <div className="p-4 bg-muted rounded-lg">
+                    <p className="text-sm text-muted-foreground">MRP</p>
+                    <p className="text-lg font-bold">₹{Number(viewingProduct.mrp).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+                  </div>
+                )}
+                {viewingProduct.discountPercentage && (
+                  <div className="p-4 bg-muted rounded-lg">
+                    <p className="text-sm text-muted-foreground">Discount</p>
+                    <p className="text-lg font-bold text-green-600">{viewingProduct.discountPercentage}%</p>
+                  </div>
+                )}
+                {viewingProduct.stockQuantity && (
+                  <div className="p-4 bg-muted rounded-lg">
+                    <p className="text-sm text-muted-foreground">Stock</p>
+                    <p className="text-lg font-bold">{viewingProduct.stockQuantity}</p>
+                  </div>
+                )}
+              </div>
+
+              {viewingProduct.description && (
+                <div>
+                  <h3 className="font-semibold mb-2">Description</h3>
+                  <p className="text-muted-foreground">{viewingProduct.description}</p>
+                </div>
+              )}
+
+              <div>
+                <h3 className="font-semibold mb-2">Product Details</h3>
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  {viewingProduct.brand && (
+                    <div>
+                      <span className="font-medium">Brand:</span>
+                      <span className="ml-2 text-muted-foreground">{viewingProduct.brand}</span>
+                    </div>
+                  )}
+                  {viewingProduct.color && (
+                    <div>
+                      <span className="font-medium">Color:</span>
+                      <span className="ml-2 text-muted-foreground">{viewingProduct.color}</span>
+                    </div>
+                  )}
+                  {viewingProduct.size && (
+                    <div>
+                      <span className="font-medium">Size:</span>
+                      <span className="ml-2 text-muted-foreground">{viewingProduct.size}</span>
+                    </div>
+                  )}
+                  {viewingProduct.material && (
+                    <div>
+                      <span className="font-medium">Material:</span>
+                      <span className="ml-2 text-muted-foreground">{viewingProduct.material}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {viewingProduct.images && viewingProduct.images.length > 0 && (
+                <div>
+                  <h3 className="font-semibold mb-2">Product Images</h3>
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                    {viewingProduct.images.map((img: string, idx: number) => (
+                      <img key={idx} src={img} alt={`Product ${idx + 1}`} className="w-full h-32 object-cover rounded-lg border-2 border-pink-200" />
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <div>
+                <h3 className="font-semibold mb-2 flex items-center gap-2">
+                  <Phone className="w-4 h-4" />
+                  Contact Information
+                </h3>
+                <div className="space-y-1 text-sm">
+                  {viewingProduct.contactPerson && <p><span className="font-medium">Contact Person:</span> {viewingProduct.contactPerson}</p>}
+                  <p><span className="font-medium">Phone:</span> {viewingProduct.contactPhone}</p>
+                  {viewingProduct.contactEmail && <p><span className="font-medium">Email:</span> {viewingProduct.contactEmail}</p>}
+                </div>
+              </div>
+
+              {(viewingProduct.city || viewingProduct.areaName) && (
+                <div>
+                  <h3 className="font-semibold mb-2 flex items-center gap-2">
+                    <MapPin className="w-4 h-4" />
+                    Location
+                  </h3>
+                  <div className="space-y-1 text-sm">
+                    {viewingProduct.areaName && <p><span className="font-medium">Area:</span> {viewingProduct.areaName}</p>}
+                    {viewingProduct.city && <p><span className="font-medium">City:</span> {viewingProduct.city}</p>}
+                  </div>
+                </div>
+              )}
+
+              <div className="pt-4 border-t text-sm text-muted-foreground">
+                <p>Created: {new Date(viewingProduct.createdAt).toLocaleString()}</p>
+                <p>Last Updated: {new Date(viewingProduct.updatedAt).toLocaleString()}</p>
+              </div>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
 
@@ -867,8 +1188,27 @@ function SareeClothingShoppingSection() {
                   <Button
                     variant="ghost"
                     size="icon"
+                    className="h-8 w-8"
+                    onClick={() => handleViewDetails(product)}
+                    title="View Details"
+                  >
+                    <Eye className="w-4 h-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8"
+                    onClick={() => handleEdit(product)}
+                    title="Edit"
+                  >
+                    <Pencil className="w-4 h-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
                     className="h-8 w-8 text-destructive"
                     onClick={() => handleDelete(product.id)}
+                    title="Delete"
                   >
                     <Trash2 className="w-4 h-4" />
                   </Button>
@@ -881,7 +1221,7 @@ function SareeClothingShoppingSection() {
                   <p className="text-sm text-muted-foreground line-clamp-2">{product.description}</p>
                 )}
                 <div className="flex items-center justify-between">
-                  <span className="font-semibold text-lg text-primary">₹{product.price}</span>
+                  <span className="font-semibold text-lg text-primary">₹{Number(product.price).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                   <Badge variant={product.isActive ? 'default' : 'secondary'}>
                     {product.isActive ? 'Active' : 'Inactive'}
                   </Badge>
@@ -890,6 +1230,12 @@ function SareeClothingShoppingSection() {
                   <div className="text-sm">
                     <span className="font-medium">Brand: </span>
                     <span className="text-muted-foreground">{product.brand}</span>
+                  </div>
+                )}
+                {(product.city || product.areaName) && (
+                  <div className="text-sm text-muted-foreground flex items-center gap-1">
+                    <MapPin className="w-3 h-3" />
+                    {[product.areaName, product.city].filter(Boolean).join(", ")}
                   </div>
                 )}
               </div>
@@ -936,8 +1282,11 @@ function SareeClothingShoppingSection() {
 // Pharmacy & Medical Stores Section Component
 function PharmacyMedicalStoresSection() {
   const [stores, setStores] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
-  const [editingStore, setEditingStore] = useState(null);
+  const [editingStore, setEditingStore] = useState<any>(null);
+  const [viewingStore, setViewingStore] = useState<any>(null);
+  const [showDetailsDialog, setShowDetailsDialog] = useState(false);
 
   useEffect(() => {
     fetchStores();
@@ -945,12 +1294,19 @@ function PharmacyMedicalStoresSection() {
 
   const fetchStores = async () => {
     try {
+      setIsLoading(true);
       const response = await fetch('/api/admin/pharmacy-medical-stores');
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
       const data = await response.json();
+      console.log('Fetched pharmacy stores:', data);
       setStores(Array.isArray(data) ? data : []);
     } catch (error) {
       console.error('Error fetching pharmacy & medical stores:', error);
       setStores([]);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -958,6 +1314,16 @@ function PharmacyMedicalStoresSection() {
     setShowForm(false);
     setEditingStore(null);
     fetchStores();
+  };
+
+  const handleEdit = (store: any) => {
+    setEditingStore(store);
+    setShowForm(true);
+  };
+
+  const handleViewDetails = (store: any) => {
+    setViewingStore(store);
+    setShowDetailsDialog(true);
   };
 
   const handleDelete = async (id: string) => {
@@ -1007,111 +1373,246 @@ function PharmacyMedicalStoresSection() {
           <h2 className="text-2xl font-bold">Pharmacy & Medical Stores</h2>
           <p className="text-muted-foreground">Manage pharmacy and medical store listings</p>
         </div>
-        <Button onClick={() => setShowForm(true)}>
-          <Plus className="w-4 h-4 mr-2" />
-          Add Store
-        </Button>
       </div>
 
-      <Dialog open={showForm} onOpenChange={setShowForm}>
+      <PharmacyMedicalStoresForm 
+        onSuccess={handleSuccess} 
+        editingStore={editingStore}
+        onCancel={() => setEditingStore(null)}
+      />
+
+      <Dialog open={showDetailsDialog} onOpenChange={setShowDetailsDialog}>
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Add New Pharmacy/Medical Store</DialogTitle>
-            <DialogDescription>Fill in the details to create a new pharmacy or medical store listing</DialogDescription>
+            <DialogTitle className="text-2xl">{viewingStore?.title || viewingStore?.storeName}</DialogTitle>
+            <DialogDescription>Complete store details</DialogDescription>
           </DialogHeader>
-          <PharmacyMedicalStoresForm onSuccess={handleSuccess} />
+          {viewingStore && (
+            <div className="space-y-6">
+              <div className="flex gap-2 flex-wrap">
+                <Badge variant="secondary">{viewingStore.listingType || 'N/A'}</Badge>
+                {viewingStore.isFeatured && <Badge className="bg-yellow-500">Featured</Badge>}
+                <Badge variant={viewingStore.isActive ? 'default' : 'secondary'}>
+                  {viewingStore.isActive ? 'Active' : 'Inactive'}
+                </Badge>
+              </div>
+
+              {viewingStore.description && (
+                <div>
+                  <h3 className="font-semibold mb-2">Description</h3>
+                  <p className="text-muted-foreground">{viewingStore.description}</p>
+                </div>
+              )}
+
+              <div>
+                <h3 className="font-semibold mb-2">Store Information</h3>
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  {viewingStore.pharmacyName && (
+                    <div>
+                      <span className="font-medium">Pharmacy Name:</span>
+                      <span className="ml-2 text-muted-foreground">{viewingStore.pharmacyName}</span>
+                    </div>
+                  )}
+                  {viewingStore.licenseNumber && (
+                    <div>
+                      <span className="font-medium">License Number:</span>
+                      <span className="ml-2 text-muted-foreground">{viewingStore.licenseNumber}</span>
+                    </div>
+                  )}
+                  {viewingStore.ownerName && (
+                    <div>
+                      <span className="font-medium">Owner:</span>
+                      <span className="ml-2 text-muted-foreground">{viewingStore.ownerName}</span>
+                    </div>
+                  )}
+                  {viewingStore.pharmacistName && (
+                    <div>
+                      <span className="font-medium">Pharmacist:</span>
+                      <span className="ml-2 text-muted-foreground">{viewingStore.pharmacistName}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div>
+                <h3 className="font-semibold mb-2">Services</h3>
+                <div className="flex flex-wrap gap-2">
+                  {viewingStore.prescriptionMedicines && <Badge variant="outline">Prescription Medicines</Badge>}
+                  {viewingStore.otcMedicines && <Badge variant="outline">OTC Medicines</Badge>}
+                  {viewingStore.ayurvedicProducts && <Badge variant="outline">Ayurvedic</Badge>}
+                  {viewingStore.homeopathicMedicines && <Badge variant="outline">Homeopathic</Badge>}
+                  {viewingStore.surgicalItems && <Badge variant="outline">Surgical Items</Badge>}
+                  {viewingStore.medicalDevices && <Badge variant="outline">Medical Devices</Badge>}
+                </div>
+              </div>
+
+              {(viewingStore.homeDelivery || viewingStore.sameDayDelivery) && (
+                <div>
+                  <h3 className="font-semibold mb-2">Delivery Options</h3>
+                  <div className="flex flex-wrap gap-2">
+                    {viewingStore.homeDelivery && <Badge variant="default">Home Delivery</Badge>}
+                    {viewingStore.sameDayDelivery && <Badge variant="default">Same Day Delivery</Badge>}
+                    {viewingStore.deliveryCharges && (
+                      <Badge variant="outline">Delivery: ₹{viewingStore.deliveryCharges}</Badge>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              <div>
+                <h3 className="font-semibold mb-2 flex items-center gap-2">
+                  <Phone className="w-4 h-4" />
+                  Contact Information
+                </h3>
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <span className="font-medium">Contact Person:</span>
+                    <span className="ml-2 text-muted-foreground">{viewingStore.contactPerson}</span>
+                  </div>
+                  <div>
+                    <span className="font-medium">Phone:</span>
+                    <span className="ml-2 text-muted-foreground">{viewingStore.contactPhone}</span>
+                  </div>
+                  {viewingStore.contactEmail && (
+                    <div>
+                      <span className="font-medium">Email:</span>
+                      <span className="ml-2 text-muted-foreground">{viewingStore.contactEmail}</span>
+                    </div>
+                  )}
+                  {viewingStore.whatsappNumber && (
+                    <div>
+                      <span className="font-medium">WhatsApp:</span>
+                      <span className="ml-2 text-muted-foreground">{viewingStore.whatsappNumber}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {viewingStore.fullAddress && (
+                <div>
+                  <h3 className="font-semibold mb-2 flex items-center gap-2">
+                    <MapPin className="w-4 h-4" />
+                    Location
+                  </h3>
+                  <div className="space-y-1 text-sm">
+                    <p><span className="font-medium">Address:</span> {viewingStore.fullAddress}</p>
+                    {viewingStore.areaName && <p><span className="font-medium">Area:</span> {viewingStore.areaName}</p>}
+                    {viewingStore.city && <p><span className="font-medium">City:</span> {viewingStore.city}</p>}
+                    {viewingStore.pincode && <p><span className="font-medium">Pincode:</span> {viewingStore.pincode}</p>}
+                  </div>
+                </div>
+              )}
+
+              <div className="pt-4 border-t text-sm text-muted-foreground">
+                <p>Created: {new Date(viewingStore.createdAt).toLocaleString()}</p>
+                <p>Last Updated: {new Date(viewingStore.updatedAt).toLocaleString()}</p>
+              </div>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-        {Array.isArray(stores) && stores.map((store) => (
-          <Card key={store.id} className="group hover:shadow-lg transition-shadow">
-            <CardHeader>
-              <div className="flex items-start justify-between">
-                <div className="flex-1">
-                  <CardTitle className="text-lg mb-2">{store.storeName}</CardTitle>
-                  <div className="flex gap-2 flex-wrap">
-                    <Badge variant="secondary">{store.storeType}</Badge>
-                    {store.listingType && <Badge variant="outline">{store.listingType}</Badge>}
-                    {store.isFeatured && <Badge className="bg-yellow-500">Featured</Badge>}
-                  </div>
-                </div>
-                <div className="flex gap-1">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8 text-destructive"
-                    onClick={() => handleDelete(store.id)}
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                {store.description && (
-                  <p className="text-sm text-muted-foreground line-clamp-2">{store.description}</p>
-                )}
-                <div className="flex items-center justify-between">
-                  <Badge variant={store.isActive ? 'default' : 'secondary'}>
-                    {store.isActive ? 'Active' : 'Inactive'}
-                  </Badge>
-                </div>
-                {store.ownerName && (
-                  <div className="text-sm">
-                    <span className="font-medium">Owner: </span>
-                    <span className="text-muted-foreground">{store.ownerName}</span>
-                  </div>
-                )}
-                {store.contactPhone && (
-                  <div className="text-sm">
-                    <span className="font-medium">Phone: </span>
-                    <span className="text-muted-foreground">{store.contactPhone}</span>
-                  </div>
-                )}
-                {(store.city || store.area) && (
-                  <div className="text-sm text-muted-foreground flex items-center gap-1">
-                    <MapPin className="w-3 h-3" />
-                    {[store.area, store.city].filter(Boolean).join(", ")}
-                  </div>
-                )}
-              </div>
-            </CardContent>
-            <CardFooter className="pt-0 flex gap-2">
-              <Button
-                variant={store.isActive ? "outline" : "default"}
-                size="sm"
-                className="flex-1"
-                onClick={() => toggleActive(store.id)}
-              >
-                {store.isActive ? "Deactivate" : "Activate"}
-              </Button>
-              <Button
-                variant={store.isFeatured ? "secondary" : "outline"}
-                size="sm"
-                className="flex-1"
-                onClick={() => toggleFeatured(store.id)}
-              >
-                {store.isFeatured ? "Unfeature" : "Feature"}
-              </Button>
-            </CardFooter>
-          </Card>
-        ))}
-      </div>
-
-      {(!stores || stores.length === 0) && (
-        <Card>
-          <CardContent className="py-12 text-center">
-            <Building className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
-            <h3 className="text-lg font-semibold mb-2">No Stores Found</h3>
-            <p className="text-muted-foreground mb-4">Start by adding your first pharmacy or medical store</p>
-            <Button onClick={() => setShowForm(true)}>
-              <Plus className="w-4 h-4 mr-2" />
-              Add Store
-            </Button>
-          </CardContent>
-        </Card>
+      {isLoading ? (
+        <div className="text-center py-8">Loading stores...</div>
+      ) : (
+        <>
+          {stores.length > 0 && (
+            <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+              {stores.map((store) => (
+                <Card key={store.id} className="group hover:shadow-lg transition-shadow">
+                  <CardHeader>
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <CardTitle className="text-lg mb-2">{store.title || store.storeName}</CardTitle>
+                        <div className="flex gap-2 flex-wrap">
+                          <Badge variant="secondary">{store.listingType || 'N/A'}</Badge>
+                          {store.isFeatured && <Badge className="bg-yellow-500">Featured</Badge>}
+                        </div>
+                      </div>
+                      <div className="flex gap-1">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8"
+                          onClick={() => handleViewDetails(store)}
+                          title="View Details"
+                        >
+                          <Eye className="w-4 h-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8"
+                          onClick={() => handleEdit(store)}
+                          title="Edit"
+                        >
+                          <Edit className="w-4 h-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-destructive"
+                          onClick={() => handleDelete(store.id)}
+                          title="Delete"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-3">
+                      {store.description && (
+                        <p className="text-sm text-muted-foreground line-clamp-2">{store.description}</p>
+                      )}
+                      <div className="flex items-center justify-between">
+                        <Badge variant={store.isActive ? 'default' : 'secondary'}>
+                          {store.isActive ? 'Active' : 'Inactive'}
+                        </Badge>
+                      </div>
+                      {store.ownerName && (
+                        <div className="text-sm">
+                          <span className="font-medium">Owner: </span>
+                          <span className="text-muted-foreground">{store.ownerName}</span>
+                        </div>
+                      )}
+                      {store.contactPhone && (
+                        <div className="text-sm">
+                          <span className="font-medium">Phone: </span>
+                          <span className="text-muted-foreground">{store.contactPhone}</span>
+                        </div>
+                      )}
+                      {(store.city || store.areaName) && (
+                        <div className="text-sm text-muted-foreground flex items-center gap-1">
+                          <MapPin className="w-3 h-3" />
+                          {[store.areaName, store.city].filter(Boolean).join(", ")}
+                        </div>
+                      )}
+                    </div>
+                  </CardContent>
+                  <CardFooter className="pt-0 flex gap-2">
+                    <Button
+                      variant={store.isActive ? "outline" : "default"}
+                      size="sm"
+                      className="flex-1"
+                      onClick={() => toggleActive(store.id)}
+                    >
+                      {store.isActive ? "Deactivate" : "Activate"}
+                    </Button>
+                    <Button
+                      variant={store.isFeatured ? "secondary" : "outline"}
+                      size="sm"
+                      className="flex-1"
+                      onClick={() => toggleFeatured(store.id)}
+                    >
+                      {store.isFeatured ? "Unfeature" : "Feature"}
+                    </Button>
+                  </CardFooter>
+                </Card>
+              ))}
+            </div>
+          )}
+        </>
       )}
     </div>
   );
@@ -1310,6 +1811,8 @@ function JewelryAccessoriesSection() {
   const [items, setItems] = useState<any[]>([]);
   const [showForm, setShowForm] = useState(false);
   const [editingItem, setEditingItem] = useState<any>(null);
+  const [viewingItem, setViewingItem] = useState<any>(null);
+  const [showDetailsDialog, setShowDetailsDialog] = useState(false);
 
   useEffect(() => {
     fetchItems();
@@ -1317,8 +1820,22 @@ function JewelryAccessoriesSection() {
 
   const fetchItems = async () => {
     try {
-      const response = await fetch('/api/admin/jewelry-accessories');
+      const storedUser = localStorage.getItem("user");
+      const queryParams = new URLSearchParams();
+
+      if (storedUser) {
+        const userData = JSON.parse(storedUser);
+        if (userData.role === 'admin') {
+          queryParams.append('role', 'admin');
+        } else {
+          queryParams.append('userId', userData.id);
+          queryParams.append('role', userData.role || 'user');
+        }
+      }
+
+      const response = await fetch(`/api/admin/jewelry-accessories?${queryParams.toString()}`);
       const data = await response.json();
+      console.log('Fetched jewelry accessories:', data); // Debug log
       setItems(Array.isArray(data) ? data : []);
     } catch (error) {
       console.error('Error fetching jewelry & accessories:', error);
@@ -1335,6 +1852,11 @@ function JewelryAccessoriesSection() {
   const handleEdit = (item: any) => {
     setEditingItem(item);
     setShowForm(true);
+  };
+
+  const handleViewDetails = (item: any) => {
+    setViewingItem(item);
+    setShowDetailsDialog(true);
   };
 
   const handleDelete = async (id: string) => {
@@ -1390,7 +1912,10 @@ function JewelryAccessoriesSection() {
         </Button>
       </div>
 
-      <Dialog open={showForm} onOpenChange={setShowForm}>
+      <Dialog open={showForm} onOpenChange={(open) => {
+        setShowForm(open);
+        if (!open) setEditingItem(null);
+      }}>
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{editingItem ? 'Edit Jewelry/Accessory Item' : 'Add New Jewelry/Accessory Item'}</DialogTitle>
@@ -1418,15 +1943,26 @@ function JewelryAccessoriesSection() {
                     variant="ghost"
                     size="icon"
                     className="h-8 w-8"
-                    onClick={() => handleEdit(item)}
+                    onClick={() => handleViewDetails(item)}
+                    title="View Details"
                   >
-                    <Edit className="w-4 h-4" />
+                    <Eye className="w-4 h-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8"
+                    onClick={() => handleEdit(item)}
+                    title="Edit"
+                  >
+                    <Pencil className="w-4 h-4" />
                   </Button>
                   <Button
                     variant="ghost"
                     size="icon"
                     className="h-8 w-8 text-destructive"
                     onClick={() => handleDelete(item.id)}
+                    title="Delete"
                   >
                     <Trash2 className="w-4 h-4" />
                   </Button>
@@ -1439,7 +1975,7 @@ function JewelryAccessoriesSection() {
                   <p className="text-sm text-muted-foreground line-clamp-2">{item.description}</p>
                 )}
                 <div className="flex items-center justify-between">
-                  <span className="font-semibold text-lg text-primary">₹{item.price}</span>
+                  <span className="font-semibold text-lg text-primary">₹{Number(item.price).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                   <Badge variant={item.isActive ? 'default' : 'secondary'}>
                     {item.isActive ? 'Active' : 'Inactive'}
                   </Badge>
@@ -1448,6 +1984,12 @@ function JewelryAccessoriesSection() {
                   <div className="text-sm">
                     <span className="font-medium">Brand: </span>
                     <span className="text-muted-foreground">{item.brand}</span>
+                  </div>
+                )}
+                {item.material && (
+                  <div className="text-sm">
+                    <span className="font-medium">Material: </span>
+                    <span className="text-muted-foreground">{item.material}</span>
                   </div>
                 )}
               </div>
@@ -1473,6 +2015,161 @@ function JewelryAccessoriesSection() {
           </Card>
         ))}
       </div>
+
+      {/* View Details Dialog */}
+      <Dialog open={showDetailsDialog} onOpenChange={setShowDetailsDialog}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-2xl">{viewingItem?.title}</DialogTitle>
+            <DialogDescription>Complete jewelry/accessory details</DialogDescription>
+          </DialogHeader>
+          {viewingItem && (
+            <div className="space-y-6">
+              <div className="flex gap-2 flex-wrap">
+                <Badge variant="secondary">{viewingItem.category}</Badge>
+                <Badge variant="outline">{viewingItem.listingType}</Badge>
+                {viewingItem.condition && <Badge variant="outline">{viewingItem.condition}</Badge>}
+                {viewingItem.isFeatured && <Badge className="bg-yellow-500">Featured</Badge>}
+              </div>
+
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="p-4 bg-muted rounded-lg">
+                  <p className="text-sm text-muted-foreground">Price</p>
+                  <p className="text-lg font-bold text-primary">₹{Number(viewingItem.price).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+                </div>
+                {viewingItem.originalPrice && (
+                  <div className="p-4 bg-muted rounded-lg">
+                    <p className="text-sm text-muted-foreground">Original Price</p>
+                    <p className="text-lg font-bold line-through">₹{Number(viewingItem.originalPrice).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+                  </div>
+                )}
+                {viewingItem.discountPercentage && (
+                  <div className="p-4 bg-muted rounded-lg">
+                    <p className="text-sm text-muted-foreground">Discount</p>
+                    <p className="text-lg font-bold text-green-600">{viewingItem.discountPercentage}%</p>
+                  </div>
+                )}
+                {viewingItem.makingCharges && (
+                  <div className="p-4 bg-muted rounded-lg">
+                    <p className="text-sm text-muted-foreground">Making Charges</p>
+                    <p className="text-lg font-bold">₹{Number(viewingItem.makingCharges).toLocaleString('en-IN')}</p>
+                  </div>
+                )}
+              </div>
+
+              {viewingItem.description && (
+                <div>
+                  <h3 className="font-semibold mb-2">Description</h3>
+                  <p className="text-muted-foreground">{viewingItem.description}</p>
+                </div>
+              )}
+
+              <div>
+                <h3 className="font-semibold mb-2">Product Details</h3>
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  {viewingItem.brand && (
+                    <div>
+                      <span className="font-medium">Brand:</span>
+                      <span className="ml-2 text-muted-foreground">{viewingItem.brand}</span>
+                    </div>
+                  )}
+                  {viewingItem.material && (
+                    <div>
+                      <span className="font-medium">Material:</span>
+                      <span className="ml-2 text-muted-foreground">{viewingItem.material}</span>
+                    </div>
+                  )}
+                  {viewingItem.purity && (
+                    <div>
+                      <span className="font-medium">Purity/Karat:</span>
+                      <span className="ml-2 text-muted-foreground">{viewingItem.purity}</span>
+                    </div>
+                  )}
+                  {viewingItem.weight && (
+                    <div>
+                      <span className="font-medium">Weight:</span>
+                      <span className="ml-2 text-muted-foreground">{viewingItem.weight}</span>
+                    </div>
+                  )}
+                  {viewingItem.gender && (
+                    <div>
+                      <span className="font-medium">Gender:</span>
+                      <span className="ml-2 text-muted-foreground capitalize">{viewingItem.gender}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div>
+                <h3 className="font-semibold mb-2">Features</h3>
+                <div className="flex flex-wrap gap-2">
+                  {viewingItem.hallmarked && <Badge variant="outline">Hallmarked</Badge>}
+                  {viewingItem.certified && <Badge variant="outline">Certified</Badge>}
+                  {viewingItem.customizable && <Badge variant="outline">Customizable</Badge>}
+                  {viewingItem.giftWrapping && <Badge variant="outline">Gift Wrapping</Badge>}
+                  {viewingItem.returnPolicy && <Badge variant="outline">Return Policy</Badge>}
+                  {viewingItem.codAvailable && <Badge variant="outline">COD Available</Badge>}
+                  {viewingItem.freeShipping && <Badge variant="outline">Free Shipping</Badge>}
+                </div>
+              </div>
+
+              {viewingItem.shopName && (
+                <div>
+                  <h3 className="font-semibold mb-2">Seller Information</h3>
+                  <div className="grid grid-cols-2 gap-4 text-sm">
+                    <div>
+                      <span className="font-medium">Shop/Business:</span>
+                      <span className="ml-2 text-muted-foreground">{viewingItem.shopName}</span>
+                    </div>
+                    {viewingItem.contactPhone && (
+                      <div>
+                        <span className="font-medium">Phone:</span>
+                        <span className="ml-2 text-muted-foreground">{viewingItem.contactPhone}</span>
+                      </div>
+                    )}
+                    {viewingItem.contactEmail && (
+                      <div>
+                        <span className="font-medium">Email:</span>
+                        <span className="ml-2 text-muted-foreground">{viewingItem.contactEmail}</span>
+                      </div>
+                    )}
+                    {viewingItem.website && (
+                      <div>
+                        <span className="font-medium">Website:</span>
+                        <span className="ml-2 text-muted-foreground">
+                          <a href={viewingItem.website} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
+                            {viewingItem.website}
+                          </a>
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {(viewingItem.city || viewingItem.address) && (
+                <div>
+                  <h3 className="font-semibold mb-2 flex items-center gap-2">
+                    <MapPin className="w-4 h-4" />
+                    Location
+                  </h3>
+                  <div className="space-y-1 text-sm">
+                    {viewingItem.address && <p><span className="font-medium">Address:</span> {viewingItem.address}</p>}
+                    {viewingItem.city && <p><span className="font-medium">City:</span> {viewingItem.city}</p>}
+                    {viewingItem.state && <p><span className="font-medium">State:</span> {viewingItem.state}</p>}
+                    {viewingItem.pincode && <p><span className="font-medium">Pincode:</span> {viewingItem.pincode}</p>}
+                  </div>
+                </div>
+              )}
+
+              <div className="pt-4 border-t text-sm text-muted-foreground">
+                <p>Created: {new Date(viewingItem.createdAt).toLocaleString()}</p>
+                <p>Last Updated: {new Date(viewingItem.updatedAt).toLocaleString()}</p>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
 
       {(!items || items.length === 0) && (
         <Card>
@@ -1576,7 +2273,10 @@ function HealthWellnessServicesSection() {
         </Button>
       </div>
 
-      <Dialog open={showForm} onOpenChange={setShowForm}>
+      <Dialog open={showForm} onOpenChange={(open) => {
+        setShowForm(open);
+        if (!open) setEditingService(null);
+      }}>
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{editingService ? 'Edit Health & Wellness Service' : 'Add New Health & Wellness Service'}</DialogTitle>

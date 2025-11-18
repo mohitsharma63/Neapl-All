@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { useToast } from "@/hooks/use-toast";
@@ -189,8 +188,9 @@ export default function HealthWellnessServicesForm({ onSuccess, editingService }
         <CardContent className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <Label htmlFor="doctorName">Doctor/Practitioner Name</Label>
-              <Input id="doctorName" {...register("doctorName")} placeholder="Dr. John Doe" />
+              <Label htmlFor="contactPerson">Contact Person *</Label>
+              <Input id="contactPerson" {...register("contactPerson", { required: true })} placeholder="Contact Person Name" />
+              {errors.contactPerson && <span className="text-red-500 text-sm">Contact Person is required</span>}
             </div>
 
             <div>
@@ -198,6 +198,11 @@ export default function HealthWellnessServicesForm({ onSuccess, editingService }
               <Input id="contactPhone" {...register("contactPhone", { required: true })} placeholder="+91 9876543210" />
               {errors.contactPhone && <span className="text-red-500 text-sm">Phone is required</span>}
             </div>
+          </div>
+
+          <div>
+            <Label htmlFor="doctorName">Doctor/Practitioner Name</Label>
+            <Input id="doctorName" {...register("doctorName")} placeholder="Dr. John Doe" />
           </div>
 
           <div className="grid grid-cols-2 gap-4">

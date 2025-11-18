@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -81,16 +80,26 @@ export function RentalListingsForm({ open, onOpenChange, rental, onSuccess }: Re
     setLoading(true);
 
     try {
+      // Convert empty strings to null for numeric fields
+      const sanitizedData = {
+        ...formData,
+        price: formData.price ? parseFloat(formData.price.toString()) : null,
+        bedrooms: formData.bedrooms ? parseInt(formData.bedrooms.toString()) : null,
+        bathrooms: formData.bathrooms ? parseInt(formData.bathrooms.toString()) : null,
+        area: formData.area ? parseInt(formData.area.toString()) : null,
+        depositAmount: formData.depositAmount ? parseFloat(formData.depositAmount.toString()) : null,
+      };
+
       const url = rental?.id
         ? `/api/admin/rental-listings/${rental.id}`
         : '/api/admin/rental-listings';
-      
+
       const method = rental?.id ? 'PUT' : 'POST';
 
       const response = await fetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
+        body: JSON.stringify(sanitizedData),
       });
 
       if (response.ok) {

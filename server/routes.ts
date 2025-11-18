@@ -47,6 +47,8 @@ import {
   skillTrainingCertification, // Added
   schoolsCollegesCoaching, // Added
   educationalConsultancyStudyAbroad, // Added, uncommented
+  jewelryAccessories, // Added
+  healthWellnessServices, // Added
 } from "../shared/schema";
 import { eq, sql, desc } from "drizzle-orm";
 
@@ -855,16 +857,31 @@ export function registerRoutes(app: Express) {
   // CREATE new rental listing
   app.post("/api/admin/rental-listings", async (req, res) => {
     try {
+      const {
+        price,
+        bedrooms,
+        bathrooms,
+        area,
+        depositAmount,
+        ...otherData
+      } = req.body;
+
       const [newListing] = await db
         .insert(rentalListings)
         .values({
-          ...req.body,
+          ...otherData,
+          price: price ? parseFloat(price.toString()) : null,
+          bedrooms: bedrooms ? parseInt(bedrooms.toString()) : null,
+          bathrooms: bathrooms ? parseInt(bathrooms.toString()) : null,
+          area: area ? parseInt(area.toString()) : null,
+          depositAmount: depositAmount ? parseFloat(depositAmount.toString()) : null,
           country: req.body.country || "India",
         })
         .returning();
 
       res.status(201).json(newListing);
     } catch (error: any) {
+      console.error("Error creating rental listing:", error);
       res.status(400).json({ message: error.message });
     }
   });
@@ -2262,10 +2279,24 @@ export function registerRoutes(app: Express) {
   // CREATE new showroom
   app.post("/api/admin/showrooms", async (req, res) => {
     try {
+      const {
+        year,
+        mileage,
+        registrationYear,
+        ownerCount,
+        price,
+        ...otherData
+      } = req.body;
+
       const [newShowroom] = await db
         .insert(showrooms)
         .values({
-          ...req.body,
+          ...otherData,
+          year: year ? parseInt(year.toString()) : null,
+          mileage: mileage ? parseInt(mileage.toString()) : null,
+          registrationYear: registrationYear ? parseInt(registrationYear.toString()) : null,
+          ownerCount: ownerCount ? parseInt(ownerCount.toString()) : null,
+          price: parseFloat(price.toString()),
           country: req.body.country || "India",
         })
         .returning();
@@ -3361,6 +3392,194 @@ export function registerRoutes(app: Express) {
       res.status(500).json({ message: error.message });
     }
   });
+
+
+  // Jewelry & Accessories Routes - Full CRUD
+
+  // GET all jewelry & accessories
+  app.get("/api/admin/jewelry-accessories", async (req, res) => {
+    try {
+      const { userId, role } = req.query;
+
+      let items;
+
+      if (role === 'admin') {
+        // Admin sees all items
+        items = await db.query.jewelryAccessories.findMany({
+          orderBy: desc(jewelryAccessories.createdAt),
+        });
+      } else if (userId) {
+        // Regular users see only their items
+        items = await db.query.jewelryAccessories.findMany({
+          where: eq(jewelryAccessories.userId, userId as string),
+          orderBy: desc(jewelryAccessories.createdAt),
+        });
+      } else {
+        // No userId and not admin - return all items for backward compatibility
+        items = await db.query.jewelryAccessories.findMany({
+          orderBy: desc(jewelryAccessories.createdAt),
+        });
+      }
+
+      console.log(`Fetching jewelry accessories - role: ${role}, userId: ${userId}, count: ${items.length}`);
+      res.json(items);
+    } catch (error: any) {
+      console.error('Error fetching jewelry & accessories:', error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // GET single jewelry/accessory by ID
+  app.get("/api/admin/jewelry-accessories/:id", async (req, res) => {
+    try {
+      const item = await db.query.jewelryAccessories.findFirst({
+        where: eq(jewelryAccessories.id, req.params.id),
+      });
+
+      if (!item) {
+        return res.status(404).json({ message: "Item not found" });
+      }
+
+      res.json(item);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // CREATE new jewelry/accessory
+  app.post("/api/admin/jewelry-accessories", async (req, res) => {
+    try {
+      const {
+        price,
+        originalPrice,
+        discountPercentage,
+        makingCharges,
+        ...otherData
+      } = req.body;
+
+      const sanitizedData = {
+        ...otherData,
+        price: price ? parseFloat(price.toString()) : null,
+        originalPrice: originalPrice ? parseFloat(originalPrice.toString()) : null,
+        discountPercentage: discountPercentage ? parseFloat(discountPercentage.toString()) : null,
+        makingCharges: makingCharges ? parseFloat(makingCharges.toString()) : null,
+        country: req.body.country || "India",
+      };
+
+      const [newItem] = await db
+        .insert(jewelryAccessories)
+        .values(sanitizedData)
+        .returning();
+
+      res.status(201).json(newItem);
+    } catch (error: any) {
+      console.error("Error creating jewelry/accessory:", error);
+      res.status(400).json({ message: error.message });
+    }
+  });
+
+  // UPDATE jewelry/accessory
+  app.put("/api/admin/jewelry-accessories/:id", async (req, res) => {
+    try {
+      const {
+        price,
+        originalPrice,
+        discountPercentage,
+        makingCharges,
+        ...otherData
+      } = req.body;
+
+      const sanitizedData = {
+        ...otherData,
+        price: price ? parseFloat(price.toString()) : null,
+        originalPrice: originalPrice ? parseFloat(originalPrice.toString()) : null,
+        discountPercentage: discountPercentage ? parseFloat(discountPercentage.toString()) : null,
+        makingCharges: makingCharges ? parseFloat(makingCharges.toString()) : null,
+        updatedAt: new Date(),
+      };
+
+      const [updatedItem] = await db
+        .update(jewelryAccessories)
+        .set(sanitizedData)
+        .where(eq(jewelryAccessories.id, req.params.id))
+        .returning();
+
+      if (!updatedItem) {
+        return res.status(404).json({ message: "Item not found" });
+      }
+
+      res.json(updatedItem);
+    } catch (error: any) {
+      console.error("Error updating jewelry/accessory:", error);
+      res.status(400).json({ message: error.message });
+    }
+  });
+
+  // DELETE jewelry/accessory
+  app.delete("/api/admin/jewelry-accessories/:id", async (req, res) => {
+    try {
+      const deletedRows = await db
+        .delete(jewelryAccessories)
+        .where(eq(jewelryAccessories.id, req.params.id))
+        .returning();
+
+      if (deletedRows.length === 0) {
+        return res.status(404).json({ message: "Item not found" });
+      }
+
+      res.json({ message: "Item deleted successfully", id: req.params.id });
+    } catch (error: any) {
+      console.error("Error deleting jewelry/accessory:", error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // PATCH - Toggle active status
+  app.patch("/api/admin/jewelry-accessories/:id/toggle-active", async (req, res) => {
+    try {
+      const item = await db.query.jewelryAccessories.findFirst({
+        where: eq(jewelryAccessories.id, req.params.id),
+      });
+
+      if (!item) {
+        return res.status(404).json({ message: "Item not found" });
+      }
+
+      const [updated] = await db
+        .update(jewelryAccessories)
+        .set({ isActive: !item.isActive, updatedAt: new Date() })
+        .where(eq(jewelryAccessories.id, req.params.id))
+        .returning();
+
+      res.json(updated);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // PATCH - Toggle featured status
+  app.patch("/api/admin/jewelry-accessories/:id/toggle-featured", async (req, res) => {
+    try {
+      const item = await db.query.jewelryAccessories.findFirst({
+        where: eq(jewelryAccessories.id, req.params.id),
+      });
+
+      if (!item) {
+        return res.status(404).json({ message: "Item not found" });
+      }
+
+      const [updated] = await db
+        .update(jewelryAccessories)
+        .set({ isFeatured: !item.isFeatured, updatedAt: new Date() })
+        .where(eq(jewelryAccessories.id, req.params.id))
+        .returning();
+
+      res.json(updated);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
 
   // PATCH - Toggle featured status
   app.patch("/api/admin/electronics-gadgets/:id/toggle-featured", async (req, res) => {
@@ -5192,13 +5411,16 @@ export function registerRoutes(app: Express) {
           orderBy: desc(pharmacyMedicalStores.createdAt),
         });
       } else {
-        // If no userId provided and not admin, return empty array
-        stores = [];
+        // If no userId provided and not admin, return all stores (for backward compatibility)
+        stores = await db.query.pharmacyMedicalStores.findMany({
+          orderBy: desc(pharmacyMedicalStores.createdAt),
+        });
       }
 
+      console.log(`Fetched ${stores.length} pharmacy stores for user ${userId} with role ${role}`);
       res.json(stores);
     } catch (error: any) {
-      console.error('Error fetching pharmacy/medical stores:', error);
+      console.error('Error fetching pharmacy stores:', error);
       res.status(500).json({ message: error.message });
     }
   });
@@ -5330,9 +5552,6 @@ export function registerRoutes(app: Express) {
       res.status(500).json({ message: error.message });
     }
   });
-
-  // Health & Wellness Services Routes - Commented out until schema is added
-  // Jewelry & Accessories Routes - Commented out until schema is added
 
   // Language Classes Routes - Full CRUD
 
@@ -5518,6 +5737,354 @@ export function registerRoutes(app: Express) {
 
       res.json(updated);
     } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Health & Wellness Services Routes - Full CRUD
+
+  // GET all health wellness services
+  app.get("/api/admin/health-wellness-services", async (req, res) => {
+    try {
+      const { userId, role } = req.query;
+
+      let services;
+
+      if (role === 'admin') {
+        services = await db.query.healthWellnessServices.findMany({
+          orderBy: desc(healthWellnessServices.createdAt),
+        });
+      } else if (userId) {
+        services = await db.query.healthWellnessServices.findMany({
+          where: eq(healthWellnessServices.userId, userId as string),
+          orderBy: desc(healthWellnessServices.createdAt),
+        });
+      } else {
+        services = await db.query.healthWellnessServices.findMany({
+          orderBy: desc(healthWellnessServices.createdAt),
+        });
+      }
+
+      console.log(`Fetched ${services.length} health wellness services for user ${userId} with role ${role}`);
+      res.json(services);
+    } catch (error: any) {
+      console.error('Error fetching health wellness services:', error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // GET single health wellness service by ID
+  app.get("/api/admin/health-wellness-services/:id", async (req, res) => {
+    try {
+      const service = await db.query.healthWellnessServices.findFirst({
+        where: eq(healthWellnessServices.id, req.params.id),
+      });
+
+      if (!service) {
+        return res.status(404).json({ message: "Service not found" });
+      }
+
+      res.json(service);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // CREATE new health wellness service
+  app.post("/api/admin/health-wellness-services", async (req, res) => {
+    try {
+      const {
+        consultationFee,
+        experienceYears,
+        ...otherData
+      } = req.body;
+
+      if (!otherData.userId) {
+        return res.status(400).json({ message: "userId is required" });
+      }
+
+      const [newService] = await db
+        .insert(healthWellnessServices)
+        .values({
+          ...otherData,
+          consultationFee: consultationFee ? parseFloat(consultationFee.toString()) : null,
+          experienceYears: experienceYears ? parseInt(experienceYears.toString()) : null,
+          country: req.body.country || "India",
+        })
+        .returning();
+
+      res.status(201).json(newService);
+    } catch (error: any) {
+      console.error("Error creating health wellness service:", error);
+      res.status(400).json({ message: error.message });
+    }
+  });
+
+  // UPDATE health wellness service
+  app.put("/api/admin/health-wellness-services/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const {
+        consultationFee,
+        experienceYears,
+        ...otherData
+      } = req.body;
+
+      const updateData: any = {
+        ...otherData,
+        updatedAt: new Date(),
+      };
+
+      if (consultationFee !== undefined) {
+        updateData.consultationFee = consultationFee ? parseFloat(consultationFee.toString()) : null;
+      }
+      if (experienceYears !== undefined) {
+        updateData.experienceYears = experienceYears ? parseInt(experienceYears.toString()) : null;
+      }
+
+      const [updatedService] = await db
+        .update(healthWellnessServices)
+        .set(updateData)
+        .where(eq(healthWellnessServices.id, id))
+        .returning();
+
+      if (!updatedService) {
+        return res.status(404).json({ message: "Service not found" });
+      }
+
+      res.json(updatedService);
+    } catch (error: any) {
+      console.error("Error updating health wellness service:", error);
+      res.status(400).json({ message: error.message });
+    }
+  });
+
+  // DELETE health wellness service
+  app.delete("/api/admin/health-wellness-services/:id", async (req, res) => {
+    try {
+      const deletedRows = await db
+        .delete(healthWellnessServices)
+        .where(eq(healthWellnessServices.id, req.params.id))
+        .returning();
+
+      if (deletedRows.length === 0) {
+        return res.status(404).json({ message: "Service not found" });
+      }
+
+      res.json({ message: "Service deleted successfully", id: req.params.id });
+    } catch (error: any) {
+      console.error("Error deleting health wellness service:", error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // PATCH - Toggle active status
+  app.patch("/api/admin/health-wellness-services/:id/toggle-active", async (req, res) => {
+    try {
+      const service = await db.query.healthWellnessServices.findFirst({
+        where: eq(healthWellnessServices.id, req.params.id),
+      });
+
+      if (!service) {
+        return res.status(404).json({ message: "Service not found" });
+      }
+
+      const [updated] = await db
+        .update(healthWellnessServices)
+        .set({ isActive: !service.isActive, updatedAt: new Date() })
+        .where(eq(healthWellnessServices.id, req.params.id))
+        .returning();
+
+      res.json(updated);
+    } catch (error: any) {
+      console.error("Error toggling active status:", error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // PATCH - Toggle featured status
+  app.patch("/api/admin/health-wellness-services/:id/toggle-featured", async (req, res) => {
+    try {
+      const service = await db.query.healthWellnessServices.findFirst({
+        where: eq(healthWellnessServices.id, req.params.id),
+      });
+
+      if (!service) {
+        return res.status(404).json({ message: "Service not found" });
+      }
+
+      const [updated] = await db
+        .update(healthWellnessServices)
+        .set({ isFeatured: !service.isFeatured, updatedAt: new Date() })
+        .where(eq(healthWellnessServices.id, req.params.id))
+        .returning();
+
+      res.json(updated);
+    } catch (error: any) {
+      console.error("Error toggling featured status:", error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Pharmacy & Medical Stores Routes - Full CRUD
+
+  // GET all pharmacy stores
+  app.get("/api/admin/pharmacy-medical-stores", async (req, res) => {
+    try {
+      const { userId, role } = req.query;
+
+      let stores;
+
+      // If user is admin, fetch all stores
+      if (role === 'admin') {
+        stores = await db.query.pharmacyMedicalStores.findMany({
+          orderBy: desc(pharmacyMedicalStores.createdAt),
+        });
+      } else if (userId) {
+        // For non-admin users, filter by userId at database level
+        stores = await db.query.pharmacyMedicalStores.findMany({
+          where: eq(pharmacyMedicalStores.userId, userId as string),
+          orderBy: desc(pharmacyMedicalStores.createdAt),
+        });
+      } else {
+        // If no userId provided and not admin, return all stores (for backward compatibility)
+        stores = await db.query.pharmacyMedicalStores.findMany({
+          orderBy: desc(pharmacyMedicalStores.createdAt),
+        });
+      }
+
+      console.log(`Fetched ${stores.length} pharmacy stores for user ${userId} with role ${role}`);
+      res.json(stores);
+    } catch (error: any) {
+      console.error('Error fetching pharmacy stores:', error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // GET single pharmacy/medical store by ID
+  app.get("/api/admin/pharmacy-medical-stores/:id", async (req, res) => {
+    try {
+      const store = await db.query.pharmacyMedicalStores.findFirst({
+        where: eq(pharmacyMedicalStores.id, req.params.id),
+      });
+
+      if (!store) {
+        return res.status(404).json({ message: "Pharmacy/Medical store not found" });
+      }
+
+      res.json(store);
+    } catch (error: any) {
+      console.error('Error fetching pharmacy/medical store by ID:', error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // CREATE new pharmacy/medical store
+  app.post("/api/admin/pharmacy-medical-stores", async (req, res) => {
+    try {
+      const data = req.body;
+
+      // Ensure userId and role are included
+      const pharmacyData = {
+        ...data,
+        userId: data.userId || null,
+        role: data.role || null,
+      };
+
+      const [result] = await db.insert(pharmacyMedicalStores).values(pharmacyData).returning();
+      res.json(result);
+    } catch (error) {
+      console.error("Error creating pharmacy:", error);
+      res.status(500).json({ message: "Failed to create pharmacy", error: error.message });
+    }
+  });
+
+  // UPDATE pharmacy/medical store
+  app.put("/api/admin/pharmacy-medical-stores/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const updateData = { ...req.body, updatedAt: new Date() };
+
+      const [updatedStore] = await db
+        .update(pharmacyMedicalStores)
+        .set(updateData)
+        .where(eq(pharmacyMedicalStores.id, id))
+        .returning();
+
+      if (!updatedStore) {
+        return res.status(404).json({ message: "Pharmacy/Medical store not found" });
+      }
+
+      res.json(updatedStore);
+    } catch (error: any) {
+      console.error("Error updating pharmacy/medical store:", error);
+      res.status(400).json({ message: error.message });
+    }
+  });
+
+  // DELETE pharmacy/medical store
+  app.delete("/api/admin/pharmacy-medical-stores/:id", async (req, res) => {
+    try {
+      const deletedRows = await db
+        .delete(pharmacyMedicalStores)
+        .where(eq(pharmacyMedicalStores.id, req.params.id))
+        .returning();
+
+      if (deletedRows.length === 0) {
+        return res.status(404).json({ message: "Pharmacy/Medical store not found" });
+      }
+
+      res.json({ message: "Pharmacy/Medical store deleted successfully", id: req.params.id });
+    } catch (error: any) {
+      console.error("Error deleting pharmacy/medical store:", error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // PATCH - Toggle active status
+  app.patch("/api/admin/pharmacy-medical-stores/:id/toggle-active", async (req, res) => {
+    try {
+      const store = await db.query.pharmacyMedicalStores.findFirst({
+        where: eq(pharmacyMedicalStores.id, req.params.id),
+      });
+
+      if (!store) {
+        return res.status(404).json({ message: "Pharmacy/Medical store not found" });
+      }
+
+      const [updated] = await db
+        .update(pharmacyMedicalStores)
+        .set({ isActive: !store.isActive, updatedAt: new Date() })
+        .where(eq(pharmacyMedicalStores.id, req.params.id))
+        .returning();
+
+      res.json(updated);
+    } catch (error: any) {
+      console.error("Error toggling active status:", error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // PATCH - Toggle featured status
+  app.patch("/api/admin/pharmacy-medical-stores/:id/toggle-featured", async (req, res) => {
+    try {
+      const store = await db.query.pharmacyMedicalStores.findFirst({
+        where: eq(pharmacyMedicalStores.id, req.params.id),
+      });
+
+      if (!store) {
+        return res.status(404).json({ message: "Pharmacy/Medical store not found" });
+      }
+
+      const [updated] = await db
+        .update(pharmacyMedicalStores)
+        .set({ isFeatured: !store.isFeatured, updatedAt: new Date() })
+        .where(eq(pharmacyMedicalStores.id, req.params.id))
+        .returning();
+
+      res.json(updated);
+    } catch (error: any) {
+      console.error("Error toggling featured status:", error);
       res.status(500).json({ message: error.message });
     }
   });

@@ -11,9 +11,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface FashionBeautyProductsFormProps {
   onSuccess?: () => void;
+  editingProduct?: any;
 }
 
-export default function FashionBeautyProductsForm({ onSuccess }: FashionBeautyProductsFormProps) {
+export default function FashionBeautyProductsForm({ onSuccess, editingProduct }: FashionBeautyProductsFormProps) {
   const { register, handleSubmit, watch, setValue } = useForm();
   const [images, setImages] = useState<string[]>([]);
   const [userId, setUserId] = useState<string | null>(null);
@@ -43,6 +44,18 @@ export default function FashionBeautyProductsForm({ onSuccess }: FashionBeautyPr
     setUserRole(storedUserRole);
   }, []);
 
+  useEffect(() => {
+    if (editingProduct) {
+      // Populate form with existing product data
+      Object.keys(editingProduct).forEach((key) => {
+        setValue(key, editingProduct[key]);
+      });
+      if (editingProduct.images) {
+        setImages(editingProduct.images);
+      }
+    }
+  }, [editingProduct, setValue]);
+
   const onSubmit = async (data: any) => {
     try {
       // Convert empty strings to null for numeric fields
@@ -63,8 +76,14 @@ export default function FashionBeautyProductsForm({ onSuccess }: FashionBeautyPr
         freeDeliveryAbove: data.freeDeliveryAbove ? parseFloat(data.freeDeliveryAbove) : null,
       };
 
-      const response = await fetch('/api/admin/fashion-beauty-products', {
-        method: 'POST',
+      const url = editingProduct
+        ? `/api/admin/fashion-beauty-products/${editingProduct.id}`
+        : '/api/admin/fashion-beauty-products';
+
+      const method = editingProduct ? 'PUT' : 'POST';
+
+      const response = await fetch(url, {
+        method,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formattedData),
       });
@@ -521,7 +540,7 @@ export default function FashionBeautyProductsForm({ onSuccess }: FashionBeautyPr
       </Tabs>
 
       <Button type="submit" className="w-full" size="lg">
-        Submit Listing
+        {editingProduct ? 'Update Product' : 'Submit Listing'}
       </Button>
     </form>
   );

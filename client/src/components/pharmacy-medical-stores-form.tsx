@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,7 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { Plus, Edit, Trash2, Eye, Pill, Clock, Truck } from "lucide-react";
 
@@ -118,7 +118,13 @@ type PharmacyFormData = {
   role?: string | null; // Added role
 };
 
-export default function PharmacyMedicalStoresForm() {
+interface PharmacyMedicalStoresFormProps {
+  onSuccess?: () => void;
+  editingStore?: any;
+  onCancel?: () => void;
+}
+
+export default function PharmacyMedicalStoresForm({ onSuccess, editingStore, onCancel }: PharmacyMedicalStoresFormProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -126,6 +132,8 @@ export default function PharmacyMedicalStoresForm() {
   const [viewingPharmacy, setViewingPharmacy] = useState<any>(null);
   const [userId, setUserId] = useState<string | null>(null);
   const [userRole, setUserRole] = useState<string | null>(null);
+
+  const { register, handleSubmit, reset, setValue, watch, formState: { isSubmitting } } = useForm<PharmacyFormData>();
 
   useEffect(() => {
     // Get userId and role from localStorage
@@ -150,16 +158,20 @@ export default function PharmacyMedicalStoresForm() {
     setUserRole(storedUserRole);
   }, []);
 
-  const { register, handleSubmit, reset, setValue, watch } = useForm<PharmacyFormData>();
-
-  const { data: pharmacies = [], isLoading } = useQuery({
-    queryKey: ["pharmacy-medical-stores"],
-    queryFn: async () => {
-      const response = await fetch("/api/admin/pharmacy-medical-stores");
-      if (!response.ok) throw new Error("Failed to fetch pharmacies");
-      return response.json();
-    },
-  });
+  useEffect(() => {
+    if (editingStore) {
+      setEditingPharmacy(editingStore); // Set editingPharmacy here
+      Object.keys(editingStore).forEach((key) => {
+        setValue(key as any, editingStore[key]);
+      });
+      setIsDialogOpen(true); // Open dialog if editingStore is provided
+    } else {
+      // If not editing, ensure the dialog is closed and state is reset
+      setIsDialogOpen(false);
+      setEditingPharmacy(null);
+      reset();
+    }
+  }, [editingStore, setValue, reset]);
 
   const createMutation = useMutation({
     mutationFn: async (data: PharmacyFormData) => {
@@ -178,6 +190,7 @@ export default function PharmacyMedicalStoresForm() {
       queryClient.invalidateQueries({ queryKey: ["pharmacy-medical-stores"] });
       toast({ title: "Success", description: "Pharmacy created successfully" });
       handleCloseDialog();
+      onSuccess?.();
     },
     onError: (error: Error) => {
       toast({ title: "Error", description: error.message, variant: "destructive" });
@@ -201,6 +214,7 @@ export default function PharmacyMedicalStoresForm() {
       queryClient.invalidateQueries({ queryKey: ["pharmacy-medical-stores"] });
       toast({ title: "Success", description: "Pharmacy updated successfully" });
       handleCloseDialog();
+      onSuccess?.();
     },
     onError: (error: Error) => {
       toast({ title: "Error", description: error.message, variant: "destructive" });
@@ -228,6 +242,7 @@ export default function PharmacyMedicalStoresForm() {
     setIsDialogOpen(false);
     setEditingPharmacy(null);
     reset();
+    onCancel?.();
   };
 
   const handleEdit = (pharmacy: any) => {
@@ -254,76 +269,19 @@ export default function PharmacyMedicalStoresForm() {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <div>
-          <h2 className="text-2xl font-bold">Pharmacy & Medical Stores</h2>
-          <p className="text-muted-foreground">Manage pharmacy and medical store listings</p>
-        </div>
+      <div className="flex justify-end items-center mb-4">
         <Button onClick={() => setIsDialogOpen(true)}>
           <Plus className="mr-2 h-4 w-4" /> Add Pharmacy
         </Button>
       </div>
 
-      {isLoading ? (
-        <div>Loading...</div>
-      ) : (
-        <div className="grid gap-4">
-          {pharmacies.map((pharmacy: any) => (
-            <Card key={pharmacy.id}>
-              <CardContent className="p-6">
-                <div className="flex justify-between items-start">
-                  <div className="space-y-2 flex-1">
-                    <div className="flex items-start gap-4">
-                      <Pill className="h-5 w-5 text-green-600 mt-1" />
-                      <div className="flex-1">
-                        <h3 className="font-semibold text-lg">{pharmacy.title}</h3>
-                        <p className="text-sm text-muted-foreground">{pharmacy.storeName}</p>
-                        <div className="flex gap-2 mt-2 flex-wrap">
-                          <Badge variant="outline">{pharmacy.listingType}</Badge>
-                          {pharmacy.open24_7 && <Badge className="bg-blue-600">24/7 Open</Badge>}
-                          {pharmacy.homeDelivery && <Badge className="bg-green-600"><Truck className="w-3 h-3 mr-1" />Home Delivery</Badge>}
-                          {pharmacy.emergencyServices && <Badge className="bg-red-600">Emergency</Badge>}
-                          {pharmacy.prescriptionMedicines && <Badge className="bg-purple-600">Prescription</Badge>}
-                        </div>
-                        {pharmacy.city && (
-                          <p className="text-sm text-muted-foreground mt-2">{pharmacy.city}, {pharmacy.areaName}</p>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                  <div className="flex gap-2">
-                    <Button variant="ghost" size="icon" onClick={() => setViewingPharmacy(pharmacy)}>
-                      <Eye className="h-4 w-4" />
-                    </Button>
-                    <Button variant="ghost" size="icon" onClick={() => handleEdit(pharmacy)}>
-                      <Edit className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => {
-                        if (confirm("Are you sure you want to delete this pharmacy?")) {
-                          deleteMutation.mutate(pharmacy.id);
-                        }
-                      }}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      )}
-
-      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+      <Dialog open={isDialogOpen} onOpenChange={handleCloseDialog}>
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>{editingPharmacy ? "Edit" : "Add"} Pharmacy</DialogTitle>
+            <DialogTitle>{editingPharmacy ? "Edit" : "Add New"} Pharmacy/Medical Store</DialogTitle>
           </DialogHeader>
 
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
             {/* Basic Information */}
             <Card>
               <CardHeader>
@@ -338,7 +296,7 @@ export default function PharmacyMedicalStoresForm() {
 
                   <div className="space-y-2">
                     <Label htmlFor="listingType">Listing Type *</Label>
-                    <Select onValueChange={(value) => setValue("listingType", value)} defaultValue={editingPharmacy?.listingType}>
+                    <Select onValueChange={(value) => setValue("listingType", value)} defaultValue={watch("listingType") || editingPharmacy?.listingType}>
                       <SelectTrigger>
                         <SelectValue placeholder="Select type" />
                       </SelectTrigger>
@@ -398,32 +356,32 @@ export default function PharmacyMedicalStoresForm() {
               <CardContent className="space-y-4">
                 <div className="grid grid-cols-3 gap-4">
                   <div className="flex items-center space-x-2">
-                    <Switch id="prescriptionMedicines" onCheckedChange={(checked) => setValue("prescriptionMedicines", checked)} />
+                    <Switch id="prescriptionMedicines" {...register("prescriptionMedicines")} defaultChecked={watch("prescriptionMedicines") || editingPharmacy?.prescriptionMedicines} />
                     <Label htmlFor="prescriptionMedicines">Prescription Medicines</Label>
                   </div>
 
                   <div className="flex items-center space-x-2">
-                    <Switch id="otcMedicines" onCheckedChange={(checked) => setValue("otcMedicines", checked)} />
+                    <Switch id="otcMedicines" {...register("otcMedicines")} defaultChecked={watch("otcMedicines") || editingPharmacy?.otcMedicines} />
                     <Label htmlFor="otcMedicines">OTC Medicines</Label>
                   </div>
 
                   <div className="flex items-center space-x-2">
-                    <Switch id="ayurvedicProducts" onCheckedChange={(checked) => setValue("ayurvedicProducts", checked)} />
+                    <Switch id="ayurvedicProducts" {...register("ayurvedicProducts")} defaultChecked={watch("ayurvedicProducts") || editingPharmacy?.ayurvedicProducts} />
                     <Label htmlFor="ayurvedicProducts">Ayurvedic Products</Label>
                   </div>
 
                   <div className="flex items-center space-x-2">
-                    <Switch id="homeopathicMedicines" onCheckedChange={(checked) => setValue("homeopathicMedicines", checked)} />
+                    <Switch id="homeopathicMedicines" {...register("homeopathicMedicines")} defaultChecked={watch("homeopathicMedicines") || editingPharmacy?.homeopathicMedicines} />
                     <Label htmlFor="homeopathicMedicines">Homeopathic</Label>
                   </div>
 
                   <div className="flex items-center space-x-2">
-                    <Switch id="surgicalItems" onCheckedChange={(checked) => setValue("surgicalItems", checked)} />
+                    <Switch id="surgicalItems" {...register("surgicalItems")} defaultChecked={watch("surgicalItems") || editingPharmacy?.surgicalItems} />
                     <Label htmlFor="surgicalItems">Surgical Items</Label>
                   </div>
 
                   <div className="flex items-center space-x-2">
-                    <Switch id="medicalDevices" onCheckedChange={(checked) => setValue("medicalDevices", checked)} />
+                    <Switch id="medicalDevices" {...register("medicalDevices")} defaultChecked={watch("medicalDevices") || editingPharmacy?.medicalDevices} />
                     <Label htmlFor="medicalDevices">Medical Devices</Label>
                   </div>
                 </div>
@@ -438,12 +396,12 @@ export default function PharmacyMedicalStoresForm() {
               <CardContent className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div className="flex items-center space-x-2">
-                    <Switch id="homeDelivery" onCheckedChange={(checked) => setValue("homeDelivery", checked)} />
+                    <Switch id="homeDelivery" {...register("homeDelivery")} defaultChecked={watch("homeDelivery") || editingPharmacy?.homeDelivery} />
                     <Label htmlFor="homeDelivery">Home Delivery</Label>
                   </div>
 
                   <div className="flex items-center space-x-2">
-                    <Switch id="sameDayDelivery" onCheckedChange={(checked) => setValue("sameDayDelivery", checked)} />
+                    <Switch id="sameDayDelivery" {...register("sameDayDelivery")} defaultChecked={watch("sameDayDelivery") || editingPharmacy?.sameDayDelivery} />
                     <Label htmlFor="sameDayDelivery">Same Day Delivery</Label>
                   </div>
 
@@ -533,17 +491,17 @@ export default function PharmacyMedicalStoresForm() {
               <CardContent className="space-y-4">
                 <div className="grid grid-cols-3 gap-4">
                   <div className="flex items-center space-x-2">
-                    <Switch id="open24_7" onCheckedChange={(checked) => setValue("open24_7", checked)} />
+                    <Switch id="open24_7" {...register("open24_7")} defaultChecked={watch("open24_7") || editingPharmacy?.open24_7} />
                     <Label htmlFor="open24_7">24/7 Open</Label>
                   </div>
 
                   <div className="flex items-center space-x-2">
-                    <Switch id="emergencyServices" onCheckedChange={(checked) => setValue("emergencyServices", checked)} />
+                    <Switch id="emergencyServices" {...register("emergencyServices")} defaultChecked={watch("emergencyServices") || editingPharmacy?.emergencyServices} />
                     <Label htmlFor="emergencyServices">Emergency Services</Label>
                   </div>
 
                   <div className="flex items-center space-x-2">
-                    <Switch id="parkingAvailable" onCheckedChange={(checked) => setValue("parkingAvailable", checked)} />
+                    <Switch id="parkingAvailable" {...register("parkingAvailable")} defaultChecked={watch("parkingAvailable") || editingPharmacy?.parkingAvailable} />
                     <Label htmlFor="parkingAvailable">Parking Available</Label>
                   </div>
                 </div>
@@ -551,11 +509,13 @@ export default function PharmacyMedicalStoresForm() {
             </Card>
 
             <div className="flex justify-end gap-2">
-              <Button type="button" variant="outline" onClick={handleCloseDialog}>
-                Cancel
-              </Button>
-              <Button type="submit">
-                {editingPharmacy ? "Update" : "Create"} Pharmacy
+              {onCancel && (
+                <Button type="button" variant="outline" onClick={onCancel}>
+                  Cancel
+                </Button>
+              )}
+              <Button type="submit" disabled={isSubmitting}>
+                {isSubmitting ? "Saving..." : editingPharmacy ? "Update Pharmacy" : "Add Pharmacy"}
               </Button>
             </div>
           </form>

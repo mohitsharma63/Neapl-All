@@ -328,10 +328,21 @@ export function ShowroomsForm() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Convert empty strings to null for numeric fields
+    const sanitizedData = {
+      ...formData,
+      year: formData.year ? parseInt(formData.year.toString()) : null,
+      mileage: formData.mileage ? parseInt(formData.mileage.toString()) : null,
+      registrationYear: formData.registrationYear ? parseInt(formData.registrationYear.toString()) : null,
+      ownerCount: formData.ownerCount ? parseInt(formData.ownerCount.toString()) : null,
+      price: parseFloat(formData.price.toString()),
+    };
+
     if (editingItem) {
-      updateMutation.mutate({ id: editingItem.id, data: formData });
+      updateMutation.mutate({ id: editingItem.id, data: sanitizedData });
     } else {
-      createMutation.mutate(formData);
+      createMutation.mutate(sanitizedData);
     }
   };
 
@@ -694,4 +705,4 @@ export function ShowroomsForm() {
       </Card>
     </div>
   );
-}
+} 
