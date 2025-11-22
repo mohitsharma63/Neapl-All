@@ -4,17 +4,19 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
-import { Plus, X } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Plus, X, Eye, Edit, Trash2, MapPin } from "lucide-react";
 
 interface SchoolsCollegesCoachingFormProps {
   onSuccess: () => void;
   editingInstitution?: any;
+  isDialog?: boolean;
 }
 
-export default function SchoolsCollegesCoachingForm({ onSuccess, editingInstitution }: SchoolsCollegesCoachingFormProps) {
+export default function SchoolsCollegesCoachingForm({ onSuccess, editingInstitution, isDialog }: SchoolsCollegesCoachingFormProps) {
   const [formData, setFormData] = useState(() => editingInstitution || {
     title: "",
     description: "",
@@ -474,6 +476,20 @@ export default function SchoolsCollegesCoachingForm({ onSuccess, editingInstitut
       <div className="flex justify-end gap-4">
         <Button type="submit">{editingInstitution ? 'Update' : 'Create'} Institution</Button>
       </div>
+
+      {isDialog && editingInstitution && (
+        <CardFooter className="flex justify-between">
+          <Button variant="outline" onClick={() => { /* Handle view action */ }}>
+            <Eye className="w-4 h-4 mr-2" /> View
+          </Button>
+          <Button onClick={() => { /* Handle edit action */ }}>
+            <Edit className="w-4 h-4 mr-2" /> Edit
+          </Button>
+          <Button variant="destructive" onClick={() => { /* Handle delete action */ }}>
+            <Trash2 className="w-4 h-4 mr-2" /> Delete
+          </Button>
+        </CardFooter>
+      )}
     </form>
   );
 }

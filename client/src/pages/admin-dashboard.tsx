@@ -87,6 +87,10 @@ import LanguageClassesForm from "@/components/language-classes-form";
 import AcademiesMusicArtsSportsForm from "@/components/academies-music-arts-sports-form";
 import SkillTrainingCertificationForm from "@/components/skill-training-certification-form";
 import { useUser } from '@/hooks/use-user';
+import TelecommunicationServicesForm from "@/components/telecommunication-services-form";
+import ServiceCentreWarrantyForm from "@/components/service-centre-warranty-form";
+import CyberCafeInternetServicesForm from "@/components/cyber-cafe-internet-services-form";
+
 
 // Educational Consultancy - Study Abroad Section Component
 function EducationalConsultancyStudyAbroadSection() {
@@ -1325,7 +1329,7 @@ function PharmacyMedicalStoresSection() {
     fetchStores();
   };
 
-  const handleEdit = (store: any) => {
+  const handleEdit = (store: any) =>{
     setEditingStore(store);
     setShowForm(true);
   };
@@ -5256,7 +5260,7 @@ function OfficeSpacesSection() {
                 <div className="flex-1">
                   <CardTitle className="text-lg mb-2">{office.title}</CardTitle>
                   <div className="flex gap-2 flex-wrap">
-                    <Badge variant="secondary">{office.officeType}</Badge>
+                    <Badge variant="secondary">{office.commercialType}</Badge>
                     <Badge variant="outline">{office.listingType}</Badge>
                     {office.isFeatured && <Badge className="bg-yellow-500">Featured</Badge>}
                   </div>

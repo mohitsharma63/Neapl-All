@@ -60,7 +60,7 @@ export default function EbooksOnlineCoursesForm() {
       const response = await fetch(`/api/admin/ebooks-online-courses/${id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.JSON.stringify(data),
+        body: JSON.stringify(data),
       });
       if (!response.ok) throw new Error("Failed to update item");
       return response.json();

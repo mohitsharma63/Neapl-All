@@ -45,10 +45,12 @@ import {
   languageClasses, // Added
   academiesMusicArtsSports, // Added
   skillTrainingCertification, // Added
-  schoolsCollegesCoaching, 
+  schoolsCollegesCoaching,
   educationalConsultancyStudyAbroad, // Added, uncommented
   jewelryAccessories, // Added
   healthWellnessServices, // Added
+  telecommunicationServices,
+  serviceCentreWarranty,
 } from "../shared/schema";
 import { eq, sql, desc } from "drizzle-orm";
 
@@ -5606,7 +5608,7 @@ app.get("/api/admin/skill-training-certification", async (req, res) => {
 
   } catch (error: any) {
     console.error("Error fetching skill training:", error);
-    res.status(500).json({ message: error.message });
+    // res.status(500).json({ message: error: error.message });
   }
 });
 app.get("/api/admin/skill-training-certification/:id", async (req, res) => {
@@ -6301,13 +6303,11 @@ app.patch("/api/admin/skill-training-certification/:id/toggle-featured", async (
 
       let classes;
 
-      // If user is admin, fetch all classes
       if (role === 'admin') {
         classes = await db.query.languageClasses.findMany({
           orderBy: desc(languageClasses.createdAt),
         });
       } else if (userId) {
-        // For non-admin users, filter by userId at database level
         const allClasses = await db.query.languageClasses.findMany({
           orderBy: desc(languageClasses.createdAt),
         });
@@ -6891,6 +6891,168 @@ app.patch("/api/admin/skill-training-certification/:id/toggle-featured", async (
       res.json(updated);
     } catch (error: any) {
       console.error("Error toggling featured status:", error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Telecommunication Services Routes - Full CRUD
+  app.get("/api/admin/telecommunication-services", async (_req, res) => {
+    try {
+      const services = await db.query.telecommunicationServices.findMany({
+        orderBy: desc(telecommunicationServices.createdAt),
+      });
+      res.json(services);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.post("/api/admin/telecommunication-services", async (req, res) => {
+    try {
+      const [newService] = await db
+        .insert(telecommunicationServices)
+        .values({ ...req.body, country: req.body.country || "India" })
+        .returning();
+      res.status(201).json(newService);
+    } catch (error: any) {
+      res.status(400).json({ message: error.message });
+    }
+  });
+
+  app.put("/api/admin/telecommunication-services/:id", async (req, res) => {
+    try {
+      const [updated] = await db
+        .update(telecommunicationServices)
+        .set({ ...req.body, updatedAt: new Date() })
+        .where(eq(telecommunicationServices.id, req.params.id))
+        .returning();
+      if (!updated) return res.status(404).json({ message: "Service not found" });
+      res.json(updated);
+    } catch (error: any) {
+      res.status(400).json({ message: error.message });
+    }
+  });
+
+  app.delete("/api/admin/telecommunication-services/:id", async (req, res) => {
+    try {
+      await db.delete(telecommunicationServices).where(eq(telecommunicationServices.id, req.params.id));
+      res.json({ message: "Service deleted successfully" });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.patch("/api/admin/telecommunication-services/:id/toggle-active", async (req, res) => {
+    try {
+      const service = await db.query.telecommunicationServices.findFirst({
+        where: eq(telecommunicationServices.id, req.params.id),
+      });
+      if (!service) return res.status(404).json({ message: "Service not found" });
+      const [updated] = await db
+        .update(telecommunicationServices)
+        .set({ isActive: !service.isActive, updatedAt: new Date() })
+        .where(eq(telecommunicationServices.id, req.params.id))
+        .returning();
+      res.json(updated);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.patch("/api/admin/telecommunication-services/:id/toggle-featured", async (req, res) => {
+    try {
+      const service = await db.query.telecommunicationServices.findFirst({
+        where: eq(telecommunicationServices.id, req.params.id),
+      });
+      if (!service) return res.status(404).json({ message: "Service not found" });
+      const [updated] = await db
+        .update(telecommunicationServices)
+        .set({ isFeatured: !service.isFeatured, updatedAt: new Date() })
+        .where(eq(telecommunicationServices.id, req.params.id))
+        .returning();
+      res.json(updated);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Service Centre / Warranty Routes
+  app.get("/api/admin/service-centre-warranty", async (_req, res) => {
+    try {
+      const services = await db.query.serviceCentreWarranty.findMany({
+        orderBy: desc(serviceCentreWarranty.createdAt),
+      });
+      res.json(services);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.post("/api/admin/service-centre-warranty", async (req, res) => {
+    try {
+      const [newService] = await db
+        .insert(serviceCentreWarranty)
+        .values({ ...req.body, country: req.body.country || "India" })
+        .returning();
+      res.status(201).json(newService);
+    } catch (error: any) {
+      res.status(400).json({ message: error.message });
+    }
+  });
+
+  app.put("/api/admin/service-centre-warranty/:id", async (req, res) => {
+    try {
+      const [updated] = await db
+        .update(serviceCentreWarranty)
+        .set({ ...req.body, updatedAt: new Date() })
+        .where(eq(serviceCentreWarranty.id, req.params.id))
+        .returning();
+      if (!updated) return res.status(404).json({ message: "Service not found" });
+      res.json(updated);
+    } catch (error: any) {
+      res.status(400).json({ message: error.message });
+    }
+  });
+
+  app.delete("/api/admin/service-centre-warranty/:id", async (req, res) => {
+    try {
+      await db.delete(serviceCentreWarranty).where(eq(serviceCentreWarranty.id, req.params.id));
+      res.json({ message: "Service deleted successfully" });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.patch("/api/admin/service-centre-warranty/:id/toggle-active", async (req, res) => {
+    try {
+      const service = await db.query.serviceCentreWarranty.findFirst({
+        where: eq(serviceCentreWarranty.id, req.params.id),
+      });
+      if (!service) return res.status(404).json({ message: "Service not found" });
+      const [updated] = await db
+        .update(serviceCentreWarranty)
+        .set({ isActive: !service.isActive, updatedAt: new Date() })
+        .where(eq(serviceCentreWarranty.id, req.params.id))
+        .returning();
+      res.json(updated);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.patch("/api/admin/service-centre-warranty/:id/toggle-featured", async (req, res) => {
+    try {
+      const service = await db.query.serviceCentreWarranty.findFirst({
+        where: eq(serviceCentreWarranty.id, req.params.id),
+      });
+      if (!service) return res.status(404).json({ message: "Service not found" });
+      const [updated] = await db
+        .update(serviceCentreWarranty)
+        .set({ isFeatured: !service.isFeatured, updatedAt: new Date() })
+        .where(eq(serviceCentreWarranty.id, req.params.id))
+        .returning();
+      res.json(updated);
+    } catch (error: any) {
       res.status(500).json({ message: error.message });
     }
   });

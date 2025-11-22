@@ -5,17 +5,19 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
-import { Plus, X } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Plus, X, Eye, Edit, Trash2, MapPin } from "lucide-react";
 
 interface SkillTrainingCertificationFormProps {
   onSuccess: () => void;
   editingTraining?: any;
+  isDialog?: boolean;
 }
 
-export default function SkillTrainingCertificationForm({ onSuccess, editingTraining }: SkillTrainingCertificationFormProps) {
+export default function SkillTrainingCertificationForm({ onSuccess, editingTraining, isDialog = false }: SkillTrainingCertificationFormProps) {
   const { register, handleSubmit, setValue, watch } = useForm({
     defaultValues: editingTraining || {
       skillCategory: "technical",
@@ -32,7 +34,7 @@ export default function SkillTrainingCertificationForm({ onSuccess, editingTrain
 
   const onSubmit = async (data: any) => {
     try {
-      const url = editingTraining 
+      const url = editingTraining
         ? `/api/admin/skill-training-certification/${editingTraining.id}`
         : '/api/admin/skill-training-certification';
 
@@ -60,7 +62,7 @@ export default function SkillTrainingCertificationForm({ onSuccess, editingTrain
     }
   };
 
-  return (
+  const formContent = (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
       <Card>
         <CardHeader>
@@ -380,4 +382,10 @@ export default function SkillTrainingCertificationForm({ onSuccess, editingTrain
       </div>
     </form>
   );
+
+  if (isDialog) {
+    return formContent;
+  }
+
+  return formContent;
 }
