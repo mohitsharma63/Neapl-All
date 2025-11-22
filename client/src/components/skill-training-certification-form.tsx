@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { Button } from "@/components/ui/button";
@@ -36,7 +35,11 @@ export default function SkillTrainingCertificationForm({ onSuccess, editingTrain
       const url = editingTraining 
         ? `/api/admin/skill-training-certification/${editingTraining.id}`
         : '/api/admin/skill-training-certification';
-      
+
+      // Get user data from localStorage
+      const userData = localStorage.getItem('user');
+      const user = userData ? JSON.parse(userData) : null;
+
       const response = await fetch(url, {
         method: editingTraining ? 'PUT' : 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -44,6 +47,8 @@ export default function SkillTrainingCertificationForm({ onSuccess, editingTrain
           ...data,
           skillsTaught: skillsTeach,
           careerOpportunities: careerOptions,
+          userId: user?.id || null,
+          role: user?.role || 'user',
         }),
       });
 

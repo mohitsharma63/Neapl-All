@@ -8,6 +8,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import Header from "@/components/header";
 import Footer from "@/components/footer";
 
+// Assuming 'useUser' hook is correctly implemented elsewhere to fetch from localStorage
+// import { useUser } from "@/hooks/use-user"; // This import is not used in the provided Login component, but is mentioned in the thinking process.
+
 export default function Login() {
   const [formData, setFormData] = useState({
     email: "",
@@ -15,6 +18,9 @@ export default function Login() {
   });
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  // Assuming 'navigate' is available from 'wouter' for redirection
+  // const navigate = useNavigate(); // This is not present in the original code, but implied by the changes.
+  // For the provided code, we'll stick to window.location.href as per the original.
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({

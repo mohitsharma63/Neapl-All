@@ -5098,8 +5098,7 @@ export function registerRoutes(app: Express) {
 
   // Academies - Music, Arts, Sports Routes - Full CRUD
 
-  // GET all academies
-  app.get("/api/admin/academies-music-arts-sports", async (req, res) => {
+app.get("/api/admin/academies-music-arts-sports", async (req, res) => {
     try {
       const { userId, role } = req.query;
 
@@ -5117,8 +5116,9 @@ export function registerRoutes(app: Express) {
           orderBy: desc(academiesMusicArtsSports.createdAt),
         });
       } else {
-        // If no userId provided and not admin, return empty array
-        academies = [];
+         academies = await db.query.academiesMusicArtsSports.findMany({
+        orderBy: desc(academiesMusicArtsSports.createdAt),
+      });
       }
 
       console.log(`Fetched ${academies.length} academies for user ${userId} with role ${role}`);
@@ -5832,10 +5832,9 @@ export function registerRoutes(app: Express) {
        classes = await db.query.languageClasses.findMany({
         orderBy: desc(languageClasses.createdAt),
       });
-      res.json(classes);
       }
 
-      console.log(`Fetched  language classes for user ${userId} with role ${role}`);
+      console.log(`Fetched ${classes.length} language classes for user ${userId} with role ${role}`);
       res.json(classes);
     } catch (error: any) {
       console.error('Error fetching language classes:', error);

@@ -34,6 +34,12 @@ export default function AcademiesMusicArtsSportsForm({ onSuccess, editingAcademy
 
   const onSubmit = async (data: any) => {
     try {
+      // Ensure userId is available
+      if (!user?.id) {
+        alert('You must be logged in to create an academy');
+        return;
+      }
+
       const url = editingAcademy
         ? `/api/admin/academies-music-arts-sports/${editingAcademy.id}`
         : '/api/admin/academies-music-arts-sports';
@@ -45,8 +51,8 @@ export default function AcademiesMusicArtsSportsForm({ onSuccess, editingAcademy
           ...data,
           coursesOffered,
           facilities,
-          userId: user?.id,
-          role: user?.role || 'user',
+          userId: user.id,
+          role: user.role || 'user',
         }),
       });
 

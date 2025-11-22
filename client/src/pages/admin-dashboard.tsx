@@ -88,7 +88,7 @@ import AcademiesMusicArtsSportsForm from "@/components/academies-music-arts-spor
 import SkillTrainingCertificationForm from "@/components/skill-training-certification-form";
 import { useUser } from '@/hooks/use-user';
 
-// Educational Consultancy - Study Abroad Admissions Section Component
+// Educational Consultancy - Study Abroad Section Component
 function EducationalConsultancyStudyAbroadSection() {
   const [consultancies, setConsultancies] = useState<any[]>([]);
   const [showForm, setShowForm] = useState(false);
@@ -813,7 +813,7 @@ function FashionBeautyProductsSection() {
                 <div className="space-y-1 text-sm">
                   {viewingProduct.contactPerson && <p><span className="font-medium">Contact Person:</span> {viewingProduct.contactPerson}</p>}
                   <p><span className="font-medium">Phone:</span> {viewingProduct.contactPhone}</p>
-                  {viewingProduct.contactEmail && <p><span className="font-medium">Email:</span> {viewingProduct.contactEmail}</p>}
+                  {viewingProduct.contactEmail&& <p><span className="font-medium">Email:</span> {viewingProduct.contactEmail}</p>}
                 </div>
               </div>
 
@@ -1127,6 +1127,20 @@ function SareeClothingShoppingSection() {
                 </div>
               </div>
 
+              <div>
+                <h3 className="font-semibold mb-2">Features</h3>
+                <div className="flex flex-wrap gap-2">
+                  {viewingProduct.isOriginal && <Badge variant="outline">Original</Badge>}
+                  {viewingProduct.brandAuthorized && <Badge variant="outline">Brand Authorized</Badge>}
+                  {viewingProduct.customizationAvailable && <Badge variant="outline">Customizable</Badge>}
+                  {viewingProduct.crueltyFree && <Badge variant="outline">Cruelty Free</Badge>}
+                  {viewingProduct.vegan && <Badge variant="outline">Vegan</Badge>}
+                  {viewingProduct.parabenFree && <Badge variant="outline">Paraben Free</Badge>}
+                  {viewingProduct.exchangeAvailable && <Badge variant="outline">Exchange Available</Badge>}
+                  {viewingProduct.codAvailable && <Badge variant="outline">COD Available</Badge>}
+                </div>
+              </div>
+
               {viewingProduct.images && viewingProduct.images.length > 0 && (
                 <div>
                   <h3 className="font-semibold mb-2">Product Images</h3>
@@ -1231,12 +1245,6 @@ function SareeClothingShoppingSection() {
                   <div className="text-sm">
                     <span className="font-medium">Brand: </span>
                     <span className="text-muted-foreground">{product.brand}</span>
-                  </div>
-                )}
-                {(product.city || product.areaName) && (
-                  <div className="text-sm text-muted-foreground flex items-center gap-1">
-                    <MapPin className="w-3 h-3" />
-                    {[product.areaName, product.city].filter(Boolean).join(", ")}
                   </div>
                 )}
               </div>
@@ -5235,7 +5243,7 @@ function OfficeSpacesSection() {
         <OfficeSpacesForm
           open={showForm}
           onOpenChange={setShowForm}
-          office={editingOffice}
+          property={editingOffice}
           onSuccess={handleSuccess}
         />
       )}
@@ -5795,6 +5803,7 @@ function TuitionPrivateClassesSection() {
                   <div className="flex gap-2 flex-wrap">
                     <Badge variant="secondary">{classItem.subjectCategory}</Badge>
                     <Badge variant="outline">{classItem.teachingMode}</Badge>
+                    <Badge variant="outline">{classItem.classType}</Badge>
                     {classItem.isFeatured && <Badge className="bg-yellow-500">Featured</Badge>}
                   </div>
                 </div>
@@ -6745,6 +6754,9 @@ function LanguageClassesSection() {
 function AcademiesMusicArtsSportsSection() {
   const [academies, setAcademies] = useState<any[]>([]);
   const [showForm, setShowForm] = useState(false);
+  const [editingAcademy, setEditingAcademy] = useState<any>(null);
+  const [viewingAcademy, setViewingAcademy] = useState<any>(null);
+  const [showDetailsDialog, setShowDetailsDialog] = useState(false);
 
   useEffect(() => {
     fetchAcademies();
@@ -6752,7 +6764,20 @@ function AcademiesMusicArtsSportsSection() {
 
   const fetchAcademies = async () => {
     try {
-      const response = await fetch('/api/admin/academies-music-arts-sports');
+      const storedUser = localStorage.getItem('user');
+      const queryParams = new URLSearchParams();
+
+      if (storedUser) {
+        const userData = JSON.parse(storedUser);
+        if (userData.role === 'admin') {
+          queryParams.append('role', 'admin');
+        } else {
+          queryParams.append('userId', userData.id);
+          queryParams.append('role', userData.role || 'user');
+        }
+      }
+
+      const response = await fetch(`/api/admin/academies-music-arts-sports?${queryParams.toString()}`);
       const data = await response.json();
       setAcademies(Array.isArray(data) ? data : []);
     } catch (error) {
@@ -6763,7 +6788,18 @@ function AcademiesMusicArtsSportsSection() {
 
   const handleSuccess = () => {
     setShowForm(false);
+    setEditingAcademy(null);
     fetchAcademies();
+  };
+
+  const handleEdit = (academy: any) => {
+    setEditingAcademy(academy);
+    setShowForm(true);
+  };
+
+  const handleViewDetails = (academy: any) => {
+    setViewingAcademy(academy);
+    setShowDetailsDialog(true);
   };
 
   const handleDelete = async (id: string) => {
@@ -6810,22 +6846,151 @@ function AcademiesMusicArtsSportsSection() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold">Academies - Music, Arts, Sports</h2>
+          <h2 className="text-2xl font-bold">Academies - Music, Arts & Sports</h2>
           <p className="text-muted-foreground">Manage academy listings</p>
         </div>
-        <Button onClick={() => setShowForm(true)}>
+        <Button onClick={() => {
+          setEditingAcademy(null);
+          setShowForm(true);
+        }}>
           <Plus className="w-4 h-4 mr-2" />
           Add Academy
         </Button>
       </div>
 
-      <Dialog open={showForm} onOpenChange={setShowForm}>
+      <Dialog open={showForm} onOpenChange={(open) => {
+        setShowForm(open);
+        if (!open) setEditingAcademy(null);
+      }}>
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Add New Academy</DialogTitle>
-            <DialogDescription>Fill in the details to create a new academy listing</DialogDescription>
+            <DialogTitle>{editingAcademy ? 'Edit Academy' : 'Add New Academy'}</DialogTitle>
+            <DialogDescription>Fill in the details to {editingAcademy ? 'update' : 'create'} an academy listing</DialogDescription>
           </DialogHeader>
-          <AcademiesMusicArtsSportsForm onSuccess={handleSuccess} editingAcademy={null} />
+          <AcademiesMusicArtsSportsForm onSuccess={handleSuccess} editingAcademy={editingAcademy} />
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showDetailsDialog} onOpenChange={setShowDetailsDialog}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-2xl">{viewingAcademy?.title}</DialogTitle>
+            <DialogDescription>Complete academy details</DialogDescription>
+          </DialogHeader>
+          {viewingAcademy && (
+            <div className="space-y-6">
+              <div className="flex gap-2 flex-wrap">
+                <Badge variant="secondary">{viewingAcademy.academyCategory}</Badge>
+                {viewingAcademy.specialization && <Badge variant="outline">{viewingAcademy.specialization}</Badge>}
+                {viewingAcademy.isFeatured && <Badge className="bg-yellow-500">Featured</Badge>}
+              </div>
+
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="p-4 bg-muted rounded-lg">
+                  <p className="text-sm text-muted-foreground">Fee Per Month</p>
+                  <p className="text-lg font-bold text-primary">₹{Number(viewingAcademy.feePerMonth).toLocaleString()}</p>
+                </div>
+                {viewingAcademy.admissionFee && (
+                  <div className="p-4 bg-muted rounded-lg">
+                    <p className="text-sm text-muted-foreground">Admission Fee</p>
+                    <p className="text-lg font-bold">₹{Number(viewingAcademy.admissionFee).toLocaleString()}</p>
+                  </div>
+                )}
+                {viewingAcademy.establishedYear && (
+                  <div className="p-4 bg-muted rounded-lg">
+                    <p className="text-sm text-muted-foreground">Established</p>
+                    <p className="text-lg font-bold">{viewingAcademy.establishedYear}</p>
+                  </div>
+                )}
+                {viewingAcademy.totalInstructors && (
+                  <div className="p-4 bg-muted rounded-lg">
+                    <p className="text-sm text-muted-foreground">Instructors</p>
+                    <p className="text-lg font-bold">{viewingAcademy.totalInstructors}</p>
+                  </div>
+                )}
+              </div>
+
+              {viewingAcademy.description && (
+                <div>
+                  <h3 className="font-semibold mb-2">Description</h3>
+                  <p className="text-muted-foreground">{viewingAcademy.description}</p>
+                </div>
+              )}
+
+              {viewingAcademy.coursesOffered && viewingAcademy.coursesOffered.length > 0 && (
+                <div>
+                  <h3 className="font-semibold mb-2">Courses Offered</h3>
+                  <div className="flex flex-wrap gap-2">
+                    {viewingAcademy.coursesOffered.map((course: string, idx: number) => (
+                      <Badge key={idx} variant="outline">{course}</Badge>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {viewingAcademy.facilities && viewingAcademy.facilities.length > 0 && (
+                <div>
+                  <h3 className="font-semibold mb-2">Facilities</h3>
+                  <div className="flex flex-wrap gap-2">
+                    {viewingAcademy.facilities.map((facility: string, idx: number) => (
+                      <Badge key={idx} variant="secondary">{facility}</Badge>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <div>
+                <h3 className="font-semibold mb-2">Instructor Information</h3>
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  {viewingAcademy.headInstructor && (
+                    <div>
+                      <span className="font-medium">Head Instructor:</span>
+                      <span className="ml-2 text-muted-foreground">{viewingAcademy.headInstructor}</span>
+                    </div>
+                  )}
+                  {viewingAcademy.instructorQualification && (
+                    <div>
+                      <span className="font-medium">Qualification:</span>
+                      <span className="ml-2 text-muted-foreground">{viewingAcademy.instructorQualification}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div>
+                <h3 className="font-semibold mb-2 flex items-center gap-2">
+                  <Phone className="w-4 h-4" />
+                  Contact Information
+                </h3>
+                <div className="space-y-1 text-sm">
+                  <p><span className="font-medium">Contact Person:</span> {viewingAcademy.contactPerson}</p>
+                  <p><span className="font-medium">Phone:</span> {viewingAcademy.contactPhone}</p>
+                  {viewingAcademy.contactEmail && <p><span className="font-medium">Email:</span> {viewingAcademy.contactEmail}</p>}
+                  {viewingAcademy.website && <p><span className="font-medium">Website:</span> <a href={viewingAcademy.website} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">{viewingAcademy.website}</a></p>}
+                </div>
+              </div>
+
+              {viewingAcademy.fullAddress && (
+                <div>
+                  <h3 className="font-semibold mb-2 flex items-center gap-2">
+                    <MapPin className="w-4 h-4" />
+                    Location
+                  </h3>
+                  <div className="space-y-1 text-sm">
+                    <p><span className="font-medium">Address:</span> {viewingAcademy.fullAddress}</p>
+                    {viewingAcademy.areaName && <p><span className="font-medium">Area:</span> {viewingAcademy.areaName}</p>}
+                    {viewingAcademy.city && <p><span className="font-medium">City:</span> {viewingAcademy.city}</p>}
+                    {viewingAcademy.stateProvince && <p><span className="font-medium">State:</span> {viewingAcademy.stateProvince}</p>}
+                  </div>
+                </div>
+              )}
+
+              <div className="pt-4 border-t text-sm text-muted-foreground">
+                <p>Created: {new Date(viewingAcademy.createdAt).toLocaleString()}</p>
+                <p>Last Updated: {new Date(viewingAcademy.updatedAt).toLocaleString()}</p>
+              </div>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
 
@@ -6846,8 +7011,27 @@ function AcademiesMusicArtsSportsSection() {
                   <Button
                     variant="ghost"
                     size="icon"
+                    className="h-8 w-8"
+                    onClick={() => handleViewDetails(academy)}
+                    title="View Details"
+                  >
+                    <Eye className="w-4 h-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8"
+                    onClick={() => handleEdit(academy)}
+                    title="Edit"
+                  >
+                    <Pencil className="w-4 h-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
                     className="h-8 w-8 text-destructive"
                     onClick={() => handleDelete(academy.id)}
+                    title="Delete"
                   >
                     <Trash2 className="w-4 h-4" />
                   </Button>
@@ -6860,11 +7044,23 @@ function AcademiesMusicArtsSportsSection() {
                   <p className="text-sm text-muted-foreground line-clamp-2">{academy.description}</p>
                 )}
                 <div className="flex items-center justify-between">
-                  <span className="font-semibold text-lg text-primary">₹{academy.feePerMonth}/month</span>
+                  <span className="font-semibold text-lg text-primary">₹{Number(academy.feePerMonth).toLocaleString()}/month</span>
                   <Badge variant={academy.isActive ? 'default' : 'secondary'}>
                     {academy.isActive ? 'Active' : 'Inactive'}
                   </Badge>
                 </div>
+                {academy.headInstructor && (
+                  <div className="text-sm">
+                    <span className="font-medium">Head Instructor: </span>
+                    <span className="text-muted-foreground">{academy.headInstructor}</span>
+                  </div>
+                )}
+                {academy.city && (
+                  <div className="text-sm text-muted-foreground flex items-center gap-1">
+                    <MapPin className="w-3 h-3" />
+                    {academy.city}
+                  </div>
+                )}
               </div>
             </CardContent>
             <CardFooter className="pt-0 flex gap-2">

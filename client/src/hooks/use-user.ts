@@ -1,24 +1,64 @@
 
-import { useQuery } from "@tanstack/react-query";
+import { useEffect, useState } from 'react';
+
+interface User {
+  id: string;
+  username: string;
+  email: string;
+  firstName: string;
+  lastName: string;
+  role: string;
+  accountType: string;
+  isActive: boolean;
+  phone?: string;
+  categoryIds?: string[];
+  subcategoryIds?: string[];
+}
 
 export function useUser() {
-  const { data: user } = useQuery({
-    queryKey: ["/api/user"],
-    queryFn: async () => {
-      const response = await fetch("/api/user", {
-        credentials: "include",
-      });
-      if (!response.ok) {
-        if (response.status === 401) {
-          return null;
-        }
-        throw new Error("Failed to fetch user");
-      }
-      return response.json();
-    },
-    staleTime: 1000 * 60 * 5, // 5 minutes
-    retry: false,
-  });
+  const [user, setUser] = useState<User | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
-  return { user };
+  useEffect(() => {
+    // Get user from localStorage
+    const storedUser = localStorage.getItem('user');
+    
+    if (storedUser) {
+      try {
+        const parsedUser = JSON.parse(storedUser);
+        setUser(parsedUser);
+      } catch (error) {
+        console.error('Error parsing user from localStorage:', error);
+        localStorage.removeItem('user');
+      }
+    }
+    
+    setIsLoading(false);
+  }, []);
+
+  const login = (userData: User) => {
+    setUser(userData);
+    localStorage.setItem('user', JSON.stringify(userData));
+  };
+
+  const logout = () => {
+    setUser(null);
+    localStorage.removeItem('user');
+  };
+
+  const updateUser = (userData: Partial<User>) => {
+    if (user) {
+      const updatedUser = { ...user, ...userData };
+      setUser(updatedUser);
+      localStorage.setItem('user', JSON.stringify(updatedUser));
+    }
+  };
+
+  return {
+    user,
+    isLoading,
+    login,
+    logout,
+    updateUser,
+  };
 }
