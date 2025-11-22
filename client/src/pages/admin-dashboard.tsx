@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -1375,8 +1376,8 @@ function PharmacyMedicalStoresSection() {
         </div>
       </div>
 
-      <PharmacyMedicalStoresForm 
-        onSuccess={handleSuccess} 
+      <PharmacyMedicalStoresForm
+        onSuccess={handleSuccess}
         editingStore={editingStore}
         onCancel={() => setEditingStore(null)}
       />
@@ -6063,11 +6064,6 @@ function DanceKarateGymYogaSection() {
     fetchClasses();
   };
 
-  const handleEdit = (classItem: any) => {
-    setEditingClass(classItem);
-    setShowForm(true);
-  };
-
   const handleDelete = async (id: string) => {
     if (!confirm('Are you sure you want to delete this class?')) return;
     try {
@@ -6400,6 +6396,9 @@ function LanguageClassesSection() {
   const { user } = useUser();
   const [classes, setClasses] = useState<any[]>([]);
   const [showForm, setShowForm] = useState(false);
+  const [editingClass, setEditingClass] = useState<any>(null);
+  const [viewingClass, setViewingClass] = useState<any>(null);
+  const [showDetailsDialog, setShowDetailsDialog] = useState(false);
 
   useEffect(() => {
     fetchClasses();
@@ -6411,7 +6410,7 @@ function LanguageClassesSection() {
       if (user?.id) params.append('userId', user.id.toString());
       if (user?.role) params.append('role', user.role);
 
-      const response = await fetch(`/api/admin/language-classes?${params.toString()}`);
+      const response = await fetch(`/api/admin/language-classes`);
       const data = await response.json();
       setClasses(Array.isArray(data) ? data : []);
     } catch (error) {
@@ -6422,7 +6421,18 @@ function LanguageClassesSection() {
 
   const handleSuccess = () => {
     setShowForm(false);
+    setEditingClass(null);
     fetchClasses();
+  };
+
+  const handleEdit = (classItem: any) => {
+    setEditingClass(classItem);
+    setShowForm(true);
+  };
+
+  const handleViewDetails = (classItem: any) => {
+    setViewingClass(classItem);
+    setShowDetailsDialog(true);
   };
 
   const handleDelete = async (id: string) => {
@@ -6472,19 +6482,154 @@ function LanguageClassesSection() {
           <h2 className="text-2xl font-bold">Language Classes</h2>
           <p className="text-muted-foreground">Manage language learning class listings</p>
         </div>
-        <Button onClick={() => setShowForm(true)}>
+        <Button onClick={() => {
+          setEditingClass(null);
+          setShowForm(true);
+        }}>
           <Plus className="w-4 h-4 mr-2" />
           Add Language Class
         </Button>
       </div>
 
-      <Dialog open={showForm} onOpenChange={setShowForm}>
+      <Dialog open={showForm} onOpenChange={(open) => {
+        setShowForm(open);
+        if (!open) setEditingClass(null);
+      }}>
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Add New Language Class</DialogTitle>
-            <DialogDescription>Fill in the details to create a new language class listing</DialogDescription>
+            <DialogTitle>{editingClass ? 'Edit Language Class' : 'Add New Language Class'}</DialogTitle>
+            <DialogDescription>Fill in the details to {editingClass ? 'update' : 'create'} a language class listing</DialogDescription>
           </DialogHeader>
-          <LanguageClassesForm onSuccess={handleSuccess} editingClass={null} />
+          <LanguageClassesForm onSuccess={handleSuccess} editingClass={editingClass} />
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showDetailsDialog} onOpenChange={setShowDetailsDialog}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-2xl">{viewingClass?.title}</DialogTitle>
+            <DialogDescription>Complete language class details</DialogDescription>
+          </DialogHeader>
+          {viewingClass && (
+            <div className="space-y-6">
+              <div className="flex gap-2 flex-wrap">
+                <Badge variant="secondary">{viewingClass.languageName}</Badge>
+                <Badge variant="outline">{viewingClass.proficiencyLevel}</Badge>
+                {viewingClass.teachingMode && <Badge variant="outline">{viewingClass.teachingMode}</Badge>}
+                {viewingClass.isFeatured && <Badge className="bg-yellow-500">Featured</Badge>}
+              </div>
+
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="p-4 bg-muted rounded-lg">
+                  <p className="text-sm text-muted-foreground">Fee Per Month</p>
+                  <p className="text-lg font-bold text-primary">₹{Number(viewingClass.feePerMonth).toLocaleString()}</p>
+                </div>
+                <div className="p-4 bg-muted rounded-lg">
+                  <p className="text-sm text-muted-foreground">Duration</p>
+                  <p className="text-lg font-bold">{viewingClass.courseDurationMonths} months</p>
+                </div>
+                {viewingClass.classesPerWeek && (
+                  <div className="p-4 bg-muted rounded-lg">
+                    <p className="text-sm text-muted-foreground">Classes/Week</p>
+                    <p className="text-lg font-bold">{viewingClass.classesPerWeek}</p>
+                  </div>
+                )}
+                {viewingClass.batchSize && (
+                  <div className="p-4 bg-muted rounded-lg">
+                    <p className="text-sm text-muted-foreground">Batch Size</p>
+                    <p className="text-lg font-bold">{viewingClass.batchSize} students</p>
+                  </div>
+                )}
+              </div>
+
+              {viewingClass.description && (
+                <div>
+                  <h3 className="font-semibold mb-2">Description</h3>
+                  <p className="text-muted-foreground">{viewingClass.description}</p>
+                </div>
+              )}
+
+              <div>
+                <h3 className="font-semibold mb-2">Class Details</h3>
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <span className="font-medium">Class Type:</span>
+                    <span className="ml-2 text-muted-foreground capitalize">{viewingClass.classType}</span>
+                  </div>
+                  {viewingClass.classDurationHours && (
+                    <div>
+                      <span className="font-medium">Class Duration:</span>
+                      <span className="ml-2 text-muted-foreground">{viewingClass.classDurationHours} hours</span>
+                    </div>
+                  )}
+                  {viewingClass.instructorName && (
+                    <div>
+                      <span className="font-medium">Instructor:</span>
+                      <span className="ml-2 text-muted-foreground">{viewingClass.instructorName}</span>
+                    </div>
+                  )}
+                  {viewingClass.instructorQualification && (
+                    <div>
+                      <span className="font-medium">Qualification:</span>
+                      <span className="ml-2 text-muted-foreground">{viewingClass.instructorQualification}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div>
+                <h3 className="font-semibold mb-2">Features</h3>
+                <div className="flex flex-wrap gap-2">
+                  {viewingClass.certificationProvided && <Badge variant="outline">Certification Provided</Badge>}
+                  {viewingClass.freeDemoClass && <Badge variant="outline">Free Demo Class</Badge>}
+                  {viewingClass.nativeSpeaker && <Badge variant="outline">Native Speaker</Badge>}
+                </div>
+              </div>
+
+              {viewingClass.studyMaterialsProvided && viewingClass.studyMaterialsProvided.length > 0 && (
+                <div>
+                  <h3 className="font-semibold mb-2">Study Materials</h3>
+                  <div className="flex flex-wrap gap-2">
+                    {viewingClass.studyMaterialsProvided.map((material: string, idx: number) => (
+                      <Badge key={idx} variant="secondary">{material}</Badge>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <div>
+                <h3 className="font-semibold mb-2 flex items-center gap-2">
+                  <Phone className="w-4 h-4" />
+                  Contact Information
+                </h3>
+                <div className="space-y-1 text-sm">
+                  <p><span className="font-medium">Contact Person:</span> {viewingClass.contactPerson}</p>
+                  <p><span className="font-medium">Phone:</span> {viewingClass.contactPhone}</p>
+                  {viewingClass.contactEmail && <p><span className="font-medium">Email:</span> {viewingClass.contactEmail}</p>}
+                </div>
+              </div>
+
+              {viewingClass.fullAddress && (
+                <div>
+                  <h3 className="font-semibold mb-2 flex items-center gap-2">
+                    <MapPin className="w-4 h-4" />
+                    Location
+                  </h3>
+                  <div className="space-y-1 text-sm">
+                    <p><span className="font-medium">Address:</span> {viewingClass.fullAddress}</p>
+                    {viewingClass.areaName && <p><span className="font-medium">Area:</span> {viewingClass.areaName}</p>}
+                    {viewingClass.city && <p><span className="font-medium">City:</span> {viewingClass.city}</p>}
+                    {viewingClass.stateProvince && <p><span className="font-medium">State:</span> {viewingClass.stateProvince}</p>}
+                  </div>
+                </div>
+              )}
+
+              <div className="pt-4 border-t text-sm text-muted-foreground">
+                <p>Created: {new Date(viewingClass.createdAt).toLocaleString()}</p>
+                <p>Last Updated: {new Date(viewingClass.updatedAt).toLocaleString()}</p>
+              </div>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
 
@@ -6505,8 +6650,27 @@ function LanguageClassesSection() {
                   <Button
                     variant="ghost"
                     size="icon"
+                    className="h-8 w-8"
+                    onClick={() => handleViewDetails(classItem)}
+                    title="View Details"
+                  >
+                    <Eye className="w-4 h-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8"
+                    onClick={() => handleEdit(classItem)}
+                    title="Edit"
+                  >
+                    <Pencil className="w-4 h-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
                     className="h-8 w-8 text-destructive"
                     onClick={() => handleDelete(classItem.id)}
+                    title="Delete"
                   >
                     <Trash2 className="w-4 h-4" />
                   </Button>
@@ -6519,11 +6683,23 @@ function LanguageClassesSection() {
                   <p className="text-sm text-muted-foreground line-clamp-2">{classItem.description}</p>
                 )}
                 <div className="flex items-center justify-between">
-                  <span className="font-semibold text-lg text-primary">₹{classItem.feePerMonth}/month</span>
+                  <span className="font-semibold text-lg text-primary">₹{Number(classItem.feePerMonth).toLocaleString()}/month</span>
                   <Badge variant={classItem.isActive ? 'default' : 'secondary'}>
                     {classItem.isActive ? 'Active' : 'Inactive'}
                   </Badge>
                 </div>
+                {classItem.instructorName && (
+                  <div className="text-sm">
+                    <span className="font-medium">Instructor: </span>
+                    <span className="text-muted-foreground">{classItem.instructorName}</span>
+                  </div>
+                )}
+                {classItem.city && (
+                  <div className="text-sm text-muted-foreground flex items-center gap-1">
+                    <MapPin className="w-3 h-3" />
+                    {classItem.city}
+                  </div>
+                )}
               </div>
             </CardContent>
             <CardFooter className="pt-0 flex gap-2">
@@ -6553,7 +6729,7 @@ function LanguageClassesSection() {
           <CardContent className="py-12 text-center">
             <Building className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
             <h3 className="text-lg font-semibold mb-2">No Language Classes Found</h3>
-            <p className="text-muted-foreground mb-4">Start by adding your first language class</p>
+            <p className="text-muted-foreground mb-4">Start by adding your first language class listing</p>
             <Button onClick={() => setShowForm(true)}>
               <Plus className="w-4 h-4 mr-2" />
               Add Language Class
@@ -7458,7 +7634,7 @@ function FurnitureInteriorDecorSection() {
                 {viewingItem.isFeatured && <Badge className="bg-yellow-500">Featured</Badge>}
               </div>
 
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <div className="p-4 bg-muted rounded-lg">
                   <p className="text-sm text-muted-foreground">Price</p>
                   <p className="text-lg font-bold text-primary">₹{viewingItem.price}</p>
@@ -7466,7 +7642,7 @@ function FurnitureInteriorDecorSection() {
                 {viewingItem.originalPrice && (
                   <div className="p-4 bg-muted rounded-lg">
                     <p className="text-sm text-muted-foreground">Original Price</p>
-                    <p className="text-lg font-bold">₹{viewingItem.originalPrice}</p>
+                    <p className="text-lg font-bold line-through">₹{viewingItem.originalPrice}</p>
                   </div>
                 )}
               </div>

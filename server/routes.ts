@@ -5829,11 +5829,13 @@ export function registerRoutes(app: Express) {
         });
         classes = allClasses.filter(c => c.userId === userId);
       } else {
-        // If no userId provided and not admin, return empty array
-        classes = [];
+       classes = await db.query.languageClasses.findMany({
+        orderBy: desc(languageClasses.createdAt),
+      });
+      res.json(classes);
       }
 
-      console.log(`Fetched ${classes.length} language classes for user ${userId} with role ${role}`);
+      console.log(`Fetched  language classes for user ${userId} with role ${role}`);
       res.json(classes);
     } catch (error: any) {
       console.error('Error fetching language classes:', error);
@@ -5904,6 +5906,12 @@ export function registerRoutes(app: Express) {
         });
       }
 
+      if (!userId) {
+        return res.status(400).json({
+          message: "userId is required"
+        });
+      }
+
       const [newClass] = await db
         .insert(languageClasses)
         .values({
@@ -5938,7 +5946,7 @@ export function registerRoutes(app: Express) {
           fullAddress: fullAddress || null,
           isActive: isActive === true || isActive === "true",
           isFeatured: isFeatured === true || isFeatured === "true",
-          userId: userId || null,
+          userId: userId,
           role: role || null,
         })
         .returning();
@@ -6027,6 +6035,7 @@ export function registerRoutes(app: Express) {
 
       res.json(updated);
     } catch (error: any) {
+      console.error("Error toggling active status:", error);
       res.status(500).json({ message: error.message });
     }
   });
@@ -6050,6 +6059,7 @@ export function registerRoutes(app: Express) {
 
       res.json(updated);
     } catch (error: any) {
+      console.error("Error toggling featured status:", error);
       res.status(500).json({ message: error.message });
     }
   });
