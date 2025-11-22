@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,10 +11,11 @@ import { Plus, X } from "lucide-react";
 
 interface SchoolsCollegesCoachingFormProps {
   onSuccess: () => void;
+  editingInstitution?: any;
 }
 
-export default function SchoolsCollegesCoachingForm({ onSuccess }: SchoolsCollegesCoachingFormProps) {
-  const [formData, setFormData] = useState({
+export default function SchoolsCollegesCoachingForm({ onSuccess, editingInstitution }: SchoolsCollegesCoachingFormProps) {
+  const [formData, setFormData] = useState(() => editingInstitution || {
     title: "",
     description: "",
     listingType: "school",
@@ -46,17 +46,24 @@ export default function SchoolsCollegesCoachingForm({ onSuccess }: SchoolsColleg
     isFeatured: false,
   });
 
-  const [coursesOffered, setCoursesOffered] = useState<string[]>([]);
+  const [coursesOffered, setCoursesOffered] = useState<string[]>(editingInstitution?.coursesOffered || []);
   const [newCourse, setNewCourse] = useState("");
-  const [examPreparation, setExamPreparation] = useState<string[]>([]);
+  const [examPreparation, setExamPreparation] = useState<string[]>(editingInstitution?.examPreparationFor || []);
   const [newExam, setNewExam] = useState("");
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     try {
-      const response = await fetch('/api/admin/schools-colleges-coaching', {
-        method: 'POST',
+      const userData = localStorage.getItem('user');
+      const user = userData ? JSON.parse(userData) : null;
+
+      const url = editingInstitution 
+        ? `/api/admin/schools-colleges-coaching/${editingInstitution.id}`
+        : '/api/admin/schools-colleges-coaching';
+
+      const response = await fetch(url, {
+        method: editingInstitution ? 'PUT' : 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           ...formData,
@@ -65,6 +72,8 @@ export default function SchoolsCollegesCoachingForm({ onSuccess }: SchoolsColleg
           establishmentYear: parseInt(formData.establishmentYear.toString()),
           annualTuitionFee: formData.annualTuitionFee ? parseFloat(formData.annualTuitionFee) : null,
           totalFeePerYear: formData.totalFeePerYear ? parseFloat(formData.totalFeePerYear) : null,
+          userId: user?.id || null,
+          role: user?.role || 'user',
         }),
       });
 
@@ -72,7 +81,7 @@ export default function SchoolsCollegesCoachingForm({ onSuccess }: SchoolsColleg
         onSuccess();
       }
     } catch (error) {
-      console.error('Error creating institution:', error);
+      console.error('Error saving institution:', error);
     }
   };
 
@@ -463,7 +472,7 @@ export default function SchoolsCollegesCoachingForm({ onSuccess }: SchoolsColleg
       </Card>
 
       <div className="flex justify-end gap-4">
-        <Button type="submit">Create Institution</Button>
+        <Button type="submit">{editingInstitution ? 'Update' : 'Create'} Institution</Button>
       </div>
     </form>
   );

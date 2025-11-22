@@ -7533,12 +7533,7 @@ function VehicleLicenseClassesSection() {
 function ElectronicsGadgetsSection() {
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h2 className="text-2xl font-bold">Electronics & Gadgets</h2>
-          <p className="text-muted-foreground">Manage electronics and gadgets listings</p>
-        </div>
-      </div>
+    
       <ElectronicsGadgetsForm />
     </div>
   );
@@ -7548,12 +7543,7 @@ function ElectronicsGadgetsSection() {
 function PhonesTabletsAccessoriesSection() {
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h2 className="text-2xl font-bold">New Phones, Tablets & Accessories</h2>
-          <p className="text-muted-foreground">Manage new phone, tablet and accessory listings</p>
-        </div>
-      </div>
+     
       <PhonesTabletsAccessoriesForm />
     </div>
   );
@@ -7563,12 +7553,7 @@ function PhonesTabletsAccessoriesSection() {
 function SecondHandPhonesTabletsAccessoriesSection() {
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h2 className="text-2xl font-bold">Second Hand Phones, Tablets & Accessories</h2>
-          <p className="text-muted-foreground">Manage second-hand phone, tablet and accessory listings</p>
-        </div>
-      </div>
+     
       <SecondHandPhonesTabletsAccessoriesForm />
     </div>
   );
@@ -7578,12 +7563,7 @@ function SecondHandPhonesTabletsAccessoriesSection() {
 function ComputerMobileLaptopRepairServicesSection() {
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h2 className="text-2xl font-bold">Computer, Mobile & Laptop Repair Services</h2>
-          <p className="text-muted-foreground">Manage device repair service providers</p>
-        </div>
-      </div>
+      
       <ComputerMobileLaptopRepairServicesForm />
     </div>
   );

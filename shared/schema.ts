@@ -1311,7 +1311,7 @@ export const schoolsCollegesCoaching = pgTable("schools_colleges_coaching", {
   role: text("role"),
 });
 
-export const insertSchoolsCollegesCoachingSchema = createInsertSchema(schoolsCollegesCoaching).omit({ id: true, createdAt: true, updatedAt: true });
+export const insertschoolsCollegesCoachingSchema = createInsertSchema(schoolsCollegesCoaching).omit({ id: true, createdAt: true, updatedAt: true });
 export type InsertSchoolsCollegesCoaching = z.infer<typeof insertSchoolsCollegesCoachingSchema>;
 export type SchoolsCollegesCoaching = typeof schoolsCollegesCoaching.$inferSelect;
 

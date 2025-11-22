@@ -45,7 +45,7 @@ import {
   languageClasses, // Added
   academiesMusicArtsSports, // Added
   skillTrainingCertification, // Added
-  schoolsCollegesCoaching, // Added
+  schoolsCollegesCoaching, 
   educationalConsultancyStudyAbroad, // Added, uncommented
   jewelryAccessories, // Added
   healthWellnessServices, // Added
@@ -5351,8 +5351,492 @@ app.get("/api/admin/academies-music-arts-sports", async (req, res) => {
     }
   });
 
-  // Tuition & Private Classes Routes - Full CRUD
 
+  // Academies - Music, Arts, Sports Routes - Full CRUD
+app.get("/api/admin/schools-colleges-coaching", async (req, res) => {
+  try {
+    const { userId, role } = req.query;
+
+    let results;
+
+    // If admin — fetch all
+    if (role === "admin") {
+      results = await db.query.schoolsCollegesCoaching.findMany({
+        orderBy: desc(schoolsCollegesCoaching.createdAt),
+      });
+
+    // Normal user — fetch only their data
+    } else if (userId) {
+      results = await db.query.schoolsCollegesCoaching.findMany({
+        where: eq(schoolsCollegesCoaching.userId, userId as string),
+        orderBy: desc(schoolsCollegesCoaching.createdAt),
+      });
+
+    // If no userId — fetch all public data
+    } else {
+      results = await db.query.schoolsCollegesCoaching.findMany({
+        orderBy: desc(schoolsCollegesCoaching.createdAt),
+      });
+    }
+
+    res.json(results);
+
+  } catch (error: any) {
+    console.error("Error fetching schools/colleges/coaching:", error);
+    res.status(500).json({ message: error.message });
+  }
+});
+
+  // GET single academy by ID
+  app.get("/api/admin/schools-colleges-coaching/:id", async (req, res) => {
+  try {
+    const school = await db.query.schoolsCollegesCoaching.findFirst({
+      where: eq(schoolsCollegesCoaching.id, req.params.id),
+    });
+
+    if (!school) {
+      return res.status(404).json({ message: "School/College/Coaching not found" });
+    }
+
+    res.json(school);
+
+  } catch (error: any) {
+    console.error("Fetch error:", error);
+    res.status(500).json({ message: error.message });
+  }
+});
+
+
+  // CREATE new academy
+app.post("/api/admin/schools-colleges-coaching", async (req, res) => {
+  try {
+    const data = req.body;
+
+    // Required fields validation
+    const required = ["title", "listingType", "institutionCategory", "institutionName", "contactPerson", "contactPhone", "fullAddress", "userId"];
+    for (const field of required) {
+      if (!data[field]) {
+        return res.status(400).json({ message: `${field} is required` });
+      }
+    }
+
+    const [newRow] = await db.insert(schoolsCollegesCoaching).values({
+      title: data.title,
+      description: data.description || null,
+      listingType: data.listingType,
+      institutionCategory: data.institutionCategory,
+      institutionName: data.institutionName,
+      institutionType: data.institutionType || null,
+      affiliation: data.affiliation || null,
+      accreditation: data.accreditation || null,
+      establishmentYear: data.establishmentYear ? Number(data.establishmentYear) : null,
+      boardAffiliation: data.boardAffiliation || null,
+      universityAffiliation: data.universityAffiliation || null,
+      coursesOffered: data.coursesOffered || [],
+      examPreparationFor: data.examPreparationFor || [],
+      annualTuitionFee: data.annualTuitionFee ? Number(data.annualTuitionFee) : null,
+      totalFeePerYear: data.totalFeePerYear ? Number(data.totalFeePerYear) : null,
+      scholarshipAvailable: data.scholarshipAvailable ?? false,
+      hostelFacility: data.hostelFacility ?? false,
+      transportFacility: data.transportFacility ?? false,
+      libraryAvailable: data.libraryAvailable ?? false,
+      computerLab: data.computerLab ?? false,
+      contactPerson: data.contactPerson,
+      contactPhone: data.contactPhone,
+      contactEmail: data.contactEmail || null,
+      country: data.country || "India",
+      stateProvince: data.stateProvince || null,
+      city: data.city || null,
+      areaName: data.areaName || null,
+      fullAddress: data.fullAddress,
+      isActive: data.isActive ?? true,
+      isFeatured: data.isFeatured ?? false,
+      viewCount: data.viewCount ?? 0,
+      userId: data.userId,
+      role: data.role || "user",
+    }).returning();
+
+    res.status(201).json(newRow);
+
+  } catch (error) {
+    console.error("Create Error:", error);
+    res.status(500).json({ message: error.message });
+  }
+});
+
+app.put("/api/admin/schools-colleges-coaching/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const data = req.body;
+
+    if (!data.userId) {
+      return res.status(400).json({ message: "userId is required" });
+    }
+
+    const updateData = {
+      ...data,
+      updatedAt: new Date(),
+    };
+
+    const [updated] = await db
+      .update(schoolsCollegesCoaching)
+      .set(updateData)
+      .where(eq(schoolsCollegesCoaching.id, id))
+      .returning();
+
+    if (!updated) {
+      return res.status(404).json({ message: "Not found" });
+    }
+
+    res.json(updated);
+
+  } catch (error) {
+    console.error("Update Error:", error);
+    res.status(500).json({ message: error.message });
+  }
+});
+
+
+  // DELETE academy
+ app.delete("/api/admin/schools-colleges-coaching/:id", async (req, res) => {
+  try {
+    const deleted = await db
+      .delete(schoolsCollegesCoaching)
+      .where(eq(schoolsCollegesCoaching.id, req.params.id))
+      .returning();
+
+    if (deleted.length === 0)
+      return res.status(404).json({ message: "Not found" });
+
+    res.json({ message: "Deleted successfully" });
+
+  } catch (error) {
+    console.error("Delete error:", error);
+    res.status(500).json({ message: error.message });
+  }
+});
+app.delete("/api/admin/schools-colleges-coaching/:id", async (req, res) => {
+  try {
+    const [deleted] = await db
+      .delete(schoolsCollegesCoaching)
+      .where(eq(schoolsCollegesCoaching.id, req.params.id))
+      .returning();
+
+    if (!deleted) {
+      return res.status(404).json({ message: "Not found" });
+    }
+
+    res.json({ message: "Deleted successfully", id: req.params.id });
+
+  } catch (error) {
+    console.error("Delete Error:", error);
+    res.status(500).json({ message: error.message });
+  }
+});
+
+app.patch("/api/admin/schools-colleges-coaching/:id/toggle-active", async (req, res) => {
+  try {
+    const row = await db.query.schoolsCollegesCoaching.findFirst({
+      where: eq(schoolsCollegesCoaching.id, req.params.id)
+    });
+
+    if (!row) return res.status(404).json({ message: "Not found" });
+
+    const [updated] = await db
+      .update(schoolsCollegesCoaching)
+      .set({ isActive: !row.isActive, updatedAt: new Date() })
+      .where(eq(schoolsCollegesCoaching.id, req.params.id))
+      .returning();
+
+    res.json(updated);
+
+  } catch (error) {
+    console.error("Error toggling active:", error);
+    res.status(500).json({ message: error.message });
+  }
+});
+app.patch("/api/admin/schools-colleges-coaching/:id/toggle-featured", async (req, res) => {
+  try {
+    const row = await db.query.schoolsCollegesCoaching.findFirst({
+      where: eq(schoolsCollegesCoaching.id, req.params.id)
+    });
+
+    if (!row) return res.status(404).json({ message: "Not found" });
+
+    const [updated] = await db
+      .update(schoolsCollegesCoaching)
+      .set({ isFeatured: !row.isFeatured, updatedAt: new Date() })
+      .where(eq(schoolsCollegesCoaching.id, req.params.id))
+      .returning();
+
+    res.json(updated);
+
+  } catch (error) {
+    console.error("Error toggling featured:", error);
+    res.status(500).json({ message: error.message });
+  }
+});
+app.get("/api/admin/skill-training-certification", async (req, res) => {
+  try {
+    const { userId, role } = req.query;
+
+    let results;
+
+    if (role === "admin") {
+      // Admin → fetch ALL
+      results = await db.query.skillTrainingCertification.findMany({
+        orderBy: desc(skillTrainingCertification.createdAt),
+      });
+
+    } else if (userId) {
+      // Normal user → fetch only their records
+      results = await db.query.skillTrainingCertification.findMany({
+        where: eq(skillTrainingCertification.userId, userId as string),
+        orderBy: desc(skillTrainingCertification.createdAt),
+      });
+
+    } else {
+      // No user → fetch all public
+      results = await db.query.skillTrainingCertification.findMany({
+        orderBy: desc(skillTrainingCertification.createdAt),
+      });
+    }
+
+    res.json(results);
+
+  } catch (error: any) {
+    console.error("Error fetching skill training:", error);
+    res.status(500).json({ message: error.message });
+  }
+});
+app.get("/api/admin/skill-training-certification/:id", async (req, res) => {
+  try {
+    const training = await db.query.skillTrainingCertification.findFirst({
+      where: eq(skillTrainingCertification.id, req.params.id),
+    });
+
+    if (!training) {
+      return res.status(404).json({ message: "Training not found" });
+    }
+
+    res.json(training);
+
+  } catch (error: any) {
+    res.status(500).json({ message: error.message });
+  }
+});
+app.post("/api/admin/skill-training-certification", async (req, res) => {
+  try {
+    const {
+      title,
+      description,
+      skillCategory,
+      trainingType,
+      skillsTaught,
+      instituteName,
+      certificationBody,
+      certificationName,
+      governmentRecognized,
+      internationallyRecognized,
+      courseDurationDays,
+      courseDurationMonths,
+      totalClassHours,
+      onlineMode,
+      offlineMode,
+      weekendBatches,
+      practicalTraining,
+      studyMaterialProvided,
+      internshipIncluded,
+      totalFee,
+      registrationFee,
+      examFee,
+      installmentAvailable,
+      scholarshipAvailable,
+      placementAssistance,
+      placementRate,
+      careerOpportunities,
+      averageSalaryPackage,
+      contactPerson,
+      contactPhone,
+      contactEmail,
+      country,
+      stateProvince,
+      city,
+      areaName,
+      fullAddress,
+      isActive,
+      isFeatured,
+      userId,
+      role,
+    } = req.body;
+
+    // Required fields
+    if (!title || !skillCategory || !trainingType || !instituteName || !totalFee || !contactPerson || !contactPhone) {
+      return res.status(400).json({
+        message: "Missing required fields: title, skillCategory, trainingType, instituteName, totalFee, contactPerson, contactPhone"
+      });
+    }
+
+    if (!userId) {
+      return res.status(400).json({ message: "userId is required" });
+    }
+
+    const [newTraining] = await db
+      .insert(skillTrainingCertification)
+      .values({
+        title,
+        description: description || null,
+        skillCategory,
+        trainingType,
+        skillsTaught: skillsTaught || [],
+        instituteName,
+        certificationBody: certificationBody || null,
+        certificationName: certificationName || null,
+        governmentRecognized: governmentRecognized || false,
+        internationallyRecognized: internationallyRecognized || false,
+        courseDurationDays: courseDurationDays ? parseInt(courseDurationDays) : null,
+        courseDurationMonths: courseDurationMonths ? parseInt(courseDurationMonths) : null,
+        totalClassHours: totalClassHours ? parseInt(totalClassHours) : null,
+        onlineMode: onlineMode || false,
+        offlineMode: offlineMode || false,
+        weekendBatches: weekendBatches || false,
+        practicalTraining: practicalTraining || false,
+        studyMaterialProvided: studyMaterialProvided || false,
+        internshipIncluded: internshipIncluded || false,
+        totalFee: parseFloat(totalFee),
+        registrationFee: registrationFee ? parseFloat(registrationFee) : null,
+        examFee: examFee ? parseFloat(examFee) : null,
+        installmentAvailable: installmentAvailable || false,
+        scholarshipAvailable: scholarshipAvailable || false,
+        placementAssistance: placementAssistance || false,
+        placementRate: placementRate ? parseFloat(placementRate) : null,
+        careerOpportunities: careerOpportunities || [],
+        averageSalaryPackage: averageSalaryPackage ? parseFloat(averageSalaryPackage) : null,
+        contactPerson,
+        contactPhone,
+        contactEmail: contactEmail || null,
+        country: country || "India",
+        stateProvince,
+        city,
+        areaName,
+        fullAddress,
+        isActive: isActive !== undefined ? isActive : true,
+        isFeatured: isFeatured || false,
+        userId,
+        role: role || "user",
+      })
+      .returning();
+
+    res.status(201).json(newTraining);
+
+  } catch (error: any) {
+    console.error("Error creating training:", error);
+    res.status(400).json({ message: error.message });
+  }
+});
+app.put("/api/admin/skill-training-certification/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { userId, role, ...data } = req.body;
+
+    if (!userId) {
+      return res.status(400).json({ message: "userId is required" });
+    }
+
+    const updateData = {
+      ...data,
+      userId,
+      role: role || "user",
+      updatedAt: new Date(),
+    };
+
+    const [updated] = await db
+      .update(skillTrainingCertification)
+      .set(updateData)
+      .where(eq(skillTrainingCertification.id, id))
+      .returning();
+
+    if (!updated) {
+      return res.status(404).json({ message: "Training not found" });
+    }
+
+    res.json(updated);
+
+  } catch (error: any) {
+    console.error("Error updating training:", error);
+    res.status(400).json({ message: error.message });
+  }
+});
+app.delete("/api/admin/skill-training-certification/:id", async (req, res) => {
+  try {
+    const rows = await db
+      .delete(skillTrainingCertification)
+      .where(eq(skillTrainingCertification.id, req.params.id))
+      .returning();
+
+    if (rows.length === 0) {
+      return res.status(404).json({ message: "Training not found" });
+    }
+
+    res.json({ message: "Training deleted successfully", id: req.params.id });
+
+  } catch (error: any) {
+    console.error("Error deleting training:", error);
+    res.status(500).json({ message: error.message });
+  }
+});
+app.patch("/api/admin/skill-training-certification/:id/toggle-active", async (req, res) => {
+  try {
+    const record = await db.query.skillTrainingCertification.findFirst({
+      where: eq(skillTrainingCertification.id, req.params.id),
+    });
+
+    if (!record) {
+      return res.status(404).json({ message: "Training not found" });
+    }
+
+    const [updated] = await db
+      .update(skillTrainingCertification)
+      .set({
+        isActive: !record.isActive,
+        updatedAt: new Date(),
+      })
+      .where(eq(skillTrainingCertification.id, req.params.id))
+      .returning();
+
+    res.json(updated);
+
+  } catch (error: any) {
+    res.status(500).json({ message: error.message });
+  }
+});
+app.patch("/api/admin/skill-training-certification/:id/toggle-featured", async (req, res) => {
+  try {
+    const record = await db.query.skillTrainingCertification.findFirst({
+      where: eq(skillTrainingCertification.id, req.params.id),
+    });
+
+    if (!record) {
+      return res.status(404).json({ message: "Training not found" });
+    }
+
+    const [updated] = await db
+      .update(skillTrainingCertification)
+      .set({
+        isFeatured: !record.isFeatured,
+        updatedAt: new Date(),
+      })
+      .where(eq(skillTrainingCertification.id, req.params.id))
+      .returning();
+
+    res.json(updated);
+
+  } catch (error: any) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+ 
   // GET all tuition classes
   app.get("/api/admin/tuition-private-classes", async (req, res) => {
     try {
