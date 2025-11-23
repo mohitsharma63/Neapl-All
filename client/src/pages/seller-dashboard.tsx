@@ -1,21 +1,3 @@
-  const { user } = useUser();
-  const [preferences, setPreferences] = useState([]);
-
-  useEffect(() => {
-    async function fetchPreferences() {
-      if (!user?.id) return;
-      try {
-        const res = await fetch(`/api/users/${user.id}`);
-        if (!res.ok) return;
-        const data = await res.json();
-        setPreferences(Array.isArray(data.categoryPreferences) ? data.categoryPreferences : []);
-      } catch (err) {
-        setPreferences([]);
-      }
-    }
-    fetchPreferences();
-  }, [user?.id]);
-
 import React, { useState, useEffect } from 'react';
 import '@/lib/attachUserToFetch';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
@@ -192,101 +174,6 @@ function EducationalConsultancyStudyAbroadSection() {
         </Button>
       </div>
 
-      {/* View Details Dialog for Health & Wellness Services */}
-      <Dialog open={showDetailsDialog} onOpenChange={setShowDetailsDialog}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="text-2xl">{viewingService?.title}</DialogTitle>
-            <DialogDescription>Complete service details</DialogDescription>
-          </DialogHeader>
-          {viewingService && (
-            <div className="space-y-6">
-              <div className="flex gap-2 flex-wrap">
-                <Badge variant="secondary">{viewingService.serviceType}</Badge>
-                {viewingService.specialization && <Badge variant="outline">{viewingService.specialization}</Badge>}
-                {viewingService.isFeatured && <Badge className="bg-yellow-500">Featured</Badge>}
-              </div>
-
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                {viewingService.consultationFee !== undefined && viewingService.consultationFee !== null && (
-                  <div className="p-4 bg-muted rounded-lg">
-                    <p className="text-sm text-muted-foreground">Consultation Fee</p>
-                    <p className="text-lg font-bold text-primary">₹{Number(viewingService.consultationFee).toLocaleString()}</p>
-                  </div>
-                )}
-                {viewingService.doctorName && (
-                  <div className="p-4 bg-muted rounded-lg">
-                    <p className="text-sm text-muted-foreground">Doctor</p>
-                    <p className="text-lg font-bold">{viewingService.doctorName}</p>
-                  </div>
-                )}
-                {viewingService.experienceYears && (
-                  <div className="p-4 bg-muted rounded-lg">
-                    <p className="text-sm text-muted-foreground">Experience</p>
-                    <p className="text-lg font-bold">{viewingService.experienceYears} years</p>
-                  </div>
-                )}
-                {viewingService.available24_7 && (
-                  <div className="p-4 bg-muted rounded-lg">
-                    <p className="text-sm text-muted-foreground">Availability</p>
-                    <p className="text-lg font-bold">24/7</p>
-                  </div>
-                )}
-              </div>
-
-              {viewingService.description && (
-                <div>
-                  <h3 className="font-semibold mb-2">Description</h3>
-                  <p className="text-muted-foreground">{viewingService.description}</p>
-                </div>
-              )}
-
-              <div>
-                <h3 className="font-semibold mb-2">Contact Information</h3>
-                <div className="grid grid-cols-2 gap-4 text-sm">
-                  {viewingService.contactPerson && (
-                    <div>
-                      <span className="font-medium">Contact Person:</span>
-                      <span className="ml-2 text-muted-foreground">{viewingService.contactPerson}</span>
-                    </div>
-                  )}
-                  {viewingService.contactPhone && (
-                    <div>
-                      <span className="font-medium">Phone:</span>
-                      <span className="ml-2 text-muted-foreground">{viewingService.contactPhone}</span>
-                    </div>
-                  )}
-                  {viewingService.contactEmail && (
-                    <div>
-                      <span className="font-medium">Email:</span>
-                      <span className="ml-2 text-muted-foreground">{viewingService.contactEmail}</span>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {viewingService.fullAddress && (
-                <div>
-                  <h3 className="font-semibold mb-2 flex items-center gap-2">
-                    <MapPin className="w-4 h-4" />
-                    Location
-                  </h3>
-                  <div className="space-y-1 text-sm">
-                    <p><span className="font-medium">Address:</span> {viewingService.fullAddress}</p>
-                    {viewingService.city && <p><span className="font-medium">City:</span> {viewingService.city}</p>}
-                    {viewingService.stateProvince && <p><span className="font-medium">State:</span> {viewingService.stateProvince}</p>}
-                  </div>
-                </div>
-              )}
-
-              <div className="pt-4 border-t text-sm text-muted-foreground">
-                <p>Created: {new Date(viewingService.createdAt).toLocaleString()}</p>
-                <p>Last Updated: {new Date(viewingService.updatedAt).toLocaleString()}</p>
-              </div>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
 
       <Dialog open={showForm} onOpenChange={setShowForm}>
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
@@ -2921,12 +2808,20 @@ const iconMap: Record<string, React.ElementType> = {
 };
 
 function AppSidebar({ activeSection, setActiveSection }: { activeSection: string; setActiveSection: (section: string) => void }) {
-  const [categories, setCategories] = useState<AdminCategory[]>([]);
-  const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
+  const [categories, setCategories] = React.useState<AdminCategory[]>([]);
+  const [expandedCategories, setExpandedCategories] = React.useState<Set<string>>(new Set());
+  const [categoryPreferences, setCategoryPreferences] = React.useState<any[]>([]);
+  const { user } = useUser();
 
-  useEffect(() => {
+  React.useEffect(() => {
     fetchCategories();
   }, []);
+
+  React.useEffect(() => {
+    if (user?.id) {
+      fetchPreferences();
+    }
+  }, [user?.id]);
 
   const fetchCategories = async () => {
     try {
@@ -2936,6 +2831,18 @@ function AppSidebar({ activeSection, setActiveSection }: { activeSection: string
     } catch (error) {
       console.error('Error fetching categories:', error);
       setCategories([]);
+    }
+  };
+
+  const fetchPreferences = async () => {
+    try {
+      const res = await fetch(`/api/users/${user?.id}`);
+      if (!res.ok) return;
+      const data = await res.json();
+      setCategoryPreferences(Array.isArray(data.categoryPreferences) ? data.categoryPreferences : []);
+    } catch (err) {
+      console.error('Error fetching user preferences:', err);
+      setCategoryPreferences([]);
     }
   };
 
@@ -2956,175 +2863,178 @@ function AppSidebar({ activeSection, setActiveSection }: { activeSection: string
   ];
 
   return (
-    <Sidebar variant="inset" className="border-r">
-      <SidebarHeader className="border-b bg-gradient-to-r from-blue-50 to-green-50 dark:from-blue-950 dark:to-green-950">
-        <div className="flex items-center gap-3 px-4 py-3">
-          <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-green-600 rounded-xl flex items-center justify-center shadow-lg">
-            <Shield className="w-5 h-5 text-white" />
+    <aside className="h-full w-64 bg-white dark:bg-gray-950 shadow-xl rounded-xl m-4 flex flex-col border border-gray-200 dark:border-gray-800">
+      <div className="flex items-center gap-3 px-6 py-5 border-b bg-gradient-to-r from-blue-50 to-green-50 dark:from-blue-950 dark:to-green-950 rounded-t-xl">
+        <div className="w-12 h-12 bg-gradient-to-br from-blue-600 to-green-600 rounded-xl flex items-center justify-center shadow-lg">
+          <Shield className="w-6 h-6 text-white" />
+        </div>
+        <div className="flex-1">
+          <h1 className="font-bold text-xl bg-gradient-to-r from-blue-700 to-green-600 bg-clip-text text-transparent">Seller Dashboard</h1>
+          <p className="text-xs text-muted-foreground">Manage Your Services</p>
+        </div>
+      </div>
+
+      <nav className="flex-1 px-4 py-6 overflow-y-auto scrollbar-thin scrollbar-thumb-blue-200 scrollbar-track-transparent">
+        <div className="mb-2">
+          <span className="px-2 py-1 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Main Navigation</span>
+        </div>
+       
+        <ul className="space-y-2">
+          {/* Dashboard */}
+          <li>
+            <button
+              className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg font-medium transition-all duration-200 shadow-sm border border-transparent ${activeSection === "dashboard" ? "bg-gradient-to-r from-blue-600 to-green-600 text-white shadow-md scale-[1.03]" : "hover:bg-blue-50 dark:hover:bg-gray-900 text-gray-700 dark:text-gray-200"}`}
+              onClick={() => setActiveSection("dashboard")}
+            >
+              <Home className="w-5 h-5" />
+              Dashboard
+            </button>
+          </li>
+
+          {/* User's Selected Categories and Subcategories */}
+          {categoryPreferences.map(pref => {
+            const category = categories.find(c => c.id === pref.categorySlug || c.slug === pref.categorySlug);
+            const categoryName = pref.categoryName || category?.name || pref.categorySlug.replace(/_/g, ' ');
+            const hasSubcategories = pref.subcategoriesWithNames && pref.subcategoriesWithNames.length > 0;
+            const isExpanded = expandedCategories.has(pref.categorySlug);
+            return (
+              <React.Fragment key={pref.categorySlug}>
+                <li className="mb-2">
+                  <button
+                    className={`w-full flex items-center gap-2 px-3 py-2 rounded-md font-medium text-base transition-all duration-200 shadow-sm border border-transparent ${activeSection === pref.categorySlug ? "bg-gradient-to-r from-blue-600 to-green-600 text-white shadow-md scale-[1.01]" : "hover:bg-blue-50 dark:hover:bg-gray-900 text-gray-700 dark:text-gray-200"}`}
+                    style={{ minHeight: '40px' }}
+                    onClick={() => {
+                      setActiveSection(pref.categorySlug);
+                      if (hasSubcategories) toggleCategoryExpand(pref.categorySlug);
+                    }}
+                  >
+                    {iconMap[pref.icon] ? (
+                      React.createElement(iconMap[pref.icon], { className: "w-4 h-4 text-blue-500" })
+                    ) : (
+                      <Bookmark className="w-4 h-4 text-blue-500" />
+                    )}
+                    <span className="flex-1 text-left">{categoryName}</span>
+                    {hasSubcategories && (
+                      <span className={`ml-auto transition-transform ${isExpanded ? 'rotate-90' : ''}`}>
+                        <ChevronDown className="w-3 h-3" />
+                      </span>
+                    )}
+                  </button>
+                </li>
+                {/* Subcategories */}
+                {hasSubcategories && isExpanded && (
+                  <div className="mt-1 ml-6 max-h-56 overflow-y-auto scrollbar-thin scrollbar-thumb-blue-200 scrollbar-track-transparent">
+                    <ul className="flex flex-col gap-0.5">
+                      {pref.subcategoriesWithNames.map((sub: any) => (
+                        <li key={sub.slug || sub.id}>
+                          <button
+                            className={`w-full text-left px-3 py-2 rounded-md text-sm font-normal transition-colors duration-150 flex items-center gap-2 border-l-4 ${activeSection === (sub.slug || sub.name)
+                              ? "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-100 border-blue-500"
+                              : "hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-500 dark:text-gray-400 border-transparent"}`}
+                            onClick={() => setActiveSection(sub.slug || sub.name)}
+                          >
+                            <span className="w-2 h-2 rounded-full bg-blue-400 mr-2"></span>
+                            <span className="font-normal">{sub.name || sub.slug}</span>
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </React.Fragment>
+            );
+          })}
+        </ul>
+      </nav>
+      
+    </aside>
+  );
+
+  // ...existing code...
+  
+  // DashboardSection placeholder to fix missing reference
+  function DashboardSection() {
+    // Example: Fetch seller dashboard data
+    const [dashboardData, setDashboardData] = React.useState<any>(null);
+    const [loading, setLoading] = React.useState(true);
+    React.useEffect(() => {
+      async function fetchDashboard() {
+        setLoading(true);
+        try {
+          const res = await fetch('/api/seller/dashboard');
+          const data = await res.json();
+          setDashboardData(data);
+        } catch (e) {
+          setDashboardData(null);
+        } finally {
+          setLoading(false);
+        }
+      }
+      fetchDashboard();
+    }, []);
+
+    if (loading) {
+      return <div className="p-8 text-center text-muted-foreground">Loading dashboard...</div>;
+    }
+
+    if (!dashboardData) {
+      return <div className="p-8 text-center text-destructive">Failed to load dashboard data.</div>;
+    }
+
+    // Example dashboard cards
+    return (
+      <div className="p-8">
+        <h2 className="text-3xl font-bold mb-2">Dashboard</h2>
+        <p className="text-muted-foreground mb-8">Overview of your system</p>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          <div className="bg-white dark:bg-gray-950 rounded-xl shadow p-6 flex flex-col items-center">
+            <span className="text-2xl font-bold text-blue-600">{dashboardData.totalListings}</span>
+            <span className="text-sm text-muted-foreground mt-2">Total Listings</span>
           </div>
-          <div className="flex-1">
-            <h1 className="font-bold text-lg bg-gradient-to-r from-blue-700 to-green-600 bg-clip-text text-transparent">Super Admin</h1>
-            <p className="text-xs text-muted-foreground">Control Panel</p>
+          <div className="bg-white dark:bg-gray-950 rounded-xl shadow p-6 flex flex-col items-center">
+            <span className="text-2xl font-bold text-green-600">{dashboardData.activeListings}</span>
+            <span className="text-sm text-muted-foreground mt-2">Active Listings</span>
+          </div>
+          <div className="bg-white dark:bg-gray-950 rounded-xl shadow p-6 flex flex-col items-center">
+            <span className="text-2xl font-bold text-yellow-600">₹{dashboardData.earnings}</span>
+            <span className="text-sm text-muted-foreground mt-2">Total Earnings</span>
+          </div>
+          <div className="bg-white dark:bg-gray-950 rounded-xl shadow p-6 flex flex-col items-center">
+            <span className="text-2xl font-bold text-purple-600">{dashboardData.orders}</span>
+            <span className="text-sm text-muted-foreground mt-2">Orders</span>
           </div>
         </div>
-      </SidebarHeader>
-
-        <SidebarContent className="px-2 py-4">
-          <SidebarGroup>
-            <SidebarGroupLabel className="px-3 mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-              Main Navigation
-            </SidebarGroupLabel>
-            <SidebarGroupContent>
-              <SidebarMenu className="gap-1">
-                <SidebarMenuItem key="dashboard">
-                  <SidebarMenuButton
-                    tooltip="Dashboard"
-                    isActive={activeSection === "dashboard"}
-                    className={`
-                      w-full justify-start rounded-lg transition-all duration-200
-                      ${activeSection === "dashboard"
-                        ? 'bg-gradient-to-r from-blue-600 to-green-600 text-white shadow-md hover:shadow-lg'
-                        : 'hover:bg-muted/80'
-                      }
-                    `}
-                    onClick={() => setActiveSection("dashboard")}
-                  >
-                    <Home className="w-5 h-5" />
-                    <span className="font-medium">Dashboard</span>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-                {preferences.map(pref => [
-                  <SidebarMenuItem key={pref.category_slug}>
-                    <SidebarMenuButton
-                      tooltip={pref.category_slug}
-                      isActive={activeSection === pref.category_slug}
-                      className={`w-full justify-start rounded-lg transition-all duration-200 ${activeSection === pref.category_slug ? 'bg-gradient-to-r from-blue-600 to-green-600 text-white shadow-md hover:shadow-lg' : 'hover:bg-muted/80'}`}
-                      onClick={() => setActiveSection(pref.category_slug)}
-                    >
-                      <span className="font-medium">{pref.category_slug.replace(/_/g, ' ')}</span>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>,
-                  Array.isArray(pref.subcategory_slugs) && pref.subcategory_slugs.map(sub => (
-                    <SidebarMenuItem key={sub} className="ml-6">
-                      <SidebarMenuButton
-                        tooltip={sub}
-                        isActive={activeSection === sub}
-                        className={`w-full justify-start rounded-lg transition-all duration-200 ${activeSection === sub ? 'bg-gradient-to-r from-green-600 to-blue-600 text-white shadow-md hover:shadow-lg' : 'hover:bg-muted/80'}`}
-                        onClick={() => setActiveSection(sub)}
-                      >
-                        <span className="font-medium">{sub.replace(/_/g, ' ')}</span>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
-                  ))
-                ])}
-              </SidebarMenu>
-            </SidebarGroupContent>
-          </SidebarGroup>
-        </SidebarContent>
-      </Sidebar>
-  );
-}
-
-// Dashboard Section
-function DashboardSection() {
-  const [stats, setStats] = useState({
-    totalProperties: '0',
-    totalAgencies: '0',
-    totalUsers: '0',
-    totalCategories: '0'
-  });
-
-  const { user } = useUser();
-  const [categoryPreferences, setCategoryPreferences] = useState<any[]>([]);
-
-  useEffect(() => {
-    if (!user?.id) return;
-
-    const fetchPreferences = async () => {
-      try {
-        const res = await fetch(`/api/users/${user.id}`);
-        if (!res.ok) return;
-        const data = await res.json();
-        setCategoryPreferences(Array.isArray(data.categoryPreferences) ? data.categoryPreferences : []);
-      } catch (err) {
-        console.error('Error fetching user preferences:', err);
-      }
-    };
-
-    fetchPreferences();
-  }, [user?.id]);
-
-  useEffect(() => {
-    fetchStats();
-  }, []);
-
-  const fetchStats = async () => {
-    try {
-      const response = await fetch('/api/stats');
-      const data = await response.json();
-      setStats(data);
-    } catch (error) {
-      console.error('Error fetching stats:', error);
-    }
-  };
-
-  return (
-    <div className="space-y-6">
-      <div>
-        <h2 className="text-2xl font-bold">Dashboard</h2>
-        <p className="text-muted-foreground">Overview of your system</p>
-        {user && (
-          <div className="mt-3">
-            <h4 className="text-sm font-medium">Your selected categories</h4>
-            {categoryPreferences.length > 0 ? (
-              <div className="flex flex-wrap gap-2 mt-2">
-                {categoryPreferences.map((pref) => (
-                  <div key={pref.categorySlug} className="flex items-center gap-2">
-                    <Badge variant="secondary">{pref.categoryName || pref.categorySlug}</Badge>
-                    {Array.isArray(pref.subcategoriesWithNames) && pref.subcategoriesWithNames.map((s: any) => (
-                      <Badge key={s.id || s.slug} variant="outline">{s.name || s.slug}</Badge>
-                    ))}
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <p className="text-sm text-muted-foreground mt-2">No category preferences selected</p>
-            )}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+          <div className="bg-white dark:bg-gray-950 rounded-xl shadow p-6">
+            <h3 className="font-semibold mb-2">Messages</h3>
+            <div className="text-2xl font-bold text-blue-500">{dashboardData.messages}</div>
+            <div className="text-sm text-muted-foreground mt-2">Unread messages</div>
           </div>
-        )}
+          <div className="bg-white dark:bg-gray-950 rounded-xl shadow p-6">
+            <h3 className="font-semibold mb-2">Profile</h3>
+            <div className="flex items-center gap-3">
+              <img src={dashboardData.profile?.avatar || '/avatar.png'} alt="avatar" className="w-12 h-12 rounded-full border" />
+              <div>
+                <div className="font-bold">{dashboardData.profile?.name}</div>
+                <div className="text-xs text-muted-foreground">{dashboardData.profile?.email}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        {/* Example: Recent activity or reports */}
+        <div className="bg-white dark:bg-gray-950 rounded-xl shadow p-6">
+          <h3 className="font-semibold mb-4">Recent Activity</h3>
+          <ul className="space-y-2">
+            {dashboardData.recentActivity?.map((item: any, idx: number) => (
+              <li key={idx} className="text-sm text-muted-foreground">
+                {item}
+              </li>
+            ))}
+          </ul>
+        </div>
       </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Total Properties</CardTitle>
-            <div className="text-2xl font-bold">{stats.totalProperties}</div>
-          </CardHeader>
-        </Card>
-
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Total Users</CardTitle>
-            <div className="text-2xl font-bold">{stats.totalUsers}</div>
-          </CardHeader>
-        </Card>
-
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Total Agencies</CardTitle>
-            <div className="text-2xl font-bold">{stats.totalAgencies}</div>
-          </CardHeader>
-        </Card>
-
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Total Categories</CardTitle>
-            <div className="text-2xl font-bold">{stats.totalCategories}</div>
-          </CardHeader>
-        </Card>
-      </div>
-    </div>
-  );
+    );
+  }
 }
 
 // Categories Section
@@ -5422,7 +5332,7 @@ export default function AdminDashboard() {
 
     switch (normalizedSection) {
       case "dashboard":
-        return <DashboardSection />;
+        return <DashboardSection/>;
       case "categories":
         return <CategoriesSection />;
       case "users":
@@ -5433,7 +5343,7 @@ export default function AdminDashboard() {
         return <AnalyticsSection />;
       case "settings":
         return <SettingsSection />;
-      case "hostels-&-pg":
+      case "hostels-&-pg":x
       case "hostels-pg":
       case "hostel-pg":
         return <HostelsPgSection />;
@@ -5448,7 +5358,7 @@ export default function AdminDashboard() {
       case "factory-industrial-land":
       case "industrial-land":
         return <IndustrialLandSection />;
-      case "company-office-space":
+      case"company-office-space":
       case "office-spaces":
         return <OfficeSpacesSection />;
       case "rental-–-rooms,-flats,-apartments":
@@ -5533,7 +5443,13 @@ export default function AdminDashboard() {
       case "skill-training--certification":
         return <SkillTrainingCertificationSection />;
       default:
-        return <DashboardSection />;
+        return <DashboardSection/>;
+        return (
+          <div className="space-y-6">
+            <h2 className="text-2xl font-bold">Dashboard</h2>
+            <p className="text-muted-foreground">Overview of your system</p>
+          </div>
+        );
     }
   };
 
@@ -6161,12 +6077,10 @@ function DanceKarateGymYogaSection() {
               </div>
 
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                {viewingClass.feePerMonth && (
-                  <div className="p-4 bg-muted rounded-lg">
-                    <p className="text-sm text-muted-foreground">Fee Per Month</p>
-                    <p className="text-lg font-bold text-primary">₹{viewingClass.feePerMonth}</p>
-                  </div>
-                )}
+                <div className="p-4 bg-muted rounded-lg">
+                  <p className="text-sm text-muted-foreground">Fee Per Month</p>
+                  <p className="text-lg font-bold text-primary">₹{viewingClass.feePerMonth}</p>
+                </div>
                 {viewingClass.feePerSession && (
                   <div className="p-4 bg-muted rounded-lg">
                     <p className="text-sm text-muted-foreground">Fee Per Session</p>
@@ -7352,7 +7266,7 @@ function CarsBikesSection() {
         </div>
       </div>
       {(() => {
-        const { user } = require('@/hooks/use-user')();
+         const { user } = useUser();
         return <CarsBikesForm userId={user?.id} role={user?.role} />;
       })()}
     </div>
