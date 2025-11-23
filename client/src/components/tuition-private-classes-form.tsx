@@ -11,6 +11,7 @@ import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Plus, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useUser } from "@/hooks/use-user";
 
 interface TuitionPrivateClassesFormProps {
   onSuccess: () => void;
@@ -19,6 +20,7 @@ interface TuitionPrivateClassesFormProps {
 
 export default function TuitionPrivateClassesForm({ onSuccess, editingClass }: TuitionPrivateClassesFormProps) {
   const { toast } = useToast();
+  const { user } = useUser();
   const { register, handleSubmit, setValue, watch } = useForm({
     defaultValues: editingClass || {
       listingType: "tuition",
@@ -69,6 +71,12 @@ export default function TuitionPrivateClassesForm({ onSuccess, editingClass }: T
         isActive: !!data.isActive,
         isFeatured: !!data.isFeatured,
       };
+
+      // Attach user identity so server can persist owner information
+      if (user) {
+        cleanedData.userId = editingClass?.userId || user.id;
+        cleanedData.role = editingClass?.role || user.role || null;
+      }
 
       const url = editingClass 
         ? `/api/admin/tuition-private-classes/${editingClass.id}`

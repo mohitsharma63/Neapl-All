@@ -19,6 +19,7 @@ export default function TelecommunicationServicesForm() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingService, setEditingService] = useState<any>(null);
   const [viewingService, setViewingService] = useState<any>(null);
+  const [showDetailsDialog, setShowDetailsDialog] = useState(false);
   const [formData, setFormData] = useState({
     title: "",
     description: "",
@@ -318,7 +319,7 @@ export default function TelecommunicationServicesForm() {
                   </div>
                 </div>
                 <div className="flex gap-2">
-                  <Button variant="ghost" size="icon" onClick={() => setViewingService(service)}><Eye className="h-4 w-4" /></Button>
+                  <Button variant="ghost" size="icon" onClick={() => { setViewingService(service); setShowDetailsDialog(true); }}><Eye className="h-4 w-4" /></Button>
                   <Button variant="ghost" size="icon" onClick={() => handleEdit(service)}><Edit className="h-4 w-4" /></Button>
                   <Button variant="ghost" size="icon" onClick={() => deleteMutation.mutate(service.id)}><Trash2 className="h-4 w-4" /></Button>
                 </div>
@@ -327,6 +328,41 @@ export default function TelecommunicationServicesForm() {
           </Card>
         ))}
       </div>
+      <Dialog open={showDetailsDialog} onOpenChange={setShowDetailsDialog}>
+        <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>{viewingService?.title}</DialogTitle>
+          </DialogHeader>
+          {viewingService && (
+            <div className="space-y-4">
+              <div className="flex items-center gap-4">
+                <div className="flex-1">
+                  <p className="text-sm text-muted-foreground">{viewingService.companyName}</p>
+                  <div className="flex gap-2 mt-2 flex-wrap">
+                    <Badge variant="outline">{viewingService.serviceType}</Badge>
+                    {viewingService.isFeatured && <Badge className="bg-yellow-500">Featured</Badge>}
+                  </div>
+                  <p className="text-sm text-muted-foreground mt-2">₹{viewingService.monthlyPrice}/month</p>
+                </div>
+              </div>
+
+              {viewingService.description && (
+                <div>
+                  <h4 className="font-semibold">Description</h4>
+                  <p className="text-sm text-muted-foreground">{viewingService.description}</p>
+                </div>
+              )}
+
+              <div>
+                <h4 className="font-semibold">Contact</h4>
+                <p className="text-sm">{viewingService.contactPerson} — {viewingService.contactPhone}</p>
+                {viewingService.contactEmail && <p className="text-sm">{viewingService.contactEmail}</p>}
+                {viewingService.fullAddress && <p className="text-sm text-muted-foreground">{viewingService.fullAddress}</p>}
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

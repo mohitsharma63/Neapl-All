@@ -190,7 +190,13 @@ interface SareeProductApi extends Omit<SareeClothingFormData, 'price' | 'mrp' | 
   updatedAt: string;
 }
 
-export default function SareeClothingShoppingForm() {
+export default function SareeClothingShoppingForm(props?: {
+  editingItem?: SareeProductApi | null;
+  onSuccess?: () => void;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+}) {
+  const { editingItem: externalEditingItem, onSuccess: externalOnSuccess, open: externalOpen, onOpenChange } = props || {};
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [showForm, setShowForm] = useState(false);
@@ -339,6 +345,7 @@ export default function SareeClothingShoppingForm() {
       queryClient.invalidateQueries({ queryKey: ["saree-clothing-shopping"] });
       toast({ title: "Success", description: "Item created successfully" });
       handleCloseForm();
+      if (externalOnSuccess) externalOnSuccess();
     },
     onError: (error: Error) => {
       toast({ title: "Error", description: error.message, variant: "destructive" });
@@ -395,6 +402,7 @@ export default function SareeClothingShoppingForm() {
       queryClient.invalidateQueries({ queryKey: ["saree-clothing-shopping"] });
       toast({ title: "Success", description: "Item updated successfully" });
       handleCloseForm();
+      if (externalOnSuccess) externalOnSuccess();
     },
     onError: (error: Error) => {
       toast({ title: "Error", description: error.message, variant: "destructive" });
@@ -447,9 +455,20 @@ export default function SareeClothingShoppingForm() {
     setValue("exchangeAvailable", item.exchangeAvailable ?? true);
     setValue("blousePieceIncluded", item.blousePieceIncluded ?? false);
     setValue("fallPicoDone", item.fallPicoDone ?? false);
-
     setShowForm(true);
   };
+
+  // If external editingItem prop is provided, open the form and populate
+  useEffect(() => {
+    if (externalEditingItem) {
+      handleEdit(externalEditingItem);
+    }
+  }, [externalEditingItem]);
+
+  // If external open prop is controlled, sync local showForm
+  useEffect(() => {
+    if (externalOpen !== undefined) setShowForm(!!externalOpen);
+  }, [externalOpen]);
 
   const handleDelete = (id: string) => {
     if (confirm("Are you sure you want to delete this item?")) {
@@ -461,6 +480,7 @@ export default function SareeClothingShoppingForm() {
     setShowForm(false);
     setEditingItem(null);
     reset();
+    if (onOpenChange) onOpenChange(false);
   };
 
   const handleView = (item: SareeProductApi) => {
@@ -520,17 +540,6 @@ export default function SareeClothingShoppingForm() {
               <CardTitle>Saree, Clothing & Shopping</CardTitle>
               <CardDescription>Manage authorized second-hand vehicle showrooms</CardDescription>
             </div>
-            <Button
-              onClick={() => {
-                reset();
-                setEditingItem(null);
-                setShowForm(true);
-              }}
-              className="bg-gradient-to-r from-pink-600 to-purple-600 hover:from-pink-700 hover:to-purple-700"
-            >
-              <Plus className="w-4 h-4 mr-2" />
-              Add Product
-            </Button>
           </div>
         </CardHeader>
 

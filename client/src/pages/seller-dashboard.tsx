@@ -1,5 +1,23 @@
+  const { user } = useUser();
+  const [preferences, setPreferences] = useState([]);
+
+  useEffect(() => {
+    async function fetchPreferences() {
+      if (!user?.id) return;
+      try {
+        const res = await fetch(`/api/users/${user.id}`);
+        if (!res.ok) return;
+        const data = await res.json();
+        setPreferences(Array.isArray(data.categoryPreferences) ? data.categoryPreferences : []);
+      } catch (err) {
+        setPreferences([]);
+      }
+    }
+    fetchPreferences();
+  }, [user?.id]);
 
 import React, { useState, useEffect } from 'react';
+import '@/lib/attachUserToFetch';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -25,6 +43,8 @@ import {
   Shield,
   Bookmark,
   Eye,
+  Wifi,
+  Coffee,
   Mail,
   Phone,
   ChevronDown,
@@ -171,6 +191,102 @@ function EducationalConsultancyStudyAbroadSection() {
           Add Consultancy
         </Button>
       </div>
+
+      {/* View Details Dialog for Health & Wellness Services */}
+      <Dialog open={showDetailsDialog} onOpenChange={setShowDetailsDialog}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-2xl">{viewingService?.title}</DialogTitle>
+            <DialogDescription>Complete service details</DialogDescription>
+          </DialogHeader>
+          {viewingService && (
+            <div className="space-y-6">
+              <div className="flex gap-2 flex-wrap">
+                <Badge variant="secondary">{viewingService.serviceType}</Badge>
+                {viewingService.specialization && <Badge variant="outline">{viewingService.specialization}</Badge>}
+                {viewingService.isFeatured && <Badge className="bg-yellow-500">Featured</Badge>}
+              </div>
+
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                {viewingService.consultationFee !== undefined && viewingService.consultationFee !== null && (
+                  <div className="p-4 bg-muted rounded-lg">
+                    <p className="text-sm text-muted-foreground">Consultation Fee</p>
+                    <p className="text-lg font-bold text-primary">₹{Number(viewingService.consultationFee).toLocaleString()}</p>
+                  </div>
+                )}
+                {viewingService.doctorName && (
+                  <div className="p-4 bg-muted rounded-lg">
+                    <p className="text-sm text-muted-foreground">Doctor</p>
+                    <p className="text-lg font-bold">{viewingService.doctorName}</p>
+                  </div>
+                )}
+                {viewingService.experienceYears && (
+                  <div className="p-4 bg-muted rounded-lg">
+                    <p className="text-sm text-muted-foreground">Experience</p>
+                    <p className="text-lg font-bold">{viewingService.experienceYears} years</p>
+                  </div>
+                )}
+                {viewingService.available24_7 && (
+                  <div className="p-4 bg-muted rounded-lg">
+                    <p className="text-sm text-muted-foreground">Availability</p>
+                    <p className="text-lg font-bold">24/7</p>
+                  </div>
+                )}
+              </div>
+
+              {viewingService.description && (
+                <div>
+                  <h3 className="font-semibold mb-2">Description</h3>
+                  <p className="text-muted-foreground">{viewingService.description}</p>
+                </div>
+              )}
+
+              <div>
+                <h3 className="font-semibold mb-2">Contact Information</h3>
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  {viewingService.contactPerson && (
+                    <div>
+                      <span className="font-medium">Contact Person:</span>
+                      <span className="ml-2 text-muted-foreground">{viewingService.contactPerson}</span>
+                    </div>
+                  )}
+                  {viewingService.contactPhone && (
+                    <div>
+                      <span className="font-medium">Phone:</span>
+                      <span className="ml-2 text-muted-foreground">{viewingService.contactPhone}</span>
+                    </div>
+                  )}
+                  {viewingService.contactEmail && (
+                    <div>
+                      <span className="font-medium">Email:</span>
+                      <span className="ml-2 text-muted-foreground">{viewingService.contactEmail}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {viewingService.fullAddress && (
+                <div>
+                  <h3 className="font-semibold mb-2 flex items-center gap-2">
+                    <MapPin className="w-4 h-4" />
+                    Location
+                  </h3>
+                  <div className="space-y-1 text-sm">
+                    <p><span className="font-medium">Address:</span> {viewingService.fullAddress}</p>
+                    {viewingService.city && <p><span className="font-medium">City:</span> {viewingService.city}</p>}
+                    {viewingService.stateProvince && <p><span className="font-medium">State:</span> {viewingService.stateProvince}</p>}
+                  </div>
+                </div>
+              )}
+
+              <div className="pt-4 border-t text-sm text-muted-foreground">
+                <p>Created: {new Date(viewingService.createdAt).toLocaleString()}</p>
+                <p>Last Updated: {new Date(viewingService.updatedAt).toLocaleString()}</p>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={showForm} onOpenChange={setShowForm}>
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
@@ -362,15 +478,7 @@ function EventDecorationServicesSection() {
         </Button>
       </div>
 
-      <Dialog open={showForm} onOpenChange={setShowForm}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>{editingService ? 'Edit Event & Decoration Service' : 'Add New Event & Decoration Service'}</DialogTitle>
-            <DialogDescription>Fill in the details to {editingService ? 'update' : 'create'} an event or decoration service listing</DialogDescription>
-          </DialogHeader>
-          <EventDecorationServicesForm onSuccess={handleSuccess} editingService={editingService} />
-        </DialogContent>
-      </Dialog>
+      <EventDecorationServicesForm />
 
       <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
         {Array.isArray(services) && services.map((service) => (
@@ -960,19 +1068,13 @@ function SareeClothingShoppingSection() {
 
   const fetchProducts = async () => {
     try {
+      // Replace with your API endpoint
       const response = await fetch('/api/admin/saree-clothing-shopping');
       const data = await response.json();
       setProducts(Array.isArray(data) ? data : []);
     } catch (error) {
-      console.error('Error fetching saree/clothing/shopping products:', error);
       setProducts([]);
     }
-  };
-
-  const handleSuccess = () => {
-    setShowForm(false);
-    setEditingProduct(null);
-    fetchProducts();
   };
 
   const handleEdit = (product: any) => {
@@ -995,7 +1097,7 @@ function SareeClothingShoppingSection() {
         fetchProducts();
       }
     } catch (error) {
-      console.error('Error deleting product:', error);
+      // handle error
     }
   };
 
@@ -1007,9 +1109,7 @@ function SareeClothingShoppingSection() {
       if (response.ok) {
         fetchProducts();
       }
-    } catch (error) {
-      console.error('Error toggling active status:', error);
-    }
+    } catch (error) {}
   };
 
   const toggleFeatured = async (id: string) => {
@@ -1020,9 +1120,7 @@ function SareeClothingShoppingSection() {
       if (response.ok) {
         fetchProducts();
       }
-    } catch (error) {
-      console.error('Error toggling featured status:', error);
-    }
+    } catch (error) {}
   };
 
   return (
@@ -1032,15 +1130,97 @@ function SareeClothingShoppingSection() {
           <h2 className="text-2xl font-bold">Saree, Clothing & Shopping</h2>
           <p className="text-muted-foreground">Manage saree, clothing, and shopping products</p>
         </div>
-        <Button onClick={() => {
-          setEditingProduct(null);
-          setShowForm(true);
-        }}>
+        <Button onClick={() => { setEditingProduct(null); setShowForm(true); }}>
           <Plus className="w-4 h-4 mr-2" />
           Add Product
         </Button>
       </div>
+      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+        {Array.isArray(products) && products.map((product: any) => (
+          <Card key={product.id} className="group hover:shadow-lg transition-shadow">
+            <CardHeader>
+              <div className="flex items-start justify-between">
+                <div className="flex-1">
+                  <CardTitle className="text-lg mb-2">{product.title}</CardTitle>
+                  <div className="flex gap-2 flex-wrap">
+                    <Badge variant="secondary">{product.category}</Badge>
+                    <Badge variant="outline">{product.listingType}</Badge>
+                    {product.isFeatured && <Badge className="bg-yellow-500">Featured</Badge>}
+                  </div>
+                </div>
+                <div className="flex gap-1">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8"
+                    onClick={() => handleViewDetails(product)}
+                    title="View Details"
+                  >
+                    <Eye className="w-4 h-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8"
+                    onClick={() => handleEdit(product)}
+                    title="Edit"
+                  >
+                    <Pencil className="w-4 h-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 text-destructive"
+                    onClick={() => handleDelete(product.id)}
+                    title="Delete"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                {product.description && (
+                  <p className="text-sm text-muted-foreground line-clamp-2">{product.description}</p>
+                )}
+                <div className="flex items-center justify-between">
+                  <span className="font-semibold text-lg text-primary">₹{Number(product.price).toLocaleString('en-IN')}</span>
+                  <Badge variant={product.isActive ? 'default' : 'secondary'}>
+                    {product.isActive ? 'Active' : 'Inactive'}
+                  </Badge>
+                </div>
+                {product.brand && (
+                  <div className="text-sm">
+                    <span className="font-medium">Brand: </span>
+                    <span className="text-muted-foreground">{product.brand}</span>
+                  </div>
+                )}
+              </div>
+            </CardContent>
+            <CardFooter className="pt-0 flex gap-2">
+              <Button
+                variant={product.isActive ? "outline" : "default"}
+                size="sm"
+                className="flex-1"
+                onClick={() => toggleActive(product.id)}
+              >
+                {product.isActive ? "Deactivate" : "Activate"}
+              </Button>
+              <Button
+                variant={product.isFeatured ? "secondary" : "outline"}
+                size="sm"
+                className="flex-1"
+                onClick={() => toggleFeatured(product.id)}
+              >
+                {product.isFeatured ? "Unfeature" : "Feature"}
+              </Button>
+            </CardFooter>
+          </Card>
+        ))}
+      </div>
 
+      {/* Edit/Add Dialog for Saree, Clothing & Shopping - show form inside modal */}
       <Dialog open={showForm} onOpenChange={(open) => {
         setShowForm(open);
         if (!open) setEditingProduct(null);
@@ -1050,7 +1230,15 @@ function SareeClothingShoppingSection() {
             <DialogTitle>{editingProduct ? 'Edit Product' : 'Add New Product'}</DialogTitle>
             <DialogDescription>Fill in the details to {editingProduct ? 'update' : 'create'} a product listing</DialogDescription>
           </DialogHeader>
-          <SareeClothingShoppingForm onSuccess={handleSuccess} editingItem={editingProduct} />
+          <SareeClothingShoppingForm
+            onSuccess={() => { setShowForm(false); setEditingProduct(null); fetchProducts(); }}
+            editingItem={editingProduct}
+            open={showForm}
+            onOpenChange={(open) => {
+              setShowForm(open);
+              if (!open) setEditingProduct(null);
+            }}
+          />
         </DialogContent>
       </Dialog>
 
@@ -1072,12 +1260,12 @@ function SareeClothingShoppingSection() {
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <div className="p-4 bg-muted rounded-lg">
                   <p className="text-sm text-muted-foreground">Price</p>
-                  <p className="text-lg font-bold text-primary">₹{Number(viewingProduct.price).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+                  <p className="text-lg font-bold text-primary">₹{Number(viewingProduct.price).toLocaleString('en-IN')}</p>
                 </div>
                 {viewingProduct.mrp && (
                   <div className="p-4 bg-muted rounded-lg">
                     <p className="text-sm text-muted-foreground">MRP</p>
-                    <p className="text-lg font-bold">₹{Number(viewingProduct.mrp).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+                    <p className="text-lg font-bold">₹{Number(viewingProduct.mrp).toLocaleString('en-IN')}</p>
                   </div>
                 )}
                 {viewingProduct.discountPercentage && (
@@ -1189,105 +1377,6 @@ function SareeClothingShoppingSection() {
           )}
         </DialogContent>
       </Dialog>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-        {Array.isArray(products) && products.map((product) => (
-          <Card key={product.id} className="group hover:shadow-lg transition-shadow">
-            <CardHeader>
-              <div className="flex items-start justify-between">
-                <div className="flex-1">
-                  <CardTitle className="text-lg mb-2">{product.title}</CardTitle>
-                  <div className="flex gap-2 flex-wrap">
-                    <Badge variant="secondary">{product.category}</Badge>
-                    <Badge variant="outline">{product.listingType}</Badge>
-                    {product.isFeatured && <Badge className="bg-yellow-500">Featured</Badge>}
-                  </div>
-                </div>
-                <div className="flex gap-1">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8"
-                    onClick={() => handleViewDetails(product)}
-                    title="View Details"
-                  >
-                    <Eye className="w-4 h-4" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8"
-                    onClick={() => handleEdit(product)}
-                    title="Edit"
-                  >
-                    <Pencil className="w-4 h-4" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8 text-destructive"
-                    onClick={() => handleDelete(product.id)}
-                    title="Delete"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                {product.description && (
-                  <p className="text-sm text-muted-foreground line-clamp-2">{product.description}</p>
-                )}
-                <div className="flex items-center justify-between">
-                  <span className="font-semibold text-lg text-primary">₹{Number(product.price).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                  <Badge variant={product.isActive ? 'default' : 'secondary'}>
-                    {product.isActive ? 'Active' : 'Inactive'}
-                  </Badge>
-                </div>
-                {product.brand && (
-                  <div className="text-sm">
-                    <span className="font-medium">Brand: </span>
-                    <span className="text-muted-foreground">{product.brand}</span>
-                  </div>
-                )}
-              </div>
-            </CardContent>
-            <CardFooter className="pt-0 flex gap-2">
-              <Button
-                variant={product.isActive ? "outline" : "default"}
-                size="sm"
-                className="flex-1"
-                onClick={() => toggleActive(product.id)}
-              >
-                {product.isActive ? "Deactivate" : "Activate"}
-              </Button>
-              <Button
-                variant={product.isFeatured ? "secondary" : "outline"}
-                size="sm"
-                className="flex-1"
-                onClick={() => toggleFeatured(product.id)}
-              >
-                {product.isFeatured ? "Unfeature" : "Feature"}
-              </Button>
-            </CardFooter>
-          </Card>
-        ))}
-      </div>
-
-      {(!products || products.length === 0) && (
-        <Card>
-          <CardContent className="py-12 text-center">
-            <Building className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
-            <h3 className="text-lg font-semibold mb-2">No Products Found</h3>
-            <p className="text-muted-foreground mb-4">Start by adding your first saree, clothing, or shopping product</p>
-            <Button onClick={() => setShowForm(true)}>
-              <Plus className="w-4 h-4 mr-2" />
-              Add Product
-            </Button>
-          </CardContent>
-        </Card>
-      )}
     </div>
   );
 }
@@ -1715,106 +1804,17 @@ function CricketSportsTrainingSection() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h2 className="text-2xl font-bold">Cricket Sports Training</h2>
-          <p className="text-muted-foreground">Manage cricket coaching and training programs</p>
-        </div>
-        <Button onClick={() => setShowForm(true)}>
-          <Plus className="w-4 h-4 mr-2" />
-          Add Training Program
-        </Button>
-      </div>
+      {/* Add button removed per request */}
 
-      <Dialog open={showForm} onOpenChange={setShowForm}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Add New Cricket Sports Training Program</DialogTitle>
-            <DialogDescription>Fill in the details to create a new training program listing</DialogDescription>
-          </DialogHeader>
-          <CricketSportsTrainingForm onSuccess={handleSuccess} />
-        </DialogContent>
-      </Dialog>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-        {Array.isArray(training) && training.map((program) => (
-          <Card key={program.id} className="group hover:shadow-lg transition-shadow">
-            <CardHeader>
-              <div className="flex items-start justify-between">
-                <div className="flex-1">
-                  <CardTitle className="text-lg mb-2">{program.title}</CardTitle>
-                  <div className="flex gap-2 flex-wrap">
-                    <Badge variant="secondary">{program.trainingLevel}</Badge>
-                    <Badge variant="outline">{program.courseDurationDays} days</Badge>
-                    {program.isFeatured && <Badge className="bg-yellow-500">Featured</Badge>}
-                  </div>
-                </div>
-                <div className="flex gap-1">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8 text-destructive"
-                    onClick={() => handleDelete(program.id)}
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                {program.description && (
-                  <p className="text-sm text-muted-foreground line-clamp-2">{program.description}</p>
-                )}
-                <div className="flex items-center justify-between">
-                  <span className="font-semibold text-lg text-primary">₹{program.pricePerMonth}</span>
-                  <Badge variant={program.isActive ? 'default' : 'secondary'}>
-                    {program.isActive ? 'Active' : 'Inactive'}
-                  </Badge>
-                </div>
-                {program.coachName && (
-                  <div className="text-sm">
-                    <span className="font-medium">Coach: </span>
-                    <span className="text-muted-foreground">{program.coachName}</span>
-                  </div>
-                )}
-              </div>
-            </CardContent>
-            <CardFooter className="pt-0 flex gap-2">
-              <Button
-                variant={program.isActive ? "outline" : "default"}
-                size="sm"
-                className="flex-1"
-                onClick={() => toggleActive(program.id)}
-              >
-                {program.isActive ? "Deactivate" : "Activate"}
-              </Button>
-              <Button
-                variant={program.isFeatured ? "secondary" : "outline"}
-                size="sm"
-                className="flex-1"
-                onClick={() => toggleFeatured(program.id)}
-              >
-                {program.isFeatured ? "Unfeature" : "Feature"}
-              </Button>
-            </CardFooter>
-          </Card>
-        ))}
-      </div>
-
-      {(!training || training.length === 0) && (
-        <Card>
-          <CardContent className="py-12 text-center">
-            <Building className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
-            <h3 className="text-lg font-semibold mb-2">No Training Programs Found</h3>
-            <p className="text-muted-foreground mb-4">Start by adding your first cricket sports training program</p>
-            <Button onClick={() => setShowForm(true)}>
-              <Plus className="w-4 h-4 mr-2" />
-              Add Training Program
-            </Button>
+      {showForm && (
+        <Card className="mb-6">
+          <CardContent className="max-w-4xl">
+            <CricketSportsTrainingForm />
           </CardContent>
         </Card>
       )}
+
+      {/* Listings removed per request - individual training cards and empty-state are hidden */}
     </div>
   );
 }
@@ -2206,6 +2206,8 @@ function HealthWellnessServicesSection() {
   const [services, setServices] = useState<any[]>([]);
   const [showForm, setShowForm] = useState(false);
   const [editingService, setEditingService] = useState<any>(null);
+  const [viewingService, setViewingService] = useState<any>(null);
+  const [showDetailsDialog, setShowDetailsDialog] = useState(false);
 
   useEffect(() => {
     fetchServices();
@@ -2313,6 +2315,15 @@ function HealthWellnessServicesSection() {
                   </div>
                 </div>
                 <div className="flex gap-1">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8"
+                    onClick={() => { setViewingService(service); setShowDetailsDialog(true); }}
+                    title="View Details"
+                  >
+                    <Eye className="w-4 h-4" />
+                  </Button>
                   <Button
                     variant="ghost"
                     size="icon"
@@ -2848,6 +2859,57 @@ function HouseholdServicesSection() {
 }
 
 
+interface AdminCategory {
+  id: string;
+  name: string;
+  slug: string;
+  description?: string;
+  icon?: string;
+  color: string;
+  isActive: boolean;
+  sortOrder: number;
+  subcategories?: AdminSubcategory[];
+}
+
+interface AdminSubcategory {
+  id: string;
+  name: string;
+  slug: string;
+  description?: string;
+  icon?: string;
+  color?: string;
+  isActive: boolean;
+  sortOrder: number;
+  parentCategoryId: string;
+}
+
+interface User {
+  id: string;
+  username: string;
+  email: string;
+  firstName?: string;
+  lastName?: string;
+  phone?: string;
+  role: string;
+  isActive: boolean;
+  avatar?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+interface Agency {
+  id: string;
+  name: string;
+  description?: string;
+  logo?: string;
+  phone?: string;
+  email?: string;
+  website?: string;
+  propertyCount?: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
 const iconMap: Record<string, React.ElementType> = {
   'building': Building,
   'map-pin': MapPin,
@@ -2859,7 +2921,7 @@ const iconMap: Record<string, React.ElementType> = {
 };
 
 function AppSidebar({ activeSection, setActiveSection }: { activeSection: string; setActiveSection: (section: string) => void }) {
-  const [categories, setCategories] = useState<[]>([]);
+  const [categories, setCategories] = useState<AdminCategory[]>([]);
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
 
   useEffect(() => {
@@ -2901,132 +2963,65 @@ function AppSidebar({ activeSection, setActiveSection }: { activeSection: string
             <Shield className="w-5 h-5 text-white" />
           </div>
           <div className="flex-1">
-            <h1 className="font-bold text-lg bg-gradient-to-r from-blue-700 to-green-600 bg-clip-text text-transparent">Seller Admin</h1>
+            <h1 className="font-bold text-lg bg-gradient-to-r from-blue-700 to-green-600 bg-clip-text text-transparent">Super Admin</h1>
             <p className="text-xs text-muted-foreground">Control Panel</p>
           </div>
         </div>
       </SidebarHeader>
 
-      <SidebarContent className="px-2 py-4">
-        <SidebarGroup>
-          <SidebarGroupLabel className="px-3 mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-            Main Navigation
-          </SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu className="gap-1">
-              {staticItems.map((item) => (
-                <SidebarMenuItem key={item.title}>
+        <SidebarContent className="px-2 py-4">
+          <SidebarGroup>
+            <SidebarGroupLabel className="px-3 mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              Main Navigation
+            </SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu className="gap-1">
+                <SidebarMenuItem key="dashboard">
                   <SidebarMenuButton
-                    tooltip={item.title}
-                    isActive={activeSection === item.key}
+                    tooltip="Dashboard"
+                    isActive={activeSection === "dashboard"}
                     className={`
                       w-full justify-start rounded-lg transition-all duration-200
-                      ${activeSection === item.key
+                      ${activeSection === "dashboard"
                         ? 'bg-gradient-to-r from-blue-600 to-green-600 text-white shadow-md hover:shadow-lg'
                         : 'hover:bg-muted/80'
                       }
                     `}
-                    onClick={() => setActiveSection(item.key)}
+                    onClick={() => setActiveSection("dashboard")}
                   >
-                    <item.icon className="w-5 h-5" />
-                    <span className="font-medium">{item.title}</span>
+                    <Home className="w-5 h-5" />
+                    <span className="font-medium">Dashboard</span>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
-
-        {categories.length > 0 && (
-          <SidebarGroup className="mt-4">
-            <SidebarGroupLabel className="px-3 mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-              Categories
-            </SidebarGroupLabel>
-            <SidebarGroupContent>
-              <SidebarMenu className="gap-1">
-                {categories.map((category) => {
-                  const IconComponent = iconMap[category.icon as keyof typeof iconMap] || Settings;
-                  const hasSubcategories = category.subcategories && category.subcategories.length > 0;
-                  const isExpanded = expandedCategories.has(category.id);
-
-                  return (
-                    <div key={category.id}>
-                      <SidebarMenuItem>
-                        <SidebarMenuButton
-                          tooltip={category.name}
-                          isActive={activeSection === category.slug}
-                          className={`
-                            w-full justify-start rounded-lg transition-all duration-200
-                            ${activeSection === category.slug
-                              ? 'bg-gradient-to-r from-blue-600 to-green-600 text-white shadow-md'
-                              : 'hover:bg-muted/80'
-                            }
-                          `}
-                          onClick={() => {
-                            if (hasSubcategories) {
-                              toggleCategoryExpand(category.id);
-                            }
-                            setActiveSection(category.slug);
-                          }}
-                        >
-                          <div
-                            className="w-8 h-8 rounded-lg flex items-center justify-center"
-                            style={{
-                              backgroundColor: activeSection === category.slug ? 'rgba(255,255,255,0.2)' : `${category.color}20`,
-                            }}
-                          >
-                            <IconComponent
-                              className="w-4 h-4"
-                              style={{ color: activeSection === category.slug ? 'white' : category.color }}
-                            />
-                          </div>
-                          <span className="font-medium flex-1">{category.name}</span>
-                          {hasSubcategories && (
-                            <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${isExpanded ? 'rotate-180' : 'rotate-0'}`} />
-                          )}
-                        </SidebarMenuButton>
-                      </SidebarMenuItem>
-
-                      {hasSubcategories && isExpanded && (
-                        <SidebarMenuSub className="ml-2 mt-1 mb-2 border-l-2 pl-4" style={{ borderColor: `${category.color}40` }}>
-                          {category.subcategories.map((subcategory) => {
-                            const SubIcon = iconMap[subcategory.icon as keyof typeof iconMap] || Settings;
-                            return (
-                              <SidebarMenuSubItem key={subcategory.id}>
-                                <SidebarMenuSubButton
-                                  isActive={activeSection === subcategory.slug}
-                                  onClick={() => setActiveSection(subcategory.slug)}
-                                  className={`
-                                    cursor-pointer rounded-md transition-all duration-200
-                                    ${activeSection === subcategory.slug
-                                      ? 'bg-muted font-medium'
-                                      : 'hover:bg-muted/50'
-                                    }
-                                  `}
-                                >
-                                  <SubIcon className="w-4 h-4" style={{ color: category.color }} />
-                                  <span>{subcategory.name}</span>
-                                </SidebarMenuSubButton>
-                              </SidebarMenuSubItem>
-                            );
-                          })}
-                        </SidebarMenuSub>
-                      )}
-                    </div>
-                  );
-                })}
+                {preferences.map(pref => [
+                  <SidebarMenuItem key={pref.category_slug}>
+                    <SidebarMenuButton
+                      tooltip={pref.category_slug}
+                      isActive={activeSection === pref.category_slug}
+                      className={`w-full justify-start rounded-lg transition-all duration-200 ${activeSection === pref.category_slug ? 'bg-gradient-to-r from-blue-600 to-green-600 text-white shadow-md hover:shadow-lg' : 'hover:bg-muted/80'}`}
+                      onClick={() => setActiveSection(pref.category_slug)}
+                    >
+                      <span className="font-medium">{pref.category_slug.replace(/_/g, ' ')}</span>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>,
+                  Array.isArray(pref.subcategory_slugs) && pref.subcategory_slugs.map(sub => (
+                    <SidebarMenuItem key={sub} className="ml-6">
+                      <SidebarMenuButton
+                        tooltip={sub}
+                        isActive={activeSection === sub}
+                        className={`w-full justify-start rounded-lg transition-all duration-200 ${activeSection === sub ? 'bg-gradient-to-r from-green-600 to-blue-600 text-white shadow-md hover:shadow-lg' : 'hover:bg-muted/80'}`}
+                        onClick={() => setActiveSection(sub)}
+                      >
+                        <span className="font-medium">{sub.replace(/_/g, ' ')}</span>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  ))
+                ])}
               </SidebarMenu>
             </SidebarGroupContent>
           </SidebarGroup>
-        )}
-
-     
-      </SidebarContent>
-
-   
-
-      <SidebarRail />
-    </Sidebar>
+        </SidebarContent>
+      </Sidebar>
   );
 }
 
@@ -3038,6 +3033,26 @@ function DashboardSection() {
     totalUsers: '0',
     totalCategories: '0'
   });
+
+  const { user } = useUser();
+  const [categoryPreferences, setCategoryPreferences] = useState<any[]>([]);
+
+  useEffect(() => {
+    if (!user?.id) return;
+
+    const fetchPreferences = async () => {
+      try {
+        const res = await fetch(`/api/users/${user.id}`);
+        if (!res.ok) return;
+        const data = await res.json();
+        setCategoryPreferences(Array.isArray(data.categoryPreferences) ? data.categoryPreferences : []);
+      } catch (err) {
+        console.error('Error fetching user preferences:', err);
+      }
+    };
+
+    fetchPreferences();
+  }, [user?.id]);
 
   useEffect(() => {
     fetchStats();
@@ -3058,6 +3073,25 @@ function DashboardSection() {
       <div>
         <h2 className="text-2xl font-bold">Dashboard</h2>
         <p className="text-muted-foreground">Overview of your system</p>
+        {user && (
+          <div className="mt-3">
+            <h4 className="text-sm font-medium">Your selected categories</h4>
+            {categoryPreferences.length > 0 ? (
+              <div className="flex flex-wrap gap-2 mt-2">
+                {categoryPreferences.map((pref) => (
+                  <div key={pref.categorySlug} className="flex items-center gap-2">
+                    <Badge variant="secondary">{pref.categoryName || pref.categorySlug}</Badge>
+                    {Array.isArray(pref.subcategoriesWithNames) && pref.subcategoriesWithNames.map((s: any) => (
+                      <Badge key={s.id || s.slug} variant="outline">{s.name || s.slug}</Badge>
+                    ))}
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground mt-2">No category preferences selected</p>
+            )}
+          </div>
+        )}
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
@@ -3093,7 +3127,656 @@ function DashboardSection() {
   );
 }
 
+// Categories Section
+function CategoriesSection() {
+  const [categories, setCategories] = useState<AdminCategory[]>([]);
+  const [categoryDialogOpen, setCategoryDialogOpen] = useState(false);
+  const [subcategoryDialogOpen, setSubcategoryDialogOpen] = useState(false);
+  const [editingCategory, setEditingCategory] = useState<AdminCategory | undefined>(undefined);
+  const [editingSubcategory, setEditingSubcategory] = useState<AdminSubcategory | undefined>(undefined);
+  const [expandedCategories, setExpandedCategories] = useState<Set<string>>(() => {
+    const saved = localStorage.getItem('expandedCategories');
+    return saved ? new Set(JSON.JSON.parse(saved)) : new Set();
+  });
 
+  useEffect(() => {
+    fetchCategories();
+  }, []);
+
+  useEffect(() => {
+    localStorage.setItem('expandedCategories', JSON.JSON.stringify(Array.from(expandedCategories)));
+  }, [expandedCategories]);
+
+  const toggleCategoryExpand = (categoryId: string) => {
+    setExpandedCategories(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(categoryId)) {
+        newSet.delete(categoryId);
+      } else {
+        newSet.add(categoryId);
+      }
+      return newSet;
+    });
+  };
+
+  const fetchCategories = async () => {
+    try {
+      const response = await fetch('/api/admin/categories');
+      const data = await response.json();
+      setCategories(Array.isArray(data) ? data : []);
+    } catch (error) {
+      console.error('Error fetching categories:', error);
+      setCategories([]);
+    }
+  };
+
+  const handleDeleteCategory = async (id: string) => {
+    if (!confirm('Are you sure you want to delete this category? All subcategories will be deleted as well.')) return;
+
+    try {
+      const response = await fetch(`/api/admin/categories/${id}`, {
+        method: 'DELETE',
+      });
+
+      if (response.ok) {
+        await fetchCategories();
+      }
+    } catch (error) {
+      console.error('Error deleting category:', error);
+    }
+  };
+
+  const handleToggleCategoryActive = async (category: AdminCategory) => {
+    try {
+      const response = await fetch(`/api/admin/categories/${category.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.JSON.stringify({ ...category, isActive: !category.isActive }),
+      });
+
+      if (response.ok) {
+        await fetchCategories();
+      }
+    } catch (error) {
+      console.error('Error toggling category status:', error);
+    }
+  };
+
+  const handleDeleteSubcategory = async (id: string) => {
+    if (!confirm('Are you sure you want to delete this subcategory?')) return;
+
+    try {
+      const response = await fetch(`/api/admin/subcategories/${id}`, {
+        method: 'DELETE',
+      });
+
+      if (response.ok) {
+        await fetchCategories();
+      }
+    } catch (error) {
+      console.error('Error deleting subcategory:', error);
+    }
+  };
+
+  const handleToggleSubcategoryActive = async (subcategory: AdminSubcategory) => {
+    try {
+      const response = await fetch(`/api/admin/subcategories/${subcategory.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.JSON.stringify({ ...subcategory, isActive: !subcategory.isActive }),
+      });
+
+      if (response.ok) {
+        await fetchCategories();
+      }
+    } catch (error) {
+      console.error('Error toggling subcategory status:', error);
+    }
+  };
+
+  const handleEditCategory = (category: AdminCategory) => {
+    setEditingCategory(category);
+    setCategoryDialogOpen(true);
+  };
+
+  const handleEditSubcategory = (subcategory: AdminSubcategory) => {
+    setEditingSubcategory(subcategory);
+    setSubcategoryDialogOpen(true);
+  };
+
+  const handleAddCategory = () => {
+    setEditingCategory(undefined);
+    setCategoryDialogOpen(true);
+  };
+
+  const handleAddSubcategory = () => {
+    setEditingSubcategory(undefined);
+    setSubcategoryDialogOpen(true);
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="flex justify-between items-start">
+        <div>
+          <h3 className="text-lg font-semibold text-foreground mb-1">Categories Management</h3>
+          <p className="text-sm text-muted-foreground">Manage your system categories and subcategories</p>
+        </div>
+        <div className="flex gap-2">
+          <Button size="sm" onClick={handleAddCategory}>
+            <Plus className="w-4 h-4 mr-2" />
+            Add Category
+          </Button>
+          <Button size="sm" variant="outline" onClick={handleAddSubcategory}>
+            <Plus className="w-4 h-4 mr-2" />
+            Add Subcategory
+          </Button>
+        </div>
+      </div>
+
+      <CategoryDialog
+        open={categoryDialogOpen}
+        onOpenChange={(open) => {
+          setCategoryDialogOpen(open);
+          if (!open) setEditingCategory(undefined);
+        }}
+        category={editingCategory}
+      />
+      <SubcategoryDialog
+        open={subcategoryDialogOpen}
+        onOpenChange={(open) => {
+          setSubcategoryDialogOpen(open);
+          if (!open) setEditingSubcategory(undefined);
+        }}
+        categories={categories}
+        subcategory={editingSubcategory}
+      />
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+        {Array.isArray(categories) && categories.map((category) => {
+          const IconComponent = iconMap[category.icon as keyof typeof iconMap] || Settings;
+
+          return (
+            <Card key={category.id} className="group">
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-3">
+                    <div
+                      className="p-3 rounded-lg transition-colors"
+                      style={{ backgroundColor: `${category.color}20`, color: category.color }}
+                    >
+                      <IconComponent className="w-6 h-6" />
+                    </div>
+                    <div>
+                      <CardTitle className="text-lg font-semibold">{category.name}</CardTitle>
+                      <div className="flex items-center space-x-2 mt-1">
+                        <Badge variant="outline" className="text-xs">{category.slug}</Badge>
+                        <Badge
+                          variant={category.isActive ? "default" : "secondary"}
+                          className="text-xs"
+                        >
+                          {category.isActive ? "Active" : "Inactive"}
+                        </Badge>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-1">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8"
+                      onClick={() => handleEditCategory(category)}
+                    >
+                      <Edit className="w-4 h-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8"
+                      onClick={() => handleToggleCategoryActive(category)}
+                    >
+                      {category.isActive ? (
+                        <Eye className="w-4 h-4" />
+                      ) : (
+                        <Eye className="w-4 h-4 opacity-50" />
+                      )}
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 text-destructive"
+                      onClick={() => handleDeleteCategory(category.id)}
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </div>
+
+                {category.description && (
+                  <CardDescription className="mt-2">{category.description}</CardDescription>
+                )}
+              </CardHeader>
+
+              <CardContent>
+                {category.subcategories && category.subcategories.length > 0 && (
+                  <div className="space-y-3">
+                    <div
+                      className="flex items-center justify-between cursor-pointer hover:bg-muted/50 -mx-2 px-2 py-1 rounded"
+                      onClick={() => toggleCategoryExpand(category.id)}
+                    >
+                      <h4 className="font-medium text-sm text-muted-foreground">
+                        Subcategories ({category.subcategories.length})
+                      </h4>
+                      <Button variant="ghost" size="icon" className="h-6 w-6">
+                        {expandedCategories.has(category.id) ? (
+                          <ChevronDown className="w-4 h-4" />
+                        ) : (
+                          <ChevronDown className="w-4 h-4 -rotate-90" />
+                        )}
+                      </Button>
+                    </div>
+                    {expandedCategories.has(category.id) && (
+                      <div className="space-y-2 max-h-64 overflow-y-auto">
+                        {category.subcategories.map((sub) => (
+                          <div key={sub.id} className="flex items-center justify-between p-2 bg-muted/50 rounded-md hover:bg-muted transition-colors group/sub">
+                            <div className="flex items-center gap-2">
+                              <span className="text-sm font-medium">{sub.name}</span>
+                              <Badge
+                                variant={sub.isActive ? "default" : "secondary"}
+                                className="text-xs"
+                              >
+                                {sub.isActive ? "Active" : "Inactive"}
+                              </Badge>
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-6 w-6 opacity-0 group-hover/sub:opacity-100 transition-opacity"
+                                onClick={() => handleEditSubcategory(sub)}
+                              >
+                                <Edit className="w-3 h-3" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-6 w-6 opacity-0 group-hover/sub:opacity-100 transition-opacity"
+                                onClick={() => handleToggleSubcategoryActive(sub)}
+                              >
+                                {sub.isActive ? (
+                                  <Eye className="w-3 h-3" />
+                                ) : (
+                                  <Eye className="w-3 h-3 opacity-50" />
+                                )}
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-6 w-6 opacity-0 group-hover/sub:opacity-100 transition-opacity text-destructive"
+                                onClick={() => handleDeleteSubcategory(sub.id)}
+                              >
+                                <Trash2 className="w-3 h-3" />
+                              </Button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {(!category.subcategories || category.subcategories.length === 0) && (
+                  <div className="text-center py-6 text-muted-foreground">
+                    <FileText className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                    <p className="text-sm">No subcategories yet</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// Users Section Component
+function UsersSection() {
+  const [users, setUsers] = useState<User[]>([]);
+  const [isCreateUserOpen, setIsCreateUserOpen] = useState(false);
+  const [userForm, setUserForm] = useState({
+    username: '',
+    email: '',
+    firstName: '',
+    lastName: '',
+    phone: '',
+    role: 'user',
+    password: ''
+  });
+
+  useEffect(() => {
+    fetchUsers();
+  }, []);
+
+  const fetchUsers = async () => {
+    try {
+      const response = await fetch('/api/admin/users');
+      const data = await response.json();
+      setUsers(data);
+    } catch (error) {
+      console.error('Error fetching users:', error);
+    }
+  };
+
+  const handleCreateUser = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      const response = await fetch('/api/admin/users', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.JSON.stringify(userForm),
+      });
+
+      if (response.ok) {
+        fetchUsers();
+        setIsCreateUserOpen(false);
+        setUserForm({ username: '', email: '', firstName: '', lastName: '', phone: '', role: 'user', password: '' });
+      }
+    } catch (error) {
+      console.error('Error creating user:', error);
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-2xl font-bold">Users Management</h2>
+          <p className="text-muted-foreground">Manage system users</p>
+        </div>
+        <Dialog open={isCreateUserOpen} onOpenChange={setIsCreateUserOpen}>
+          <DialogTrigger asChild>
+            <Button>
+              <Plus className="w-4 h-4 mr-2" />
+              Add User
+            </Button>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Create New User</DialogTitle>
+              <DialogDescription>Add a new user to the system</DialogDescription>
+            </DialogHeader>
+            <form onSubmit={handleCreateUser} className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-sm font-medium">First Name</label>
+                  <Input
+                    value={userForm.firstName}
+                    onChange={(e) => setUserForm(prev => ({ ...prev, firstName: e.target.value }))}
+                    placeholder="First name"
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium">Last Name</label>
+                  <Input
+                    value={userForm.lastName}
+                    onChange={(e) => setUserForm(prev => ({ ...prev, lastName: e.target.value }))}
+                    placeholder="Last name"
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="text-sm font-medium">Username</label>
+                <Input
+                  value={userForm.username}
+                  onChange={(e) => setUserForm(prev => ({ ...prev, username: e.target.value }))}
+                  placeholder="Username"
+                  required
+                />
+              </div>
+              <div>
+                <label className="text-sm font-medium">Email</label>
+                <Input
+                  type="email"
+                  value={userForm.email}
+                  onChange={(e) => setUserForm(prev => ({ ...prev, email: e.target.value }))}
+                  placeholder="Email"
+                  required
+                />
+              </div>
+              <div>
+                <label className="text-sm font-medium">Phone</label>
+                <Input
+                  value={userForm.phone}
+                  onChange={(e) => setUserForm(prev => ({ ...prev, phone: e.target.value }))}
+                  placeholder="Phone number"
+                />
+              </div>
+              <div>
+                <label className="text-sm font-medium">Role</label>
+                <Select value={userForm.role} onValueChange={(value) => setUserForm(prev => ({ ...prev, role: value }))}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="user">User</SelectItem>
+                    <SelectItem value="agent">Agent</SelectItem>
+                    <SelectItem value="admin">Admin</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <label className="text-sm font-medium">Password</label>
+                <Input
+                  type="password"
+                  value={userForm.password}
+                  onChange={(e) => setUserForm(prev => ({ ...prev, password: e.target.value }))}
+                  placeholder="Password"
+                  required
+                />
+              </div>
+              <Button type="submit" className="w-full">Create User</Button>
+            </form>
+          </DialogContent>
+        </Dialog>
+      </div>
+
+      <Card>
+        <CardContent className="p-0">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>User</TableHead>
+                <TableHead>Email</TableHead>
+                <TableHead>Role</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Created</TableHead>
+                <TableHead>Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {users.map((user) => (
+                <TableRow key={user.id}>
+                  <TableCell>
+                    <div className="flex items-center space-x-3">
+                      <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-500 rounded-full flex items-center justify-center text-white text-xs font-bold">
+                        {user.firstName?.[0] || user.username[0]?.toUpperCase()}
+                      </div>
+                      <div>
+                        <div className="font-medium">{user.firstName} {user.lastName}</div>
+                        <div className="text-sm text-muted-foreground">@{user.username}</div>
+                      </div>
+                    </div>
+                  </TableCell>
+                  <TableCell>{user.email}</TableCell>
+                  <TableCell>
+                    <Badge variant={user.role === 'admin' ? 'default' : 'secondary'}>
+                      {user.role}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant={user.isActive ? 'default' : 'secondary'}>
+                      {user.isActive ? 'Active' : 'Inactive'}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>{new Date(user.createdAt).toLocaleDateString()}</TableCell>
+                  <TableCell>
+                    <div className="flex items-center space-x-2">
+                      <Button variant="ghost" size="icon" className="h-8 w-8">
+                        <Edit className="w-4 h-4" />
+                      </Button>
+                      <Button variant="ghost" size="icon" className="h-8 w-8">
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+// Agencies Section Component
+function AgenciesSection() {
+  const [agencies, setAgencies] = useState<Agency[]>([]);
+  const [showForm, setShowForm] = useState(false);
+  const [editingAgency, setEditingAgency] = useState<Agency | null>(null);
+
+  useEffect(() => {
+    fetchAgencies();
+  }, []);
+
+  const fetchAgencies = async () => {
+    try {
+      const response = await fetch('/api/agencies');
+      const data = await response.json();
+      setAgencies(data);
+    } catch (error) {
+      console.error('Error fetching agencies:', error);
+    }
+  };
+
+  const handleSuccess = () => {
+    setShowForm(false);
+    setEditingAgency(null);
+    fetchAgencies();
+  };
+
+  const handleEdit = (agency: Agency) => {
+    setEditingAgency(agency);
+    setShowForm(true);
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!confirm('Are you sure you want to delete this agency?')) return;
+    try {
+      const response = await fetch(`/api/agencies/${id}`, {
+        method: 'DELETE',
+      });
+      if (response.ok) {
+        fetchAgencies();
+      }
+    } catch (error) {
+      console.error('Error deleting agency:', error);
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-2xl font-bold">Agencies Management</h2>
+          <p className="text-muted-foreground">Manage real estate agencies</p>
+        </div>
+        <Button onClick={() => setShowForm(true)}>
+          <Plus className="w-4 h-4 mr-2" />
+          Add Agency
+        </Button>
+      </div>
+
+      {showForm && (
+        <Dialog open={showForm} onOpenChange={setShowForm}>
+          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>
+                {editingAgency ? 'Edit Agency' : 'Add Agency'}
+              </DialogTitle>
+            </DialogHeader>
+            {/* Assuming an AgencyForm component exists */}
+            {/* <AgencyForm agency={editingAgency} onCancel={() => setShowForm(false)} onSuccess={handleSuccess} /> */}
+            <p>Agency Form Placeholder</p>
+          </DialogContent>
+        </Dialog>
+      )}
+
+
+    </div>
+  );
+}
+
+// Analytics Section Component
+function AnalyticsSection() {
+  return (
+    <div className="space-y-6">
+      <div>
+        <h2 className="text-2xl font-bold">Analytics & Reports</h2>
+        <p className="text-muted-foreground">System analytics and performance metrics</p>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <Card>
+          <CardHeader>
+            <CardTitle>Property Analytics</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <div className="flex justify-between items-center">
+                <span>Total Listings</span>
+                <span className="font-bold">145</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span>Active Listings</span>
+                <span className="font-bold">132</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span>Sold This Month</span>
+                <span className="font-bold">23</span>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>User Analytics</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <div className="flex justify-between items-center">
+                <span>Total Users</span>
+                <span className="font-bold">1,245</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span>Active This Month</span>
+                <span className="font-bold">856</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span>New Registrations</span>
+                <span className="font-bold">42</span>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  );
+}
+
+// Settings Section Component
 function SettingsSection() {
   return (
     <div className="space-y-6">
@@ -3145,6 +3828,7 @@ function SettingsSection() {
   );
 }
 
+// Hostels & PG Section Component
 function HostelsPgSection() {
   const [hostels, setHostels] = useState<any[]>([]);
   const [showForm, setShowForm] = useState(false);
@@ -3382,23 +4066,23 @@ function HostelsPgSection() {
                 <Badge variant={viewingHostel.active ? "default" : "secondary"}>
                   {viewingHostel.active ? "Active" : "Inactive"}
                 </Badge>
-                <Badge variant="secondary">{viewingHostel.hostelType}</Badge>
-                <Badge variant="outline">{viewingHostel.roomType}</Badge>
-                {viewingHostel.foodIncluded && <Badge>Food Included</Badge>}
-                {viewingHostel.featured && <Badge className="bg-yellow-500">Featured</Badge>}
-              </div>
-
-              {/* Price & Capacity */}
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div className="p-4 bg-muted rounded-lg">
-                  <p className="text-sm text-muted-foreground">Price/Month</p>
-                  <p className="text-lg font-bold text-primary">₹{viewingHostel.pricePerMonth}</p>
-                </div>
-                <div className="p-4 bg-muted rounded-lg">
-                  <p className="text-sm text-muted-foreground">Total Beds</p>
-                  <p className="text-lg font-bold">{viewingHostel.totalBeds || 'N/A'}</p>
-                </div>
-                <div className="p-4 bg-muted rounded-lg">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <div className="p-4 bg-muted rounded-lg">
+                    <p className="text-sm text-muted-foreground">Base Price</p>
+                    <p className="text-lg font-bold text-primary">₹{Number(viewingService.basePrice).toLocaleString()}</p>
+                  </div>
+                  {viewingService.capacity && (
+                    <div className="p-4 bg-muted rounded-lg">
+                      <p className="text-sm text-muted-foreground">Capacity</p>
+                      <p className="text-lg font-bold">{viewingService.capacity} people</p>
+                    </div>
+                  )}
+                  {viewingService.hallArea && (
+                    <div className="p-4 bg-muted rounded-lg">
+                      <p className="text-sm text-muted-foreground">Hall Area</p>
+                      <p className="text-lg font-bold">{viewingService.hallArea} sq.ft</p>
+                    </div>
+                  )}
                   <p className="text-sm text-muted-foreground">Available Beds</p>
                   <p className="text-lg font-bold text-green-600">{viewingHostel.availableBeds || 'N/A'}</p>
                 </div>
@@ -3515,6 +4199,7 @@ function HostelsPgSection() {
   );
 }
 
+// Construction Materials Section Component
 function ConstructionMaterialsSection() {
   const [materials, setMaterials] = useState<any[]>([]);
   const [showForm, setShowForm] = useState(false);
@@ -4738,7 +5423,14 @@ export default function AdminDashboard() {
     switch (normalizedSection) {
       case "dashboard":
         return <DashboardSection />;
-     
+      case "categories":
+        return <CategoriesSection />;
+      case "users":
+        return <UsersSection />;
+      case "agencies":
+        return <AgenciesSection />;
+      case "analytics":
+        return <AnalyticsSection />;
       case "settings":
         return <SettingsSection />;
       case "hostels-&-pg":
@@ -4810,6 +5502,15 @@ export default function AdminDashboard() {
         return <EbooksOnlineCoursesSection />;
       case "cricket-sports-training":
         return <CricketSportsTrainingSection />;
+      case "cyber-cafe-internet-services":
+      case "cyber-cafe":
+        return <CyberCafeInternetServicesForm />;
+      case "telecommunication-services":
+      case "telecommunication":
+        return <TelecommunicationServicesForm />;
+      case "service-centre-warranty":
+      case "service-centre":
+        return <ServiceCentreWarrantyForm />;
       case "educational-consultancy-study-abroad":
         return <EducationalConsultancyStudyAbroadSection />;
       case "jewelry-&-accessories":
@@ -4857,7 +5558,9 @@ export default function AdminDashboard() {
             <SidebarTrigger className="-ml-1" />
             <div className="h-6 w-border bg-border mx-4" />
             <div>
-              <h1 className="text-lg font-semibold capitalize">{activeSection.replace('-', ' ')}</h1>
+              {!(typeof activeSection === 'string' && activeSection.toLowerCase().includes('cricket')) && (
+                <h1 className="text-lg font-semibold capitalize">{String(activeSection).replace(/-/g, ' ')}</h1>
+              )}
             </div>
           </header>
 
@@ -4872,6 +5575,7 @@ export default function AdminDashboard() {
 
 // Tuition & Private Classes Section Component
 function TuitionPrivateClassesSection() {
+  const { user } = useUser();
   const [classes, setClasses] = useState<any[]>([]);
   const [showForm, setShowForm] = useState(false);
   const [editingClass, setEditingClass] = useState<any>(null);
@@ -4880,11 +5584,22 @@ function TuitionPrivateClassesSection() {
 
   useEffect(() => {
     fetchClasses();
-  }, []);
+  }, [user]);
 
   const fetchClasses = async () => {
     try {
-      const response = await fetch('/api/admin/tuition-private-classes?role=admin');
+      const queryParams = new URLSearchParams();
+      if (user) {
+        if (user.role === 'admin') {
+          queryParams.append('role', 'admin');
+        } else {
+          queryParams.append('userId', user.id);
+          queryParams.append('role', user.role || 'user');
+        }
+      }
+
+      const url = `/api/admin/tuition-private-classes${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
+      const response = await fetch(url);
       const data = await response.json();
       console.log('Fetched tuition classes:', data);
       setClasses(Array.isArray(data) ? data : []);
@@ -6636,7 +7351,10 @@ function CarsBikesSection() {
           <p className="text-muted-foreground">Manage vehicle listings for cars and bikes</p>
         </div>
       </div>
-      <CarsBikesForm />
+      {(() => {
+        const { user } = require('@/hooks/use-user')();
+        return <CarsBikesForm userId={user?.id} role={user?.role} />;
+      })()}
     </div>
   );
 }

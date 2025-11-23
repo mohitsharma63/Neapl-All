@@ -1197,15 +1197,25 @@ export function registerRoutes(app: Express) {
   // GET all materials (with optional filters)
   app.get("/api/admin/construction-materials", async (req, res) => {
     try {
-      const { isActive, isFeatured, category, city } = req.query;
+      const { isActive, isFeatured, category, city, userId, role } = req.query;
 
-      let query = db.query.constructionMaterials.findMany({
-        orderBy: desc(constructionMaterials.createdAt),
-      });
+      let materials;
 
-      const materials = await query;
+      // Base query with role-based filtering
+      if (role === 'admin') {
+        materials = await db.query.constructionMaterials.findMany({
+          orderBy: desc(constructionMaterials.createdAt),
+        });
+      } else if (userId) {
+        materials = await db.query.constructionMaterials.findMany({
+          where: eq(constructionMaterials.userId, userId as string),
+          orderBy: desc(constructionMaterials.createdAt),
+        });
+      } else {
+        return res.json([]);
+      }
 
-      // Apply filters if provided
+      // Apply additional filters
       let filtered = materials;
       if (isActive !== undefined) {
         filtered = filtered.filter(m => m.isActive === (isActive === 'true'));
@@ -1426,11 +1436,24 @@ export function registerRoutes(app: Express) {
   // Property Deals Routes - Full CRUD
 
   // GET all property deals
-  app.get("/api/admin/property-deals", async (_req, res) => {
+  app.get("/api/admin/property-deals", async (req, res) => {
     try {
-      const deals = await db.query.propertyDeals.findMany({
-        orderBy: desc(propertyDeals.createdAt),
-      });
+      const { userId, role } = req.query;
+      let deals;
+      
+      if (role === 'admin') {
+        deals = await db.query.propertyDeals.findMany({
+          orderBy: desc(propertyDeals.createdAt),
+        });
+      } else if (userId) {
+        deals = await db.query.propertyDeals.findMany({
+          where: eq(propertyDeals.userId, userId as string),
+          orderBy: desc(propertyDeals.createdAt),
+        });
+      } else {
+        deals = [];
+      }
+      
       res.json(deals);
     } catch (error: any) {
       res.status(500).json({ message: error.message });
@@ -1557,11 +1580,24 @@ export function registerRoutes(app: Express) {
   // Commercial Properties Routes - Full CRUD
 
   // GET all commercial properties
-  app.get("/api/admin/commercial-properties", async (_req, res) => {
+  app.get("/api/admin/commercial-properties", async (req, res) => {
     try {
-      const properties = await db.query.commercialProperties.findMany({
-        orderBy: desc(commercialProperties.createdAt),
-      });
+      const { userId, role } = req.query;
+      let properties;
+      
+      if (role === 'admin') {
+        properties = await db.query.commercialProperties.findMany({
+          orderBy: desc(commercialProperties.createdAt),
+        });
+      } else if (userId) {
+        properties = await db.query.commercialProperties.findMany({
+          where: eq(commercialProperties.userId, userId as string),
+          orderBy: desc(commercialProperties.createdAt),
+        });
+      } else {
+        properties = [];
+      }
+      
       res.json(properties);
     } catch (error: any) {
       res.status(500).json({ message: error.message });
@@ -1688,11 +1724,24 @@ export function registerRoutes(app: Express) {
   // Industrial Land Routes - Full CRUD
 
   // GET all industrial land
-  app.get("/api/admin/industrial-land", async (_req, res) => {
+  app.get("/api/admin/industrial-land", async (req, res) => {
     try {
-      const lands = await db.query.industrialLand.findMany({
-        orderBy: desc(industrialLand.createdAt),
-      });
+      const { userId, role } = req.query;
+      let lands;
+
+      if (role === 'admin') {
+        lands = await db.query.industrialLand.findMany({
+          orderBy: desc(industrialLand.createdAt),
+        });
+      } else if (userId) {
+        lands = await db.query.industrialLand.findMany({
+          where: eq(industrialLand.userId, userId as string),
+          orderBy: desc(industrialLand.createdAt),
+        });
+      } else {
+        lands = [];
+      }
+
       res.json(lands);
     } catch (error: any) {
       res.status(500).json({ message: error.message });
@@ -1819,11 +1868,24 @@ export function registerRoutes(app: Express) {
   // Office Spaces Routes - Full CRUD
 
   // GET all office spaces
-  app.get("/api/admin/office-spaces", async (_req, res) => {
+  app.get("/api/admin/office-spaces", async (req, res) => {
     try {
-      const offices = await db.query.officeSpaces.findMany({
-        orderBy: desc(officeSpaces.createdAt),
-      });
+      const { userId, role } = req.query;
+      let offices;
+      
+      if (role === 'admin') {
+        offices = await db.query.officeSpaces.findMany({
+          orderBy: desc(officeSpaces.createdAt),
+        });
+      } else if (userId) {
+        offices = await db.query.officeSpaces.findMany({
+          where: eq(officeSpaces.userId, userId as string),
+          orderBy: desc(officeSpaces.createdAt),
+        });
+      } else {
+        offices = [];
+      }
+      
       res.json(offices);
     } catch (error: any) {
       res.status(500).json({ message: error.message });
@@ -1962,7 +2024,7 @@ export function registerRoutes(app: Express) {
           orderBy: desc(carsBikes.createdAt),
         });
       } else if (userId) {
-        // For non-admin users, filter by userId at database level
+        // For non-admin users (sellers), filter by sellerId at database level
         vehicles = await db.query.carsBikes.findMany({
           where: eq(carsBikes.sellerId, userId as string),
           orderBy: desc(carsBikes.createdAt),
@@ -2250,11 +2312,24 @@ export function registerRoutes(app: Express) {
   // Showrooms Routes - Full CRUD
 
   // GET all showrooms
-  app.get("/api/admin/showrooms", async (_req, res) => {
+  app.get("/api/admin/showrooms", async (req, res) => {
     try {
-      const showroomsList = await db.query.showrooms.findMany({
-        orderBy: desc(showrooms.createdAt),
-      });
+      const { userId, role } = req.query;
+      let showroomsList;
+      
+      if (role === 'admin') {
+        showroomsList = await db.query.showrooms.findMany({
+          orderBy: desc(showrooms.createdAt),
+        });
+      } else if (userId) {
+        showroomsList = await db.query.showrooms.findMany({
+          where: eq(showrooms.userId, userId as string),
+          orderBy: desc(showrooms.createdAt),
+        });
+      } else {
+        showroomsList = [];
+      }
+      
       res.json(showroomsList);
     } catch (error: any) {
       res.status(500).json({ message: error.message });
@@ -2951,8 +3026,7 @@ export function registerRoutes(app: Express) {
           orderBy: desc(transportationMovingServices.createdAt),
         });
       } else if (userId) {
-        // For non-admin users, filter by userId at database level
-        // Try both ownerId and userId fields for compatibility
+        // For non-admin users, filter by userId
         const allServices = await db.query.transportationMovingServices.findMany({
           orderBy: desc(transportationMovingServices.createdAt),
         });
@@ -3871,11 +3945,28 @@ export function registerRoutes(app: Express) {
   // Event & Decoration Services Routes - Full CRUD
 
   // GET all event decoration services
-  app.get("/api/admin/event-decoration-services", async (_req, res) => {
+  app.get("/api/admin/event-decoration-services", async (req, res) => {
     try {
-      const services = await db.query.eventDecorationServices.findMany({
-        orderBy: desc(eventDecorationServices.createdAt),
-      });
+      const { userId, role } = req.query;
+
+      let services;
+
+      // If user is admin, fetch all services
+      if (role === 'admin') {
+        services = await db.query.eventDecorationServices.findMany({
+          orderBy: desc(eventDecorationServices.createdAt),
+        });
+      } else if (userId) {
+        // For non-admin users (sellers), filter by userId
+        services = await db.query.eventDecorationServices.findMany({
+          where: eq(eventDecorationServices.userId, userId as string),
+          orderBy: desc(eventDecorationServices.createdAt),
+        });
+      } else {
+        // If no userId provided and not admin, return empty array
+        services = [];
+      }
+
       res.json(services);
     } catch (error: any) {
       res.status(500).json({ message: error.message });
@@ -5098,6 +5189,160 @@ export function registerRoutes(app: Express) {
     }
   });
 
+  // Language Classes Routes - Full CRUD
+
+  // GET all language classes
+  app.get("/api/admin/language-classes", async (req, res) => {
+    try {
+      const { userId, role } = req.query;
+
+      let classes;
+
+      if (role === 'admin') {
+        classes = await db.query.languageClasses.findMany({ orderBy: desc(languageClasses.createdAt) });
+      } else if (userId) {
+        classes = await db.query.languageClasses.findMany({ where: eq(languageClasses.userId, userId as string), orderBy: desc(languageClasses.createdAt) });
+      } else {
+        classes = [];
+      }
+
+      res.json(classes);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // GET single language class by ID
+  app.get("/api/admin/language-classes/:id", async (req, res) => {
+    try {
+      const cls = await db.query.languageClasses.findFirst({ where: eq(languageClasses.id, req.params.id) });
+      if (!cls) return res.status(404).json({ message: "Language class not found" });
+      res.json(cls);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // CREATE new language class
+  app.post("/api/admin/language-classes", async (req, res) => {
+    try {
+      const data = req.body;
+
+      // required fields
+      const required = ["title", "listingType", "languageName", "proficiencyLevel", "courseDurationMonths", "feePerMonth", "contactPerson", "contactPhone", "userId"];
+      for (const f of required) {
+        if (!data[f]) return res.status(400).json({ message: `${f} is required` });
+      }
+
+      const sanitized = {
+        title: data.title,
+        description: data.description || null,
+        listingType: data.listingType,
+        languageName: data.languageName,
+        proficiencyLevel: data.proficiencyLevel,
+        courseDurationMonths: data.courseDurationMonths ? parseInt(data.courseDurationMonths) : null,
+        classesPerWeek: data.classesPerWeek ? parseInt(data.classesPerWeek) : null,
+        classDurationHours: data.classDurationHours ? parseFloat(data.classDurationHours) : null,
+        teachingMode: data.teachingMode || null,
+        classType: data.classType || null,
+        batchSize: data.batchSize ? parseInt(data.batchSize) : null,
+        instructorName: data.instructorName || null,
+        instructorQualification: data.instructorQualification || null,
+        instructorExperience: data.instructorExperience ? parseInt(data.instructorExperience) : null,
+        nativeSpeaker: data.nativeSpeaker || false,
+        feePerMonth: parseFloat(data.feePerMonth.toString()),
+        registrationFee: data.registrationFee ? parseFloat(data.registrationFee.toString()) : null,
+        totalCourseFee: data.totalCourseFee ? parseFloat(data.totalCourseFee.toString()) : null,
+        studyMaterialsProvided: data.studyMaterialsProvided || [],
+        certificationProvided: data.certificationProvided || false,
+        freeDemoClass: data.freeDemoClass || false,
+        contactPerson: data.contactPerson,
+        contactPhone: data.contactPhone,
+        contactEmail: data.contactEmail || null,
+        country: data.country || "India",
+        stateProvince: data.stateProvince || null,
+        city: data.city || null,
+        areaName: data.areaName || null,
+        fullAddress: data.fullAddress || null,
+        isActive: data.isActive !== undefined ? data.isActive : true,
+        isFeatured: data.isFeatured || false,
+        userId: data.userId,
+        role: data.role || 'user',
+      };
+
+      const [newRow] = await db.insert(languageClasses).values(sanitized).returning();
+      res.status(201).json(newRow);
+    } catch (error: any) {
+      console.error("Error creating language class:", error);
+      res.status(400).json({ message: error.message });
+    }
+  });
+
+  // UPDATE language class
+  app.put("/api/admin/language-classes/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const data = req.body;
+
+      if (!data.userId) return res.status(400).json({ message: "userId is required" });
+
+      const updateData: any = { ...data, updatedAt: new Date() };
+      if (data.courseDurationMonths !== undefined) updateData.courseDurationMonths = data.courseDurationMonths ? parseInt(data.courseDurationMonths) : null;
+      if (data.classesPerWeek !== undefined) updateData.classesPerWeek = data.classesPerWeek ? parseInt(data.classesPerWeek) : null;
+      if (data.classDurationHours !== undefined) updateData.classDurationHours = data.classDurationHours ? parseFloat(data.classDurationHours) : null;
+      if (data.batchSize !== undefined) updateData.batchSize = data.batchSize ? parseInt(data.batchSize) : null;
+      if (data.instructorExperience !== undefined) updateData.instructorExperience = data.instructorExperience ? parseInt(data.instructorExperience) : null;
+      if (data.feePerMonth !== undefined) updateData.feePerMonth = data.feePerMonth ? parseFloat(data.feePerMonth.toString()) : null;
+      if (data.registrationFee !== undefined) updateData.registrationFee = data.registrationFee ? parseFloat(data.registrationFee.toString()) : null;
+      if (data.totalCourseFee !== undefined) updateData.totalCourseFee = data.totalCourseFee ? parseFloat(data.totalCourseFee.toString()) : null;
+
+      const [updated] = await db.update(languageClasses).set(updateData).where(eq(languageClasses.id, id)).returning();
+      if (!updated) return res.status(404).json({ message: "Language class not found" });
+      res.json(updated);
+    } catch (error: any) {
+      console.error("Error updating language class:", error);
+      res.status(400).json({ message: error.message });
+    }
+  });
+
+  // DELETE language class
+  app.delete("/api/admin/language-classes/:id", async (req, res) => {
+    try {
+      const deleted = await db.delete(languageClasses).where(eq(languageClasses.id, req.params.id)).returning();
+      if (deleted.length === 0) return res.status(404).json({ message: "Not found" });
+      res.json({ message: "Deleted successfully", id: req.params.id });
+    } catch (error: any) {
+      console.error("Delete error:", error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // PATCH - Toggle active
+  app.patch("/api/admin/language-classes/:id/toggle-active", async (req, res) => {
+    try {
+      const row = await db.query.languageClasses.findFirst({ where: eq(languageClasses.id, req.params.id) });
+      if (!row) return res.status(404).json({ message: "Not found" });
+      const [updated] = await db.update(languageClasses).set({ isActive: !row.isActive, updatedAt: new Date() }).where(eq(languageClasses.id, req.params.id)).returning();
+      res.json(updated);
+    } catch (error: any) {
+      console.error("Error toggling active:", error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // PATCH - Toggle featured
+  app.patch("/api/admin/language-classes/:id/toggle-featured", async (req, res) => {
+    try {
+      const row = await db.query.languageClasses.findFirst({ where: eq(languageClasses.id, req.params.id) });
+      if (!row) return res.status(404).json({ message: "Not found" });
+      const [updated] = await db.update(languageClasses).set({ isFeatured: !row.isFeatured, updatedAt: new Date() }).where(eq(languageClasses.id, req.params.id)).returning();
+      res.json(updated);
+    } catch (error: any) {
+      console.error("Error toggling featured:", error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+
   // Academies - Music, Arts, Sports Routes - Full CRUD
 
 app.get("/api/admin/academies-music-arts-sports", async (req, res) => {
@@ -6294,607 +6539,6 @@ app.patch("/api/admin/skill-training-certification/:id/toggle-featured", async (
     }
   });
 
-  // Language Classes Routes - Full CRUD
-
-  // GET all language classes
-  app.get("/api/admin/language-classes", async (req, res) => {
-    try {
-      const { userId, role } = req.query;
-
-      let classes;
-
-      if (role === 'admin') {
-        classes = await db.query.languageClasses.findMany({
-          orderBy: desc(languageClasses.createdAt),
-        });
-      } else if (userId) {
-        const allClasses = await db.query.languageClasses.findMany({
-          orderBy: desc(languageClasses.createdAt),
-        });
-        classes = allClasses.filter(c => c.userId === userId);
-      } else {
-       classes = await db.query.languageClasses.findMany({
-        orderBy: desc(languageClasses.createdAt),
-      });
-      }
-
-      console.log(`Fetched ${classes.length} language classes for user ${userId} with role ${role}`);
-      res.json(classes);
-    } catch (error: any) {
-      console.error('Error fetching language classes:', error);
-      res.status(500).json({ message: error.message });
-    }
-  });
-
-  // GET single language class by ID
-  app.get("/api/admin/language-classes/:id", async (req, res) => {
-    try {
-      const languageClass = await db.query.languageClasses.findFirst({
-        where: eq(languageClasses.id, req.params.id),
-      });
-
-      if (!languageClass) {
-        return res.status(404).json({ message: "Language class not found" });
-      }
-
-      res.json(languageClass);
-    } catch (error: any) {
-      res.status(500).json({ message: error.message });
-    }
-  });
-
-  // CREATE new language class
-  app.post("/api/admin/language-classes", async (req, res) => {
-    try {
-      const {
-        title,
-        description,
-        listingType,
-        languageName,
-        proficiencyLevel,
-        courseDurationMonths,
-        classesPerWeek,
-        classDurationHours,
-        teachingMode,
-        classType,
-        batchSize,
-        instructorName,
-        instructorQualification,
-        instructorExperience,
-        nativeSpeaker,
-        feePerMonth,
-        registrationFee,
-        totalCourseFee,
-        studyMaterialsProvided,
-        certificationProvided,
-        freeDemoClass,
-        contactPerson,
-        contactPhone,
-        contactEmail,
-        country,
-        stateProvince,
-        city,
-        areaName,
-        fullAddress,
-        isActive,
-        isFeatured,
-        userId,
-        role,
-      } = req.body;
-
-      // Validate required fields
-      if (!title || !languageName || !proficiencyLevel || !courseDurationMonths || !feePerMonth || !contactPerson || !contactPhone) {
-        return res.status(400).json({
-          message: "Missing required fields: title, languageName, proficiencyLevel, courseDurationMonths, feePerMonth, contactPerson, contactPhone"
-        });
-      }
-
-      if (!userId) {
-        return res.status(400).json({
-          message: "userId is required"
-        });
-      }
-
-      const [newClass] = await db
-        .insert(languageClasses)
-        .values({
-          title,
-          description: description || null,
-          listingType: listingType || "language_class",
-          languageName,
-          proficiencyLevel,
-          courseDurationMonths: courseDurationMonths ? parseInt(courseDurationMonths.toString()) : null,
-          classesPerWeek: classesPerWeek ? parseInt(classesPerWeek.toString()) : null,
-          classDurationHours: classDurationHours ? parseFloat(classDurationHours.toString()) : null,
-          teachingMode: teachingMode || null,
-          classType: classType || null,
-          batchSize: batchSize ? parseInt(batchSize.toString()) : null,
-          instructorName: instructorName || null,
-          instructorQualification: instructorQualification || null,
-          instructorExperience: instructorExperience ? parseInt(instructorExperience.toString()) : null,
-          nativeSpeaker: nativeSpeaker === true || nativeSpeaker === "true",
-          feePerMonth: feePerMonth ? parseFloat(feePerMonth.toString()) : null,
-          registrationFee: registrationFee ? parseFloat(registrationFee.toString()) : null,
-          totalCourseFee: totalCourseFee ? parseFloat(totalCourseFee.toString()) : null,
-          studyMaterialsProvided: Array.isArray(studyMaterialsProvided) ? studyMaterialsProvided : [],
-          certificationProvided: certificationProvided === true || certificationProvided === "true",
-          freeDemoClass: freeDemoClass === true || freeDemoClass === "true",
-          contactPerson,
-          contactPhone,
-          contactEmail: contactEmail || null,
-          country: country || "India",
-          stateProvince: stateProvince || null,
-          city: city || null,
-          areaName: areaName || null,
-          fullAddress: fullAddress || null,
-          isActive: isActive === true || isActive === "true",
-          isFeatured: isFeatured === true || isFeatured === "true",
-          userId: userId,
-          role: role || null,
-        })
-        .returning();
-
-      res.status(201).json(newClass);
-    } catch (error: any) {
-      console.error("Error creating language class:", error);
-      res.status(400).json({ message: error.message });
-    }
-  });
-
-  // UPDATE language class
-  app.put("/api/admin/language-classes/:id", async (req, res) => {
-    try {
-      const {
-        studyMaterialsProvided,
-        certificationProvided,
-        freeDemoClass,
-        nativeSpeaker,
-        isActive,
-        isFeatured,
-        ...otherData
-      } = req.body;
-
-      const [updatedClass] = await db
-        .update(languageClasses)
-        .set({
-          ...otherData,
-          studyMaterialsProvided: Array.isArray(studyMaterialsProvided) ? studyMaterialsProvided : [],
-          certificationProvided: Boolean(certificationProvided),
-          freeDemoClass: Boolean(freeDemoClass),
-          nativeSpeaker: Boolean(nativeSpeaker),
-          isActive: isActive !== false,
-          isFeatured: Boolean(isFeatured),
-          updatedAt: new Date(),
-        })
-        .where(eq(languageClasses.id, req.params.id))
-        .returning();
-
-      if (!updatedClass) {
-        return res.status(404).json({ message: "Language class not found" });
-      }
-
-      res.json(updatedClass);
-    } catch (error: any) {
-      console.error("Error updating language class:", error);
-      res.status(400).json({ message: error.message });
-    }
-  });
-
-  // DELETE language class
-  app.delete("/api/admin/language-classes/:id", async (req, res) => {
-    try {
-      const deletedRows = await db
-        .delete(languageClasses)
-        .where(eq(languageClasses.id, req.params.id))
-        .returning();
-
-      if (deletedRows.length === 0) {
-        return res.status(404).json({ message: "Language class not found" });
-      }
-
-      res.json({ message: "Language class deleted successfully", id: req.params.id });
-    } catch (error: any) {
-      console.error("Error deleting language class:", error);
-      res.status(500).json({ message: error.message });
-    }
-  });
-
-  // PATCH - Toggle active status
-  app.patch("/api/admin/language-classes/:id/toggle-active", async (req, res) => {
-    try {
-      const languageClass = await db.query.languageClasses.findFirst({
-        where: eq(languageClasses.id, req.params.id),
-      });
-
-      if (!languageClass) {
-        return res.status(404).json({ message: "Language class not found" });
-      }
-
-      const [updated] = await db
-        .update(languageClasses)
-        .set({ isActive: !languageClass.isActive, updatedAt: new Date() })
-        .where(eq(languageClasses.id, req.params.id))
-        .returning();
-
-      res.json(updated);
-    } catch (error: any) {
-      console.error("Error toggling active status:", error);
-      res.status(500).json({ message: error.message });
-    }
-  });
-
-  // PATCH - Toggle featured status
-  app.patch("/api/admin/language-classes/:id/toggle-featured", async (req, res) => {
-    try {
-      const languageClass = await db.query.languageClasses.findFirst({
-        where: eq(languageClasses.id, req.params.id),
-      });
-
-      if (!languageClass) {
-        return res.status(404).json({ message: "Language class not found" });
-      }
-
-      const [updated] = await db
-        .update(languageClasses)
-        .set({ isFeatured: !languageClass.isFeatured, updatedAt: new Date() })
-        .where(eq(languageClasses.id, req.params.id))
-        .returning();
-
-      res.json(updated);
-    } catch (error: any) {
-      console.error("Error toggling featured status:", error);
-      res.status(500).json({ message: error.message });
-    }
-  });
-
-  // Health & Wellness Services Routes - Full CRUD
-
-  // GET all health wellness services
-  app.get("/api/admin/health-wellness-services", async (req, res) => {
-    try {
-      const { userId, role } = req.query;
-
-      let services;
-
-      if (role === 'admin') {
-        services = await db.query.healthWellnessServices.findMany({
-          orderBy: desc(healthWellnessServices.createdAt),
-        });
-      } else if (userId) {
-        services = await db.query.healthWellnessServices.findMany({
-          where: eq(healthWellnessServices.userId, userId as string),
-          orderBy: desc(healthWellnessServices.createdAt),
-        });
-      } else {
-        services = await db.query.healthWellnessServices.findMany({
-          orderBy: desc(healthWellnessServices.createdAt),
-        });
-      }
-
-      console.log(`Fetched ${services.length} health wellness services for user ${userId} with role ${role}`);
-      res.json(services);
-    } catch (error: any) {
-      console.error('Error fetching health wellness services:', error);
-      res.status(500).json({message: error.message });
-    }
-  });
-
-  // GET single health wellness service by ID
-  app.get("/api/admin/health-wellness-services/:id", async (req, res) => {
-    try {
-      const service = await db.query.healthWellnessServices.findFirst({
-        where: eq(healthWellnessServices.id, req.params.id),
-      });
-
-      if (!service) {
-        return res.status(404).json({ message: "Service not found" });
-      }
-
-      res.json(service);
-    } catch (error: any) {
-      res.status(500).json({ message: error.message });
-    }
-  });
-
-  // CREATE new health wellness service
-  app.post("/api/admin/health-wellness-services", async (req, res) => {
-    try {
-      const {
-        consultationFee,
-        experienceYears,
-        ...otherData
-      } = req.body;
-
-      if (!otherData.userId) {
-        return res.status(400).json({ message: "userId is required" });
-      }
-
-      const [newService] = await db
-        .insert(healthWellnessServices)
-        .values({
-          ...otherData,
-          consultationFee: consultationFee ? parseFloat(consultationFee.toString()) : null,
-          experienceYears: experienceYears ? parseInt(experienceYears.toString()) : null,
-          country: req.body.country || "India",
-        })
-        .returning();
-
-      res.status(201).json(newService);
-    } catch (error: any) {
-      console.error("Error creating health wellness service:", error);
-      res.status(400).json({ message: error.message });
-    }
-  });
-
-  // UPDATE health wellness service
-  app.put("/api/admin/health-wellness-services/:id", async (req, res) => {
-    try {
-      const { id } = req.params;
-      const {
-        consultationFee,
-        experienceYears,
-        ...otherData
-      } = req.body;
-
-      const updateData: any = {
-        ...otherData,
-        updatedAt: new Date(),
-      };
-
-      if (consultationFee !== undefined) {
-        updateData.consultationFee = consultationFee ? parseFloat(consultationFee.toString()) : null;
-      }
-      if (experienceYears !== undefined) {
-        updateData.experienceYears = experienceYears ? parseInt(experienceYears.toString()) : null;
-      }
-
-      const [updatedService] = await db
-        .update(healthWellnessServices)
-        .set(updateData)
-        .where(eq(healthWellnessServices.id, id))
-        .returning();
-
-      if (!updatedService) {
-        return res.status(404).json({ message: "Service not found" });
-      }
-
-      res.json(updatedService);
-    } catch (error: any) {
-      console.error("Error updating health wellness service:", error);
-      res.status(400).json({ message: error.message });
-    }
-  });
-
-  // DELETE health wellness service
-  app.delete("/api/admin/health-wellness-services/:id", async (req, res) => {
-    try {
-      const deletedRows = await db
-        .delete(healthWellnessServices)
-        .where(eq(healthWellnessServices.id, req.params.id))
-        .returning();
-
-      if (deletedRows.length === 0) {
-        return res.status(404).json({ message: "Service not found" });
-      }
-
-      res.json({ message: "Service deleted successfully", id: req.params.id });
-    } catch (error: any) {
-      console.error("Error deleting health wellness service:", error);
-      res.status(500).json({ message: error.message });
-    }
-  });
-
-  // PATCH - Toggle active status
-  app.patch("/api/admin/health-wellness-services/:id/toggle-active", async (req, res) => {
-    try {
-      const service = await db.query.healthWellnessServices.findFirst({
-        where: eq(healthWellnessServices.id, req.params.id),
-      });
-
-      if (!service) {
-        return res.status(404).json({ message: "Service not found" });
-      }
-
-      const [updated] = await db
-        .update(healthWellnessServices)
-        .set({ isActive: !service.isActive, updatedAt: new Date() })
-        .where(eq(healthWellnessServices.id, req.params.id))
-        .returning();
-
-      res.json(updated);
-    } catch (error: any) {
-      console.error("Error toggling active status:", error);
-      res.status(500).json({ message: error.message });
-    }
-  });
-
-  // PATCH - Toggle featured status
-  app.patch("/api/admin/health-wellness-services/:id/toggle-featured", async (req, res) => {
-    try {
-      const service = await db.query.healthWellnessServices.findFirst({
-        where: eq(healthWellnessServices.id, req.params.id),
-      });
-
-      if (!service) {
-        return res.status(404).json({ message: "Service not found" });
-      }
-
-      const [updated] = await db
-        .update(healthWellnessServices)
-        .set({ isFeatured: !service.isFeatured, updatedAt: new Date() })
-        .where(eq(healthWellnessServices.id, req.params.id))
-        .returning();
-
-      res.json(updated);
-    } catch (error: any) {
-      console.error("Error toggling featured status:", error);
-      res.status(500).json({ message: error.message });
-    }
-  });
-
-  // Pharmacy & Medical Stores Routes - Full CRUD
-
-  // GET all pharmacy stores
-  app.get("/api/admin/pharmacy-medical-stores", async (req, res) => {
-    try {
-      const { userId, role } = req.query;
-
-      let stores;
-
-      // If user is admin, fetch all stores
-      if (role === 'admin') {
-        stores = await db.query.pharmacyMedicalStores.findMany({
-          orderBy: desc(pharmacyMedicalStores.createdAt),
-        });
-      } else if (userId) {
-        // For non-admin users, filter by userId at database level
-        stores = await db.query.pharmacyMedicalStores.findMany({
-          where: eq(pharmacyMedicalStores.userId, userId as string),
-          orderBy: desc(pharmacyMedicalStores.createdAt),
-        });
-      } else {
-        // If no userId provided and not admin, return all stores (for backward compatibility)
-        stores = await db.query.pharmacyMedicalStores.findMany({
-          orderBy: desc(pharmacyMedicalStores.createdAt),
-        });
-      }
-
-      console.log(`Fetched ${stores.length} pharmacy stores for user ${userId} with role ${role}`);
-      res.json(stores);
-    } catch (error: any) {
-      console.error('Error fetching pharmacy stores:', error);
-      res.status(500).json({ message: error.message });
-    }
-  });
-
-  // GET single pharmacy/medical store by ID
-  app.get("/api/admin/pharmacy-medical-stores/:id", async (req, res) => {
-    try {
-      const store = await db.query.pharmacyMedicalStores.findFirst({
-        where: eq(pharmacyMedicalStores.id, req.params.id),
-      });
-
-      if (!store) {
-        return res.status(404).json({ message: "Pharmacy/Medical store not found" });
-      }
-
-      res.json(store);
-    } catch (error: any) {
-      console.error('Error fetching pharmacy/medical store by ID:', error);
-      res.status(500).json({ message: error.message });
-    }
-  });
-
-  // CREATE new pharmacy/medical store
-  app.post("/api/admin/pharmacy-medical-stores", async (req, res) => {
-    try {
-      const data = req.body;
-
-      // Ensure userId and role are included
-      const pharmacyData = {
-        ...data,
-        userId: data.userId || null,
-        role: data.role || null,
-      };
-
-      const [result] = await db.insert(pharmacyMedicalStores).values(pharmacyData).returning();
-      res.json(result);
-    } catch (error) {
-      console.error("Error creating pharmacy:", error);
-      res.status(500).json({ message: "Failed to create pharmacy", error: error.message });
-    }
-  });
-
-  // UPDATE pharmacy/medical store
-  app.put("/api/admin/pharmacy-medical-stores/:id", async (req, res) => {
-    try {
-      const { id } = req.params;
-      const updateData = { ...req.body, updatedAt: new Date() };
-
-      const [updatedStore] = await db
-        .update(pharmacyMedicalStores)
-        .set(updateData)
-        .where(eq(pharmacyMedicalStores.id, id))
-        .returning();
-
-      if (!updatedStore) {
-        return res.status(404).json({ message: "Pharmacy/Medical store not found" });
-      }
-
-      res.json(updatedStore);
-    } catch (error: any) {
-      console.error("Error updating pharmacy/medical store:", error);
-      res.status(400).json({ message: error.message });
-    }
-  });
-
-  // DELETE pharmacy/medical store
-  app.delete("/api/admin/pharmacy-medical-stores/:id", async (req, res) => {
-    try {
-      const deletedRows = await db
-        .delete(pharmacyMedicalStores)
-        .where(eq(pharmacyMedicalStores.id, req.params.id))
-        .returning();
-
-      if (deletedRows.length === 0) {
-        return res.status(404).json({ message: "Pharmacy/Medical store not found" });
-      }
-
-      res.json({ message: "Pharmacy/Medical store deleted successfully", id: req.params.id });
-    } catch (error: any) {
-      console.error("Error deleting pharmacy/medical store:", error);
-      res.status(500).json({ message: error.message });
-    }
-  });
-
-  // PATCH - Toggle active status
-  app.patch("/api/admin/pharmacy-medical-stores/:id/toggle-active", async (req, res) => {
-    try {
-      const store = await db.query.pharmacyMedicalStores.findFirst({
-        where: eq(pharmacyMedicalStores.id, req.params.id),
-      });
-
-      if (!store) {
-        return res.status(404).json({ message: "Pharmacy/Medical store not found" });
-      }
-
-      const [updated] = await db
-        .update(pharmacyMedicalStores)
-        .set({ isActive: !store.isActive, updatedAt: new Date() })
-        .where(eq(pharmacyMedicalStores.id, req.params.id))
-        .returning();
-
-      res.json(updated);
-    } catch (error: any) {
-      console.error("Error toggling active status:", error);
-      res.status(500).json({ message: error.message });
-    }
-  });
-
-  // PATCH - Toggle featured status
-  app.patch("/api/admin/pharmacy-medical-stores/:id/toggle-featured", async (req, res) => {
-    try {
-      const store = await db.query.pharmacyMedicalStores.findFirst({
-        where: eq(pharmacyMedicalStores.id, req.params.id),
-      });
-
-      if (!store) {
-        return res.status(404).json({ message: "Pharmacy/Medical store not found" });
-      }
-
-      const [updated] = await db
-        .update(pharmacyMedicalStores)
-        .set({ isFeatured: !store.isFeatured, updatedAt: new Date() })
-        .where(eq(pharmacyMedicalStores.id, req.params.id))
-        .returning();
-
-      res.json(updated);
-    } catch (error: any) {
-      console.error("Error toggling featured status:", error);
-      res.status(500).json({ message: error.message });
-    }
-  });
-
   // Telecommunication Services Routes - Full CRUD
   app.get("/api/admin/telecommunication-services", async (_req, res) => {
     try {
@@ -6909,9 +6553,29 @@ app.patch("/api/admin/skill-training-certification/:id/toggle-featured", async (
 
   app.post("/api/admin/telecommunication-services", async (req, res) => {
     try {
+      // sanitize numeric fields coming as empty strings
+      const body = { ...req.body } as any;
+      const toDecimal = (v: any) => {
+        if (v === undefined || v === null || v === "") return null;
+        const n = Number(String(v).replace(/,/g, ''));
+        return Number.isFinite(n) ? n : null;
+      };
+      const toInt = (v: any) => {
+        if (v === undefined || v === null || v === "") return null;
+        const n = parseInt(String(v), 10);
+        return Number.isFinite(n) ? n : null;
+      };
+
+      body.monthlyPrice = toDecimal(body.monthlyPrice);
+      body.yearlyPrice = toDecimal(body.yearlyPrice);
+      body.installationCharges = toDecimal(body.installationCharges);
+      body.securityDeposit = toDecimal(body.securityDeposit);
+      body.dthChannels = toInt(body.dthChannels);
+      body.hdChannels = toInt(body.hdChannels);
+
       const [newService] = await db
         .insert(telecommunicationServices)
-        .values({ ...req.body, country: req.body.country || "India" })
+        .values({ ...body, country: body.country || "India" })
         .returning();
       res.status(201).json(newService);
     } catch (error: any) {
@@ -6921,9 +6585,29 @@ app.patch("/api/admin/skill-training-certification/:id/toggle-featured", async (
 
   app.put("/api/admin/telecommunication-services/:id", async (req, res) => {
     try {
+      // sanitize numeric fields for update as well
+      const body = { ...req.body } as any;
+      const toDecimal = (v: any) => {
+        if (v === undefined || v === null || v === "") return null;
+        const n = Number(String(v).replace(/,/g, ''));
+        return Number.isFinite(n) ? n : null;
+      };
+      const toInt = (v: any) => {
+        if (v === undefined || v === null || v === "") return null;
+        const n = parseInt(String(v), 10);
+        return Number.isFinite(n) ? n : null;
+      };
+
+      body.monthlyPrice = toDecimal(body.monthlyPrice);
+      body.yearlyPrice = toDecimal(body.yearlyPrice);
+      body.installationCharges = toDecimal(body.installationCharges);
+      body.securityDeposit = toDecimal(body.securityDeposit);
+      body.dthChannels = toInt(body.dthChannels);
+      body.hdChannels = toInt(body.hdChannels);
+
       const [updated] = await db
         .update(telecommunicationServices)
-        .set({ ...req.body, updatedAt: new Date() })
+        .set({ ...body, updatedAt: new Date() })
         .where(eq(telecommunicationServices.id, req.params.id))
         .returning();
       if (!updated) return res.status(404).json({ message: "Service not found" });
@@ -7050,6 +6734,130 @@ app.patch("/api/admin/skill-training-certification/:id/toggle-featured", async (
         .update(serviceCentreWarranty)
         .set({ isFeatured: !service.isFeatured, updatedAt: new Date() })
         .where(eq(serviceCentreWarranty.id, req.params.id))
+        .returning();
+      res.json(updated);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Health & Wellness Services Routes - Full CRUD
+  app.get("/api/admin/health-wellness-services", async (req, res) => {
+    try {
+      const services = await db.query.healthWellnessServices.findMany({
+        orderBy: desc(healthWellnessServices.createdAt),
+      });
+      res.json(services);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.get("/api/admin/health-wellness-services/:id", async (req, res) => {
+    try {
+      const service = await db.query.healthWellnessServices.findFirst({
+        where: eq(healthWellnessServices.id, req.params.id),
+      });
+      if (!service) return res.status(404).json({ message: "Service not found" });
+      res.json(service);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.post("/api/admin/health-wellness-services", async (req, res) => {
+    try {
+      // sanitize numeric fields coming as empty strings
+      const body = { ...req.body } as any;
+      const toDecimal = (v: any) => {
+        if (v === undefined || v === null || v === "") return null;
+        const n = Number(String(v).replace(/,/g, ''));
+        return Number.isFinite(n) ? n : null;
+      };
+      const toInt = (v: any) => {
+        if (v === undefined || v === null || v === "") return null;
+        const n = parseInt(String(v), 10);
+        return Number.isFinite(n) ? n : null;
+      };
+
+      body.consultationFee = toDecimal(body.consultationFee);
+      body.experienceYears = toInt(body.experienceYears);
+
+      const [newService] = await db
+        .insert(healthWellnessServices)
+        .values({ ...body, country: body.country || "India" })
+        .returning();
+      res.status(201).json(newService);
+    } catch (error: any) {
+      res.status(400).json({ message: error.message });
+    }
+  });
+
+  app.put("/api/admin/health-wellness-services/:id", async (req, res) => {
+    try {
+      const body = { ...req.body } as any;
+      const toDecimal = (v: any) => {
+        if (v === undefined || v === null || v === "") return null;
+        const n = Number(String(v).replace(/,/g, ''));
+        return Number.isFinite(n) ? n : null;
+      };
+      const toInt = (v: any) => {
+        if (v === undefined || v === null || v === "") return null;
+        const n = parseInt(String(v), 10);
+        return Number.isFinite(n) ? n : null;
+      };
+
+      body.consultationFee = toDecimal(body.consultationFee);
+      body.experienceYears = toInt(body.experienceYears);
+
+      const [updated] = await db
+        .update(healthWellnessServices)
+        .set({ ...body, updatedAt: new Date() })
+        .where(eq(healthWellnessServices.id, req.params.id))
+        .returning();
+      if (!updated) return res.status(404).json({ message: "Service not found" });
+      res.json(updated);
+    } catch (error: any) {
+      res.status(400).json({ message: error.message });
+    }
+  });
+
+  app.delete("/api/admin/health-wellness-services/:id", async (req, res) => {
+    try {
+      await db.delete(healthWellnessServices).where(eq(healthWellnessServices.id, req.params.id));
+      res.json({ message: "Service deleted successfully" });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.patch("/api/admin/health-wellness-services/:id/toggle-active", async (req, res) => {
+    try {
+      const service = await db.query.healthWellnessServices.findFirst({
+        where: eq(healthWellnessServices.id, req.params.id),
+      });
+      if (!service) return res.status(404).json({ message: "Service not found" });
+      const [updated] = await db
+        .update(healthWellnessServices)
+        .set({ isActive: !service.isActive, updatedAt: new Date() })
+        .where(eq(healthWellnessServices.id, req.params.id))
+        .returning();
+      res.json(updated);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.patch("/api/admin/health-wellness-services/:id/toggle-featured", async (req, res) => {
+    try {
+      const service = await db.query.healthWellnessServices.findFirst({
+        where: eq(healthWellnessServices.id, req.params.id),
+      });
+      if (!service) return res.status(404).json({ message: "Service not found" });
+      const [updated] = await db
+        .update(healthWellnessServices)
+        .set({ isFeatured: !service.isFeatured, updatedAt: new Date() })
+        .where(eq(healthWellnessServices.id, req.params.id))
         .returning();
       res.json(updated);
     } catch (error: any) {
