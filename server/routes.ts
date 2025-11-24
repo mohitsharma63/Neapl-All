@@ -52,7 +52,7 @@ import {
   telecommunicationServices,
   serviceCentreWarranty,
 } from "../shared/schema";
-import { eq, sql, desc } from "drizzle-orm";
+import { eq, sql, desc, or } from "drizzle-orm";
 
 export function registerRoutes(app: Express) {
   app.get("/api/stats", async (_req, res) => {
@@ -68,6 +68,278 @@ export function registerRoutes(app: Express) {
         totalAgencies: agenciesCount[0]?.count || 0,
         totalLocations: locationsCount[0]?.count || 0,
         activeListings: propertiesCount[0]?.count || 0,
+      });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.get("/api/seller/dashboard", async (req, res) => {
+    try {
+      const { userId, role } = req.query;
+
+      if (!userId || typeof userId !== "string") {
+        return res.status(400).json({ message: "userId is required" });
+      }
+
+      const sellerId = userId as string;
+
+      const [
+        rental,
+        hostel,
+        carsBikesListings,
+        propertyDealsListings,
+        commercialProps,
+        industrialLands,
+        officeSpaceListings,
+        fashionBeauty,
+        constructionMaterialListings,
+        heavyEquipmentListings,
+        showroomListings,
+        secondHandVehicles,
+        carBikeRentalListings,
+        tuitionClasses,
+        danceGymYogaClasses,
+        languageClassListings,
+        academiesListings,
+        skillTrainingListings,
+        telecomServices,
+        serviceCentreListings,
+        schoolCollegeCoachingListings,
+        transportationListings,
+      ] = await Promise.all([
+        db.query.rentalListings.findMany({
+          where: eq(rentalListings.userId, sellerId),
+          orderBy: desc(rentalListings.createdAt),
+        }),
+        db.query.hostelPgListings.findMany({
+          where: or(eq(hostelPgListings.userId, sellerId), eq(hostelPgListings.ownerId, sellerId)),
+          orderBy: desc(hostelPgListings.createdAt),
+        }),
+        db.query.carsBikes.findMany({
+          where: or(eq(carsBikes.userId, sellerId), eq(carsBikes.sellerId, sellerId)),
+          orderBy: desc(carsBikes.createdAt),
+        }),
+        db.query.propertyDeals.findMany({
+          where: eq(propertyDeals.userId, sellerId),
+          orderBy: desc(propertyDeals.createdAt),
+        }),
+        db.query.commercialProperties.findMany({
+          where: eq(commercialProperties.userId, sellerId),
+          orderBy: desc(commercialProperties.createdAt),
+        }),
+        db.query.industrialLand.findMany({
+          where: eq(industrialLand.userId, sellerId),
+          orderBy: desc(industrialLand.createdAt),
+        }),
+        db.query.officeSpaces.findMany({
+          where: eq(officeSpaces.userId, sellerId),
+          orderBy: desc(officeSpaces.createdAt),
+        }),
+        db.query.fashionBeautyProducts.findMany({
+          where: or(eq(fashionBeautyProducts.userId, sellerId), eq(fashionBeautyProducts.sellerId, sellerId)),
+          orderBy: desc(fashionBeautyProducts.createdAt),
+        }),
+        db.query.constructionMaterials.findMany({
+          where: eq(constructionMaterials.userId, sellerId),
+          orderBy: desc(constructionMaterials.createdAt),
+        }),
+        db.query.heavyEquipment.findMany({
+          where: or(eq(heavyEquipment.userId, sellerId), eq(heavyEquipment.sellerId, sellerId)),
+          orderBy: desc(heavyEquipment.createdAt),
+        }),
+        db.query.showrooms.findMany({
+          where: or(eq(showrooms.userId, sellerId), eq(showrooms.sellerId, sellerId)),
+          orderBy: desc(showrooms.createdAt),
+        }),
+        db.query.secondHandCarsBikes.findMany({
+          where: or(eq(secondHandCarsBikes.userId, sellerId), eq(secondHandCarsBikes.sellerId, sellerId)),
+          orderBy: desc(secondHandCarsBikes.createdAt),
+        }),
+        db.query.carBikeRentals.findMany({
+          where: or(eq(carBikeRentals.userId, sellerId), eq(carBikeRentals.ownerId, sellerId)),
+          orderBy: desc(carBikeRentals.createdAt),
+        }),
+        db.query.tuitionPrivateClasses.findMany({
+          where: eq(tuitionPrivateClasses.userId, sellerId),
+          orderBy: desc(tuitionPrivateClasses.createdAt),
+        }),
+        db.query.danceKarateGymYoga.findMany({
+          where: eq(danceKarateGymYoga.userId, sellerId),
+          orderBy: desc(danceKarateGymYoga.createdAt),
+        }),
+        db.query.languageClasses.findMany({
+          where: eq(languageClasses.userId, sellerId),
+          orderBy: desc(languageClasses.createdAt),
+        }),
+        db.query.academiesMusicArtsSports.findMany({
+          where: eq(academiesMusicArtsSports.userId, sellerId),
+          orderBy: desc(academiesMusicArtsSports.createdAt),
+        }),
+        db.query.skillTrainingCertification.findMany({
+          where: eq(skillTrainingCertification.userId, sellerId),
+          orderBy: desc(skillTrainingCertification.createdAt),
+        }),
+        db.query.telecommunicationServices.findMany({
+          where: eq(telecommunicationServices.userId, sellerId),
+          orderBy: desc(telecommunicationServices.createdAt),
+        }),
+        db.query.serviceCentreWarranty.findMany({
+          where: eq(serviceCentreWarranty.userId, sellerId),
+          orderBy: desc(serviceCentreWarranty.createdAt),
+        }),
+        db.query.schoolsCollegesCoaching.findMany({
+          where: eq(schoolsCollegesCoaching.userId, sellerId),
+          orderBy: desc(schoolsCollegesCoaching.createdAt),
+        }),
+        db.query.transportationMovingServices.findMany({
+          where: or(eq(transportationMovingServices.userId, sellerId), eq(transportationMovingServices.ownerId, sellerId)),
+          orderBy: desc(transportationMovingServices.createdAt),
+        }),
+      ]);
+
+      const normalize = (items: any[], category: string, opts?: { activeField?: string; featuredField?: string }) => {
+        const activeKey = opts?.activeField || "isActive";
+        const featuredKey = opts?.featuredField || "isFeatured";
+
+        return items.map((item) => {
+          const createdAt = item.createdAt ? new Date(item.createdAt) : null;
+          return {
+            id: item.id,
+            title: item.title || item.name || item.showroomName || item.institutionName || "",
+            category,
+            isActive: item[activeKey] ?? item.active ?? true,
+            isFeatured: item[featuredKey] ?? item.featured ?? false,
+            viewCount: item.viewCount ?? 0,
+            createdAt,
+            raw: item,
+          };
+        });
+      };
+
+      const allListings = [
+        ...normalize(rental, "rentalListings"),
+        ...normalize(hostel, "hostelPgListings", { activeField: "active", featuredField: "featured" }),
+        ...normalize(carsBikesListings, "carsBikes"),
+        ...normalize(propertyDealsListings, "propertyDeals"),
+        ...normalize(commercialProps, "commercialProperties"),
+        ...normalize(industrialLands, "industrialLand"),
+        ...normalize(officeSpaceListings, "officeSpaces"),
+        ...normalize(fashionBeauty, "fashionBeautyProducts"),
+        ...normalize(constructionMaterialListings, "constructionMaterials"),
+        ...normalize(heavyEquipmentListings, "heavyEquipment"),
+        ...normalize(showroomListings, "showrooms"),
+        ...normalize(secondHandVehicles, "secondHandCarsBikes"),
+        ...normalize(carBikeRentalListings, "carBikeRentals"),
+        ...normalize(tuitionClasses, "tuitionPrivateClasses"),
+        ...normalize(danceGymYogaClasses, "danceKarateGymYoga"),
+        ...normalize(languageClassListings, "languageClasses"),
+        ...normalize(academiesListings, "academiesMusicArtsSports"),
+        ...normalize(skillTrainingListings, "skillTrainingCertification"),
+        ...normalize(telecomServices, "telecommunicationServices"),
+        ...normalize(serviceCentreListings, "serviceCentreWarranty"),
+        ...normalize(schoolCollegeCoachingListings, "schoolsCollegesCoaching"),
+        ...normalize(transportationListings, "transportationMovingServices"),
+      ];
+
+      const totalListings = allListings.length;
+      const activeListings = allListings.filter((l) => l.isActive).length;
+      const featuredListings = allListings.filter((l) => l.isFeatured).length;
+      const totalViews = allListings.reduce((sum, l) => sum + (l.viewCount || 0), 0);
+
+      const today = new Date();
+      const startOfToday = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+      const todayViews = allListings
+        .filter((l) => l.createdAt && l.createdAt >= startOfToday)
+        .reduce((sum, l) => sum + (l.viewCount || 0), 0);
+
+      const listingsByCategory: Record<string, number> = {};
+      const categoryBreakdown: {
+        category: string;
+        count: number;
+        active: number;
+        featured: number;
+        totalViews: number;
+      }[] = [];
+
+      const categoryMap: Record<string, { count: number; active: number; featured: number; totalViews: number }> = {};
+
+      for (const listing of allListings) {
+        if (!categoryMap[listing.category]) {
+          categoryMap[listing.category] = { count: 0, active: 0, featured: 0, totalViews: 0 };
+        }
+        const bucket = categoryMap[listing.category];
+        bucket.count += 1;
+        if (listing.isActive) bucket.active += 1;
+        if (listing.isFeatured) bucket.featured += 1;
+        bucket.totalViews += listing.viewCount || 0;
+      }
+
+      for (const [category, data] of Object.entries(categoryMap)) {
+        listingsByCategory[category] = data.count;
+        categoryBreakdown.push({
+          category,
+          ...data,
+        });
+      }
+
+      const statusOverview = {
+        active: activeListings,
+        inactive: totalListings - activeListings,
+        featured: featuredListings,
+        nonFeatured: totalListings - featuredListings,
+      };
+
+      const recentListings = [...allListings]
+        .sort((a, b) => {
+          const ad = a.createdAt ? a.createdAt.getTime() : 0;
+          const bd = b.createdAt ? b.createdAt.getTime() : 0;
+          return bd - ad;
+        })
+        .slice(0, 10);
+
+      const avgViewsPerListing = totalListings > 0 ? totalViews / totalListings : 0;
+      const featuredRate = totalListings > 0 ? featuredListings / totalListings : 0;
+
+      // Additional aggregates for richer analytics
+      const totalCategories = Object.keys(categoryMap).length;
+      const avgListingsPerCategory = totalCategories > 0 ? totalListings / totalCategories : 0;
+
+      const topCategoriesByViews = Object.entries(categoryMap)
+        .map(([category, stats]) => ({
+          category,
+          count: stats.count,
+          totalViews: stats.totalViews,
+          avgViews: stats.count > 0 ? stats.totalViews / stats.count : 0,
+        }))
+        .sort((a, b) => b.totalViews - a.totalViews)
+        .slice(0, 5);
+
+      const topListingsByViews = [...allListings]
+        .sort((a, b) => (b.viewCount || 0) - (a.viewCount || 0))
+        .slice(0, 5);
+
+      res.json({
+        sellerId,
+        role: role || null,
+        totalListings,
+        activeListings,
+        featuredListings,
+        totalViews,
+        todayViews,
+        avgViewsPerListing,
+        featuredRate,
+        totalCategories,
+        avgListingsPerCategory,
+        listingsByCategory,
+        categoryBreakdown,
+        statusOverview,
+        topCategoriesByViews,
+        topListingsByViews,
+        totalInquiries: 0,
+        pendingInquiries: 0,
+        recentListings,
+        allListings,
       });
     } catch (error: any) {
       res.status(500).json({ message: error.message });

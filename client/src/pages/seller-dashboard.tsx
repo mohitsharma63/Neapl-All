@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import '@/lib/attachUserToFetch';
+
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -92,7 +93,8 @@ import { useUser } from '@/hooks/use-user';
 import TelecommunicationServicesForm from "@/components/telecommunication-services-form";
 import ServiceCentreWarrantyForm from "@/components/service-centre-warranty-form";
 import CyberCafeInternetServicesForm from "@/components/cyber-cafe-internet-services-form";
-
+import { ChartContainer, ChartTooltip, ChartTooltipContent, ChartLegend, ChartLegendContent } from "@/components/ui/chart";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, PieChart, Pie, Cell } from "recharts";
 
 // Educational Consultancy - Study Abroad Section Component
 function EducationalConsultancyStudyAbroadSection() {
@@ -2951,90 +2953,7 @@ function AppSidebar({ activeSection, setActiveSection }: { activeSection: string
   );
 
   // ...existing code...
-  
-  // DashboardSection placeholder to fix missing reference
-  function DashboardSection() {
-    // Example: Fetch seller dashboard data
-    const [dashboardData, setDashboardData] = React.useState<any>(null);
-    const [loading, setLoading] = React.useState(true);
-    React.useEffect(() => {
-      async function fetchDashboard() {
-        setLoading(true);
-        try {
-          const res = await fetch('/api/seller/dashboard');
-          const data = await res.json();
-          setDashboardData(data);
-        } catch (e) {
-          setDashboardData(null);
-        } finally {
-          setLoading(false);
-        }
-      }
-      fetchDashboard();
-    }, []);
 
-    if (loading) {
-      return <div className="p-8 text-center text-muted-foreground">Loading dashboard...</div>;
-    }
-
-    if (!dashboardData) {
-      return <div className="p-8 text-center text-destructive">Failed to load dashboard data.</div>;
-    }
-
-    // Example dashboard cards
-    return (
-      <div className="p-8">
-        <h2 className="text-3xl font-bold mb-2">Dashboard</h2>
-        <p className="text-muted-foreground mb-8">Overview of your system</p>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <div className="bg-white dark:bg-gray-950 rounded-xl shadow p-6 flex flex-col items-center">
-            <span className="text-2xl font-bold text-blue-600">{dashboardData.totalListings}</span>
-            <span className="text-sm text-muted-foreground mt-2">Total Listings</span>
-          </div>
-          <div className="bg-white dark:bg-gray-950 rounded-xl shadow p-6 flex flex-col items-center">
-            <span className="text-2xl font-bold text-green-600">{dashboardData.activeListings}</span>
-            <span className="text-sm text-muted-foreground mt-2">Active Listings</span>
-          </div>
-          <div className="bg-white dark:bg-gray-950 rounded-xl shadow p-6 flex flex-col items-center">
-            <span className="text-2xl font-bold text-yellow-600">₹{dashboardData.earnings}</span>
-            <span className="text-sm text-muted-foreground mt-2">Total Earnings</span>
-          </div>
-          <div className="bg-white dark:bg-gray-950 rounded-xl shadow p-6 flex flex-col items-center">
-            <span className="text-2xl font-bold text-purple-600">{dashboardData.orders}</span>
-            <span className="text-sm text-muted-foreground mt-2">Orders</span>
-          </div>
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-          <div className="bg-white dark:bg-gray-950 rounded-xl shadow p-6">
-            <h3 className="font-semibold mb-2">Messages</h3>
-            <div className="text-2xl font-bold text-blue-500">{dashboardData.messages}</div>
-            <div className="text-sm text-muted-foreground mt-2">Unread messages</div>
-          </div>
-          <div className="bg-white dark:bg-gray-950 rounded-xl shadow p-6">
-            <h3 className="font-semibold mb-2">Profile</h3>
-            <div className="flex items-center gap-3">
-              <img src={dashboardData.profile?.avatar || '/avatar.png'} alt="avatar" className="w-12 h-12 rounded-full border" />
-              <div>
-                <div className="font-bold">{dashboardData.profile?.name}</div>
-                <div className="text-xs text-muted-foreground">{dashboardData.profile?.email}</div>
-              </div>
-            </div>
-          </div>
-        </div>
-        {/* Example: Recent activity or reports */}
-        <div className="bg-white dark:bg-gray-950 rounded-xl shadow p-6">
-          <h3 className="font-semibold mb-4">Recent Activity</h3>
-          <ul className="space-y-2">
-            {dashboardData.recentActivity?.map((item: any, idx: number) => (
-              <li key={idx} className="text-sm text-muted-foreground">
-                {item}
-              </li>
-            ))}
-          </ul>
-        </div>
-      </div>
-    );
-  }
 }
 
 // Categories Section
@@ -3630,55 +3549,487 @@ function AgenciesSection() {
 
 // Analytics Section Component
 function AnalyticsSection() {
+  const { user } = useUser();
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+  const [data, setData] = useState<{
+    totalListings: number;
+    activeListings: number;
+    featuredListings: number;
+    totalViews: number;
+    todayViews: number;
+    listingsByCategory: { category: string; count: number }[];
+    categoryBreakdown: { category: string; subCategory: string; count: number }[];
+    statusOverview: { active: number; inactive: number; featured: number };
+    recentListings: {
+      id: string;
+      title: string;
+      status: string;
+      isFeatured: boolean;
+      createdAt: string | null;
+      price: any;
+      views: number;
+      category: string;
+      subCategory?: string;
+      type: string;
+    }[];
+    avgViewsPerListing: number;
+    featuredRate: number;
+    totalInquiries: number;
+    pendingInquiries: number;
+    allListings: {
+      id: string;
+      title: string;
+      status: string;
+      isFeatured: boolean;
+      createdAt: string | null;
+      price: any;
+      views: number;
+      category: string;
+      subCategory?: string;
+      type: string;
+    }[];
+  } | null>(null);
+
+  useEffect(() => {
+    let timer: number | undefined;
+
+    const fetchData = async () => {
+      if (!user?.id) return;
+      try {
+        setLoading(true);
+        setError(null);
+        const res = await fetch(`/api/seller/dashboard?userId=${encodeURIComponent(user.id)}`);
+        if (!res.ok) {
+          throw new Error(`Failed to load dashboard data (${res.status})`);
+        }
+        const json = await res.json();
+        setData(json);
+        setLastUpdated(new Date());
+      } catch (err: any) {
+        console.error('Error loading seller dashboard metrics', err);
+        setError(err?.message || 'Failed to load analytics');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+    timer = window.setInterval(fetchData, 30000);
+
+    return () => {
+      if (timer) window.clearInterval(timer);
+    };
+  }, [user?.id]);
+
+  const COLORS = [
+    'hsl(217.2 91.2% 59.8%)',
+    'hsl(142.1 76.2% 36.3%)',
+    'hsl(47.9 95.8% 53.1%)',
+    'hsl(346.8 77.2% 49.8%)',
+    'hsl(200 98% 39%)',
+    'hsl(271 91% 65%)',
+  ];
+
+  const metricCards = data && [
+    {
+      label: 'Total Listings',
+      value: data.totalListings,
+      sub: `${data.featuredListings} featured`,
+      tone: 'bg-primary/10 text-primary border-primary/30',
+    },
+    {
+      label: 'Active Listings',
+      value: data.activeListings,
+      sub: `${data.totalListings - data.activeListings} inactive`,
+      tone: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30',
+    },
+    {
+      label: 'Total Views',
+      value: data.totalViews,
+      sub: `Today: ${data.todayViews}`,
+      tone: 'bg-sky-500/10 text-sky-600 dark:text-sky-400 border-sky-500/30',
+    },
+    {
+      label: 'Featured Listings',
+      value: data.featuredListings,
+      sub: `${data.featuredRate.toFixed(1)}% of total`,
+      tone: 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/30',
+    },
+  ];
+
+  const statusData = data
+    ? [
+        { name: 'Active', value: data.statusOverview.active, key: 'active' },
+        { name: 'Inactive', value: data.statusOverview.inactive, key: 'inactive' },
+        { name: 'Featured', value: data.statusOverview.featured, key: 'featured' },
+      ]
+    : [];
+
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-2xl font-bold">Analytics & Reports</h2>
-        <p className="text-muted-foreground">System analytics and performance metrics</p>
+      <div className="flex items-center justify-between gap-4">
+        <div>
+          <h2 className="text-2xl font-bold">Analytics & Reports</h2>
+          <p className="text-muted-foreground">
+            Real-time performance metrics for your listings
+          </p>
+        </div>
+        <div className="flex items-center gap-3 text-xs text-muted-foreground">
+          {loading && <span>Refreshing…</span>}
+          {lastUpdated && (
+            <span>
+              Last updated {lastUpdated.toLocaleTimeString()}
+            </span>
+          )}
+        </div>
+      </div>
+
+      {error && (
+        <Card className="border-destructive/40 bg-destructive/5">
+          <CardContent className="py-3 text-sm text-destructive">
+            {error}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Metric cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+        {metricCards?.map((card) => (
+          <Card
+            key={card.label}
+            className={`border ${card.tone} shadow-sm hover:shadow-md transition-shadow`}
+          >
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium">
+                {card.label}
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="pt-0 flex flex-col gap-1">
+              <div className="text-2xl font-bold tabular-nums">
+                {card.value?.toLocaleString?.() ?? card.value}
+              </div>
+              <div className="text-xs opacity-80">{card.sub}</div>
+            </CardContent>
+          </Card>
+        ))}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Listings by category - bar chart */}
         <Card>
           <CardHeader>
-            <CardTitle>Property Analytics</CardTitle>
+            <CardTitle className="flex items-center gap-2 text-base">
+              <BarChart3 className="w-4 h-4" />
+              Listings by Category
+            </CardTitle>
+            <CardDescription>
+              Distribution of your listings across categories
+            </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
-              <div className="flex justify-between items-center">
-                <span>Total Listings</span>
-                <span className="font-bold">145</span>
+            {data && data.listingsByCategory.length > 0 ? (
+              <ChartContainer
+                config={Object.fromEntries(
+                  data.listingsByCategory.map((c, idx) => [
+                    c.category,
+                    {
+                      label: c.category,
+                      color: COLORS[idx % COLORS.length],
+                    },
+                  ])
+                )}
+                className="h-72"
+              >
+                <BarChart data={data.listingsByCategory}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                  <XAxis dataKey="category" tickLine={false} />
+                  <YAxis allowDecimals={false} tickLine={false} />
+                  <ChartTooltip content={<ChartTooltipContent />} />
+                  <Bar dataKey="count" radius={[4, 4, 0, 0]}>
+                    {data.listingsByCategory.map((entry, index) => (
+                      <Cell
+                        key={entry.category}
+                        fill={COLORS[index % COLORS.length]}
+                      />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ChartContainer>
+            ) : (
+              <div className="h-40 flex items-center justify-center text-sm text-muted-foreground">
+                No listings yet. Create a listing to see category analytics.
               </div>
-              <div className="flex justify-between items-center">
-                <span>Active Listings</span>
-                <span className="font-bold">132</span>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Status overview - pie chart */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-base">
+              <Shield className="w-4 h-4" />
+              Status Overview
+            </CardTitle>
+            <CardDescription>
+              Active vs inactive and featured listings
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="flex flex-col lg:flex-row items-center gap-4">
+            <div className="w-full lg:w-1/2">
+              {data && data.totalListings > 0 ? (
+                <ChartContainer
+                  config={{
+                    Active: { label: 'Active', color: COLORS[0] },
+                    Inactive: { label: 'Inactive', color: COLORS[1] },
+                    Featured: { label: 'Featured', color: COLORS[2] },
+                  }}
+                  className="h-64"
+                >
+                  <PieChart>
+                    <Pie
+                      data={statusData}
+                      dataKey="value"
+                      nameKey="name"
+                      innerRadius={50}
+                      outerRadius={80}
+                      paddingAngle={4}
+                    >
+                      {statusData.map((entry, index) => (
+                        <Cell
+                          key={entry.key}
+                          fill={COLORS[index % COLORS.length]}
+                        />
+                      ))}
+                    </Pie>
+                    <ChartTooltip content={<ChartTooltipContent hideLabel />} />
+                    <ChartLegend content={<ChartLegendContent />} />
+                  </PieChart>
+                </ChartContainer>
+              ) : (
+                <div className="h-40 flex items-center justify-center text-sm text-muted-foreground">
+                  No status data yet.
+                </div>
+              )}
+            </div>
+
+            {data && (
+              <div className="w-full lg:w-1/2 space-y-2 text-sm">
+                <div className="flex justify-between">
+                  <span>Active</span>
+                  <span className="font-medium">
+                    {data.statusOverview.active} / {data.totalListings}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Inactive</span>
+                  <span className="font-medium">
+                    {data.statusOverview.inactive} / {data.totalListings}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Featured</span>
+                  <span className="font-medium">
+                    {data.statusOverview.featured} ({data.featuredRate.toFixed(1)}%)
+                  </span>
+                </div>
+                <div className="mt-4 space-y-1 text-xs text-muted-foreground">
+                  <div>
+                    Total views: {data.totalViews.toLocaleString()}
+                  </div>
+                  <div>
+                    Avg views per listing: {data.avgViewsPerListing.toFixed(1)}
+                  </div>
+                </div>
               </div>
-              <div className="flex justify-between items-center">
-                <span>Sold This Month</span>
-                <span className="font-bold">23</span>
-              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Category & subcategory breakdown */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-base">
+            <FileText className="w-4 h-4" />
+            Listings by Category & Subcategory
+          </CardTitle>
+          <CardDescription>
+            See how many listings you have in each category and subcategory
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="rounded-md border overflow-hidden">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Category</TableHead>
+                  <TableHead>Subcategory</TableHead>
+                  <TableHead className="text-right">Listings</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {data && data.categoryBreakdown && data.categoryBreakdown.length > 0 ? (
+                  data.categoryBreakdown.map((row) => (
+                    <TableRow key={`${row.category}-${row.subCategory}`}>
+                      <TableCell>{row.category}</TableCell>
+                      <TableCell>{row.subCategory}</TableCell>
+                      <TableCell className="text-right font-medium">
+                        {row.count}
+                      </TableCell>
+                    </TableRow>
+                  ))
+                ) : (
+                  <TableRow>
+                    <TableCell colSpan={3} className="text-center text-sm py-6">
+                      No listings yet. Create listings to see category breakdown.
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Recent listings & quick stats */}
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+        <Card className="xl:col-span-2">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-base">
+              <FileText className="w-4 h-4" />
+              Recent Listings
+            </CardTitle>
+            <CardDescription>Last 5 listings you created</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="rounded-md border overflow-hidden">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Title</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Featured</TableHead>
+                    <TableHead>Created</TableHead>
+                    <TableHead className="text-right">Price</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {data && data.recentListings.length > 0 ? (
+                    data.recentListings.map((listing) => (
+                      <TableRow key={listing.id}>
+                        <TableCell className="max-w-[220px] truncate">
+                          <div className="font-medium text-sm">{listing.title}</div>
+                          <div className="text-xs text-muted-foreground">
+                            {listing.category} · {listing.type}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <Badge
+                            variant={
+                              listing.status === 'active' ? 'default' : 'secondary'
+                            }
+                          >
+                            {listing.status === 'active' ? 'Active' : 'Inactive'}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          {listing.isFeatured && (
+                            <Badge className="bg-amber-500 text-black">Featured</Badge>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          <span className="text-xs text-muted-foreground">
+                            {listing.createdAt
+                              ? new Date(listing.createdAt).toLocaleDateString()
+                              : '-'}
+                          </span>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <span className="text-sm font-medium">
+                            {listing.price != null
+                              ? `₹${Number(listing.price).toLocaleString()}`
+                              : '-'}
+                          </span>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  ) : (
+                    <TableRow>
+                      <TableCell colSpan={5} className="text-center text-sm py-8">
+                        No listings yet. Create your first listing to see it here.
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
             </div>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader>
-            <CardTitle>User Analytics</CardTitle>
+            <CardTitle className="flex items-center gap-2 text-base">
+              <Users className="w-4 h-4" />
+              Quick Stats
+            </CardTitle>
+            <CardDescription>Inquiries and engagement</CardDescription>
           </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <div className="flex justify-between items-center">
-                <span>Total Users</span>
-                <span className="font-bold">1,245</span>
+          <CardContent className="space-y-4">
+            {data ? (
+              <>
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <div className="text-sm font-medium">Total Inquiries</div>
+                    <div className="text-xs text-muted-foreground">
+                      Across all your listings
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-xl font-bold tabular-nums">
+                      {data.totalInquiries.toLocaleString()}
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      {data.pendingInquiries} pending
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <div className="text-sm font-medium">Average Views</div>
+                    <div className="text-xs text-muted-foreground">
+                      Per listing
+                    </div>
+                  </div>
+                  <div className="text-right text-xl font-bold tabular-nums">
+                    {data.avgViewsPerListing.toFixed(1)}
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <div className="text-sm font-medium">Featured Rate</div>
+                    <div className="text-xs text-muted-foreground">
+                      Listings marked as featured
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-xl font-bold tabular-nums">
+                      {data.featuredRate.toFixed(1)}%
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      {data.featuredListings} featured of {data.totalListings}
+                    </div>
+                  </div>
+                </div>
+              </>
+            ) : (
+              <div className="text-sm text-muted-foreground">
+                Analytics will appear once you have some activity on your listings.
               </div>
-              <div className="flex justify-between items-center">
-                <span>Active This Month</span>
-                <span className="font-bold">856</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span>New Registrations</span>
-                <span className="font-bold">42</span>
-              </div>
-            </div>
+            )}
           </CardContent>
         </Card>
       </div>
@@ -5328,22 +5679,16 @@ export default function AdminDashboard() {
   const renderSection = () => {
     // Normalize the active section to handle different slug formats
     const normalizedSection = activeSection.toLowerCase().replace(/\s+/g, '-');
-    console.log('LanguageClassesForm loaded',normalizedSection);
+    console.log('LanguageClassesForm loaded', normalizedSection);
 
     switch (normalizedSection) {
       case "dashboard":
-        return <DashboardSection/>;
-      case "categories":
-        return <CategoriesSection />;
-      case "users":
-        return <UsersSection />;
-      case "agencies":
-        return <AgenciesSection />;
+        return <AnalyticsSection />;
       case "analytics":
         return <AnalyticsSection />;
       case "settings":
         return <SettingsSection />;
-      case "hostels-&-pg":x
+      case "hostels-&-pg":
       case "hostels-pg":
       case "hostel-pg":
         return <HostelsPgSection />;
@@ -5358,7 +5703,7 @@ export default function AdminDashboard() {
       case "factory-industrial-land":
       case "industrial-land":
         return <IndustrialLandSection />;
-      case"company-office-space":
+      case "company-office-space":
       case "office-spaces":
         return <OfficeSpacesSection />;
       case "rental-–-rooms,-flats,-apartments":
@@ -5443,11 +5788,19 @@ export default function AdminDashboard() {
       case "skill-training--certification":
         return <SkillTrainingCertificationSection />;
       default:
-        return <DashboardSection/>;
         return (
           <div className="space-y-6">
             <h2 className="text-2xl font-bold">Dashboard</h2>
             <p className="text-muted-foreground">Overview of your system</p>
+            <Card>
+              <CardHeader>
+                <CardTitle>Welcome to Your Dashboard</CardTitle>
+                <CardDescription>Select a section from the sidebar to get started</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <p>This is the default dashboard view. Choose a section from the sidebar to view or manage specific content.</p>
+              </CardContent>
+            </Card>
           </div>
         );
     }
