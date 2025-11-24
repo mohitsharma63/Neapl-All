@@ -48,16 +48,19 @@ export default function Login() {
       if (response.ok) {
         // Store user data in localStorage
         localStorage.setItem("user", JSON.stringify(data.user));
-        
+
         // Redirect based on role and account type
         if (data.user.role === "admin") {
           window.location.href = "/admin";
+        } else if (data.user.role === "user") {
+          // Users with 'user' role go to home page
+          window.location.href = "/";
         } else if (data.user.accountType === "buyer") {
           window.location.href = "/buyer-dashboard";
         } else if (data.user.accountType === "seller") {
           window.location.href = "/seller-dashboard";
         } else {
-          window.location.href = "/individual-dashboard";
+          window.location.href = "/";
         }
       } else {
         alert(data.message || "Login failed. Please check your credentials.");

@@ -3,6 +3,47 @@
 @tailwind components;
 @tailwind utilities;
 
+@keyframes fade-in-up {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes bounce-slow {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-5px);
+  }
+}
+
+@keyframes pulse-glow {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(11, 132, 87, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 0 10px rgba(11, 132, 87, 0);
+  }
+}
+
+.animate-fade-in-up {
+  animation: fade-in-up 0.6s ease-out forwards;
+}
+
+.animate-bounce-slow {
+  animation: bounce-slow 2s ease-in-out infinite;
+}
+
+.animate-pulse-glow {
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
 @layer utilities {
   .scrollbar-hide::-webkit-scrollbar {
     display: none;
@@ -165,38 +206,38 @@ textarea:focus {
 }
 
 :root {
-  --background: hsl(210, 15%, 98%);
-  --foreground: hsl(225, 25%, 15%);
+  --background: hsl(0, 0%, 100%);
+  --foreground: hsl(0, 0%, 17%);
   --card: hsl(0, 0%, 100%);
-  --card-foreground: hsl(225, 25%, 15%);
+  --card-foreground: hsl(0, 0%, 17%);
   --popover: hsl(0, 0%, 100%);
-  --popover-foreground: hsl(225, 25%, 15%);
-  --primary: hsl(215, 85%, 35%);
+  --popover-foreground: hsl(0, 0%, 17%);
+  --primary: hsl(157, 88%, 29%);
   --primary-foreground: hsl(0, 0%, 100%);
-  --secondary: hsl(210, 25%, 94%);
-  --secondary-foreground: hsl(225, 25%, 15%);
-  --muted: hsl(210, 25%, 94%);
-  --muted-foreground: hsl(215, 15%, 55%);
-  --accent: hsl(165, 75%, 40%);
+  --secondary: hsl(157, 20%, 95%);
+  --secondary-foreground: hsl(0, 0%, 17%);
+  --muted: hsl(157, 20%, 95%);
+  --muted-foreground: hsl(0, 0%, 45%);
+  --accent: hsl(157, 88%, 29%);
   --accent-foreground: hsl(0, 0%, 100%);
   --destructive: hsl(0, 75%, 55%);
   --destructive-foreground: hsl(0, 0%, 100%);
-  --border: hsl(215, 25%, 88%);
-  --input: hsl(215, 25%, 88%);
-  --ring: hsl(215, 85%, 35%);
-  --chart-1: hsl(215, 85%, 35%);
-  --chart-2: hsl(165, 75%, 40%);
+  --border: hsl(157, 25%, 88%);
+  --input: hsl(157, 25%, 88%);
+  --ring: hsl(157, 88%, 29%);
+  --chart-1: hsl(157, 88%, 29%);
+  --chart-2: hsl(157, 75%, 40%);
   --chart-3: hsl(35, 85%, 55%);
   --chart-4: hsl(285, 75%, 50%);
   --chart-5: hsl(15, 85%, 60%);
-  --sidebar: hsl(210, 25%, 94%);
-  --sidebar-foreground: hsl(225, 25%, 15%);
-  --sidebar-primary: hsl(215, 85%, 35%);
+  --sidebar: hsl(157, 20%, 95%);
+  --sidebar-foreground: hsl(0, 0%, 17%);
+  --sidebar-primary: hsl(157, 88%, 29%);
   --sidebar-primary-foreground: hsl(0, 0%, 100%);
-  --sidebar-accent: hsl(210, 25%, 94%);
-  --sidebar-accent-foreground: hsl(215, 85%, 35%);
-  --sidebar-border: hsl(215, 25%, 88%);
-  --sidebar-ring: hsl(215, 85%, 35%);
+  --sidebar-accent: hsl(157, 20%, 95%);
+  --sidebar-accent-foreground: hsl(157, 88%, 29%);
+  --sidebar-border: hsl(157, 25%, 88%);
+  --sidebar-ring: hsl(157, 88%, 29%);
   --font-sans: 'Inter', sans-serif;
   --font-serif: Georgia, serif;
   --font-mono: Menlo, monospace;
@@ -272,7 +313,7 @@ textarea:focus {
 }
 
 .stats-number {
-  background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
+  background: linear-gradient(135deg, #0B8457 0%, #059669 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -291,7 +332,7 @@ textarea:focus {
   left: 0;
   right: 0;
   bottom: 0;
-  background: linear-gradient(135deg, rgba(30, 64, 175, 0.05) 0%, rgba(5, 150, 105, 0.05) 100%);
+  background: linear-gradient(135deg, rgba(11, 132, 87, 0.05) 0%, rgba(5, 150, 105, 0.05) 100%);
   opacity: 0;
   transition: opacity 0.3s ease;
 }
@@ -302,7 +343,7 @@ textarea:focus {
 
 .nav-tab.active::before {
   opacity: 1;
-  background: linear-gradient(135deg, rgba(5, 150, 105, 0.1) 0%, rgba(30, 64, 175, 0.1) 100%);
+  background: linear-gradient(135deg, rgba(5, 150, 105, 0.1) 0%, rgba(11, 132, 87, 0.1) 100%);
 }
 
 /* Mobile navigation scroll indicators */
@@ -331,11 +372,11 @@ textarea:focus {
 
 /* Nepal-inspired design elements */
 .nepal-gradient {
-  background: linear-gradient(135deg, #1e40af 0%, #059669 50%, #dc2626 100%);
+  background: linear-gradient(135deg, #0B8457 0%, #059669 50%, #0B8457 100%);
 }
 
 .mountain-shadow {
-  box-shadow: 0 10px 30px -3px rgba(30, 64, 175, 0.1), 0 4px 8px -2px rgba(5, 150, 105, 0.05);
+  box-shadow: 0 10px 30px -3px rgba(11, 132, 87, 0.1), 0 4px 8px -2px rgba(11, 132, 87, 0.05);
 }
 
 .prayer-flag-animation {
@@ -349,7 +390,7 @@ textarea:focus {
 }
 
 .himalayan-text {
-  background: linear-gradient(135deg, #1e40af 0%, #059669 30%, #dc2626 100%);
+  background: linear-gradient(135deg, #0B8457 0%, #059669 30%, #0B8457 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -358,18 +399,18 @@ textarea:focus {
 
 .nepali-card {
   background: linear-gradient(145deg, #ffffff 0%, #f8fafc 100%);
-  border: 1px solid rgba(30, 64, 175, 0.1);
-  box-shadow: 0 4px 20px rgba(30, 64, 175, 0.08);
+  border: 1px solid rgba(11, 132, 87, 0.1);
+  box-shadow: 0 4px 20px rgba(11, 132, 87, 0.08);
 }
 
 .nepali-card:hover {
   transform: translateY(-4px);
-  box-shadow: 0 12px 35px rgba(30, 64, 175, 0.15);
+  box-shadow: 0 12px 35px rgba(11, 132, 87, 0.15);
   transition: all 0.3s ease;
 }
 
 .cultural-pattern {
-  background-image: url("data:image/svg+xml,%3Csvg width='40' height='40' viewBox='0 0 40 40' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%231e40af' fill-opacity='0.03'%3E%3Cpath d='M20 20c0-5.5-4.5-10-10-10s-10 4.5-10 10 4.5 10 10 10 10-4.5 10-10zm10 0c0-5.5-4.5-10-10-10s-10 4.5-10 10 4.5 10 10 10 10-4.5 10-10z'/%3E%3C/g%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg width='40' height='40' viewBox='0 0 40 40' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%230B8457' fill-opacity='0.03'%3E%3Cpath d='M20 20c0-5.5-4.5-10-10-10s-10 4.5-10 10 4.5 10 10 10 10-4.5 10-10zm10 0c0-5.5-4.5-10-10-10s-10 4.5-10 10 4.5 10 10 10 10-4.5 10-10z'/%3E%3C/g%3E%3C/svg%3E");
 }
 
 /* Utility: hide native scrollbars but keep scrolling functional */

@@ -1,7 +1,8 @@
-import { Heart, User, Plus, Menu, X, Home, Building2, MapPin, Briefcase, Users as UsersIcon, GraduationCap, Settings, ChevronDown } from "lucide-react";
+import { Heart, User, Plus, Menu, X, Home, Building2, MapPin, Briefcase, Users as UsersIcon, GraduationCap, Settings, ChevronDown, Search } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { useQuery } from "@tanstack/react-query";
 
 const iconMap: Record<string, any> = {
@@ -102,6 +103,18 @@ export default function Header() {
                 </div>
               </div>
             </Link>
+
+            {/* Search Bar */}
+            <div className="flex-1 max-w-2xl mx-4 hidden md:block" data-testid="search-bar">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                <Input
+                  type="text"
+                  placeholder="Search properties, vehicles, jobs..."
+                  className="w-full pl-10 pr-4 py-2 bg-white/90 border-white/20 focus:bg-white"
+                />
+              </div>
+            </div>
 
             {/* Header Actions */}
             <div className="flex items-center space-x-2 md:space-x-4" data-testid="header-actions">

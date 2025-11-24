@@ -1,75 +1,264 @@
-
 import { useParams, Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowLeft, Home as HomeIcon, MapPin, Filter, LayoutGrid, LayoutList } from "lucide-react";
+import { ArrowLeft, Home as HomeIcon, MapPin, Filter, LayoutGrid, LayoutList, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import PropertyCard from "@/components/property-card";
-import SearchFilters from "@/components/search-filters";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Card, CardContent } from "@/components/ui/card";
+import { CategoryListingCard } from "@/components/category-listing-card";
 import Header from "@/components/header";
 import Footer from "@/components/footer";
-import type { PropertyWithRelations, SearchFilters as Filters } from "@/lib/types";
 import { useState } from "react";
+import { useUser } from '@/hooks/use-user';
+
+// Map subcategory slugs to their API endpoints
+const SUBCATEGORY_API_MAP: Record<string, string> = {
+  'TuitionPrivatClasses': '/api/admin/tuition-private-classes',
+  'Tuition & Private Classes': '/api/admin/tuition-private-classes',
+  'RentalListings': '/api/admin/rental-listings',
+  'Rental Listings': '/api/admin/rental-listings',
+  'HostelPG': '/api/admin/hostel-pg',
+  'Hostel & PG': '/api/admin/hostel-pg',
+  'ConstructionMaterials': '/api/admin/construction-materials',
+  'Construction Materials': '/api/admin/construction-materials',
+  'Construction & Building Materials': '/api/admin/construction-materials',
+  'PropertyDeals': '/api/admin/property-deals',
+  'Property Deals': '/api/admin/property-deals',
+  'CommercialProperties': '/api/admin/commercial-properties',
+  'Commercial Properties': '/api/admin/commercial-properties',
+  'IndustrialLand': '/api/admin/industrial-land',
+  'Industrial Land': '/api/admin/industrial-land',
+  'OfficeSpaces': '/api/admin/office-spaces',
+  'Office Spaces': '/api/admin/office-spaces',
+  'CarsBikes': '/api/admin/cars-bikes',
+  'Cars & Bikes': '/api/admin/cars-bikes',
+  'HeavyEquipment': '/api/admin/heavy-equipment',
+  'Heavy Equipment': '/api/admin/heavy-equipment',
+  'Showrooms': '/api/admin/showrooms',
+  'SecondHandCarsBikes': '/api/admin/second-hand-cars-bikes',
+  'Second Hand Cars & Bikes': '/api/admin/second-hand-cars-bikes',
+  'CarBikeRentals': '/api/car-bike-rentals',
+  'Car & Bike Rentals': '/api/car-bike-rentals',
+  'TransportationMovingServices': '/api/admin/transportation-moving-services',
+  'Transportation & Moving Services': '/api/admin/transportation-moving-services',
+  'VehicleLicenseClasses': '/api/admin/vehicle-license-classes',
+  'Vehicle License Classes': '/api/admin/vehicle-license-classes',
+  'ElectronicsGadgets': '/api/admin/electronics-gadgets',
+  'Electronics & Gadgets': '/api/admin/electronics-gadgets',
+  'PhonesTabletsAccessories': '/api/admin/phones-tablets-accessories',
+  'Phones, Tablets & Accessories': '/api/admin/phones-tablets-accessories',
+  'New Phones & Tablets & Accessories': '/api/admin/phones-tablets-accessories',
+  'SecondHandPhonesTabletsAccessories': '/api/admin/second-hand-phones-tablets-accessories',
+  'Second Hand Phones & Accessories': '/api/admin/second-hand-phones-tablets-accessories',
+  'Second-Hand Phones & Tablets & Accessories': '/api/admin/second-hand-phones-tablets-accessories',
+  'ComputerMobileLaptopRepairServices': '/api/admin/computer-mobile-laptop-repair-services',
+  'Computer & Mobile Repair Services': '/api/admin/computer-mobile-laptop-repair-services',
+  'Computer, Mobile & Laptop Repair Services': '/api/admin/computer-mobile-laptop-repair-services',
+  'CyberCafeInternetServices': '/api/admin/cyber-cafe-internet-services',
+  'Cyber Café / Internet Services': '/api/admin/cyber-cafe-internet-services',
+  'ServiceCentreWarranty': '/api/admin/service-centre-warranty',
+  'Service Centre / Warranty': '/api/admin/service-centre-warranty',
+  'Service Centre % Warranty': '/api/admin/service-centre-warranty',
+  'FurnitureInteriorDecor': '/api/admin/furniture-interior-decor',
+  'Furniture & Interior Decor': '/api/admin/furniture-interior-decor',
+  'HouseholdServices': '/api/admin/household-services',
+  'Household Services': '/api/admin/household-services',
+  'EventDecorationServices': '/api/admin/event-decoration-services',
+  'Event & Decoration Services': '/api/admin/event-decoration-services',
+  'Event & Decoration Services (Marriage Halls, Parties, Café Setup, Decoration Materials)': '/api/admin/event-decoration-services',
+  'FashionBeautyProducts': '/api/admin/fashion-beauty-products',
+  'Fashion & Beauty Products': '/api/admin/fashion-beauty-products',
+  'SareeClothingShopping': '/api/admin/saree-clothing-shopping',
+  'Saree & Clothing Shopping': '/api/admin/saree-clothing-shopping',
+  'EbooksOnlineCourses': '/api/admin/ebooks-online-courses',
+  'E-Books & Online Courses': '/api/admin/ebooks-online-courses',
+  'CricketSportsTraining': '/api/admin/cricket-sports-training',
+  'Cricket & Sports Training': '/api/admin/cricket-sports-training',
+  'PharmacyMedicalStores': '/api/admin/pharmacy-medical-stores',
+  'Pharmacy & Medical Stores': '/api/admin/pharmacy-medical-stores',
+  'DanceKarateGymYoga': '/api/admin/dance-karate-gym-yoga',
+  'Dance, Karate, Gym & Yoga': '/api/admin/dance-karate-gym-yoga',
+  'DanceKarateGymYoga Classes': '/api/admin/dance-karate-gym-yoga',
+  'LanguageClasses': '/api/admin/language-classes',
+  'Language Classes': '/api/admin/language-classes',
+  'AcademiesMusicArtsSports': '/api/admin/academies-music-arts-sports',
+  'Academies - Music, Arts, Sports': '/api/admin/academies-music-arts-sports',
+  'Academies-Music-Arts-Sports': '/api/admin/academies-music-arts-sports',
+  'SkillTrainingCertification': '/api/admin/skill-training-certification',
+  'Skill Training & Certification': '/api/admin/skill-training-certification',
+  'Skill-Training -Certification': '/api/admin/skill-training-certification',
+  'SchoolsCollegesCoaching': '/api/admin/schools-colleges-coaching',
+  'Schools, Colleges & Coaching': '/api/admin/schools-colleges-coaching',
+  'Schools, Colleges, Coaching Institutes': '/api/admin/schools-colleges-coaching',
+  'CricketSportsTraining': '/api/admin/cricket-sports-training',
+  'Cricket & Sports Training': '/api/admin/cricket-sports-training',
+  'Cricket-Sports Training': '/api/admin/cricket-sports-training',
+  'EducationalConsultancyStudyAbroad': '/api/admin/educational-consultancy-study-abroad',
+  'Educational Consultancy & Study Abroad': '/api/admin/educational-consultancy-study-abroad',
+  'educational-consultancy-study-abroad': '/api/admin/educational-consultancy-study-abroad',
+  'JewelryAccessories': '/api/admin/jewelry-accessories',
+  'Jewelry & Accessories': '/api/admin/jewelry-accessories',
+  'HealthWellnessServices': '/api/admin/health-wellness-services',
+  'Health & Wellness Services': '/api/admin/health-wellness-services',
+  'TelecommunicationServices': '/api/admin/telecommunication-services',
+  'Telecommunication Services': '/api/admin/telecommunication-services',
+  'ServiceCentreWarranty': '/api/admin/service-centre-warranty',
+  'Service Centre & Warranty': '/api/admin/service-centre-warranty',
+};
+
+// Map subcategory slugs to readable names
+const SUBCATEGORY_NAMES: Record<string, string> = {
+  'TuitionPrivatClasses': 'Tuition & Private Classes',
+  'RentalListings': 'Rental Listings',
+  'HostelPG': 'Hostel & PG',
+  'ConstructionMaterials': 'Construction Materials',
+  'Construction & Building Materials': 'Construction & Building Materials',
+  'PropertyDeals': 'Property Deals',
+  'CommercialProperties': 'Commercial Properties',
+  'IndustrialLand': 'Industrial Land',
+  'OfficeSpaces': 'Office Spaces',
+  'CarsBikes': 'Cars & Bikes',
+  'HeavyEquipment': 'Heavy Equipment',
+  'Showrooms': 'Showrooms',
+  'SecondHandCarsBikes': 'Second Hand Cars & Bikes',
+  'CarBikeRentals': 'Car & Bike Rentals',
+  'TransportationMovingServices': 'Transportation & Moving Services',
+  'VehicleLicenseClasses': 'Vehicle License Classes',
+  'ElectronicsGadgets': 'Electronics & Gadgets',
+  'PhonesTabletsAccessories': 'Phones, Tablets & Accessories',
+  'New Phones & Tablets & Accessories': 'New Phones, Tablets & Accessories',
+  'SecondHandPhonesTabletsAccessories': 'Second Hand Phones & Accessories',
+  'Second-Hand Phones & Tablets & Accessories': 'Second Hand Phones, Tablets & Accessories',
+  'ComputerMobileLaptopRepairServices': 'Computer & Mobile Repair Services',
+  'Computer, Mobile & Laptop Repair Services': 'Computer, Mobile & Laptop Repair Services',
+  'CyberCafeInternetServices': 'Cyber Café / Internet Services',
+  'Cyber Café / Internet Services': 'Cyber Café / Internet Services',
+  'FurnitureInteriorDecor': 'Furniture & Interior Decor',
+  'HouseholdServices': 'Household Services',
+  'EventDecorationServices': 'Event & Decoration Services',
+  'Event & Decoration Services (Marriage Halls, Parties, Café Setup, Decoration Materials)': 'Event & Decoration Services',
+  'FashionBeautyProducts': 'Fashion & Beauty Products',
+  'SareeClothingShopping': 'Saree & Clothing Shopping',
+  'EbooksOnlineCourses': 'E-Books & Online Courses',
+  'CricketSportsTraining': 'Cricket & Sports Training',
+  'PharmacyMedicalStores': 'Pharmacy & Medical Stores',
+  'DanceKarateGymYoga': 'Dance, Karate, Gym & Yoga',
+  'DanceKarateGymYoga Classes': 'Dance, Karate, Gym & Yoga',
+  'LanguageClasses': 'Language Classes',
+  'AcademiesMusicArtsSports': 'Academies - Music, Arts, Sports',
+  'Academies-Music-Arts-Sports': 'Academies - Music, Arts, Sports',
+  'SkillTrainingCertification': 'Skill Training & Certification',
+  'Skill-Training -Certification': 'Skill Training & Certification',
+  'SchoolsCollegesCoaching': 'Schools, Colleges & Coaching',
+  'Schools, Colleges, Coaching Institutes': 'Schools, Colleges & Coaching',
+  'CricketSportsTraining': 'Cricket & Sports Training',
+  'Cricket-Sports Training': 'Cricket & Sports Training',
+  'EducationalConsultancyStudyAbroad': 'Educational Consultancy & Study Abroad',
+  'educational-consultancy-study-abroad': 'Educational Consultancy & Study Abroad',
+  'JewelryAccessories': 'Jewelry & Accessories',
+  'HealthWellnessServices': 'Health & Wellness Services',
+  'TelecommunicationServices': 'Telecommunication Services',
+  'ServiceCentreWarranty': 'Service Centre & Warranty',
+  'Service Centre / Warranty': 'Service Centre / Warranty',
+  'Service Centre % Warranty': 'Service Centre / Warranty',
+};
 
 export default function SubcategoryPage() {
   const params = useParams();
-  const subcategoryName = params.name ? decodeURIComponent(params.name) : "";
-  const [filters, setFilters] = useState<Filters>({
-    priceType: "sale"
-  });
+  const categoryId = params.categorySlug;
+  const subcategorySlug = params.subcategorySlug;
+
+  const [searchTerm, setSearchTerm] = useState("");
+  const [cityFilter, setCityFilter] = useState("all");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
 
-  const { data: properties = [] } = useQuery<PropertyWithRelations[]>({
-    queryKey: ["/api/properties"],
+  // Fetch category data
+  const { data: categories = [], isLoading: categoryLoading } = useQuery({
+    queryKey: ["/api/admin/categories"],
   });
 
-  // Filter properties based on subcategory and filters
-  const filteredProperties = properties.filter((property) => {
-    let matches = true;
+  // Find the current category
+  const category = categories.find((cat: any) => cat.id === categoryId);
 
-    // Filter by price type for Property Deals
-    if (filters.priceType && property.priceType !== filters.priceType) {
-      matches = false;
-    }
+  // Get API endpoint for this subcategory
+  const apiEndpoint = SUBCATEGORY_API_MAP[subcategorySlug || ''];
+  const subcategoryName = SUBCATEGORY_NAMES[subcategorySlug || ''] || subcategorySlug;
 
-    // Apply other filters
-    if (filters.locationId && property.locationId !== filters.locationId) {
-      matches = false;
-    }
+  const { user } = useUser();
 
-    if (filters.propertyType && property.propertyType !== filters.propertyType) {
-      matches = false;
-    }
+  // Fetch listings for this subcategory (send role/userId so server returns appropriate results)
+  const { data: listings = [], isLoading: listingsLoading } = useQuery({
+    queryKey: [apiEndpoint, user?.id, user?.role],
+    enabled: !!apiEndpoint,
+    queryFn: async () => {
+      // Build URL with role/userId query params. Server endpoints under /api/admin/* use these to decide what to return.
+      const base = apiEndpoint || '';
+      const url = new URL(base, window.location.origin);
 
-    if (filters.bedrooms && property.bedrooms && property.bedrooms < parseInt(filters.bedrooms.toString())) {
-      matches = false;
-    }
+      // If user is admin, tell server role=admin so it returns all data.
+      if (user?.role === 'admin') {
+        url.searchParams.append('role', 'admin');
+      } else if (user?.id) {
+        // If logged-in (seller or regular user), request only their records by userId (server will return owner-specific records)
+        url.searchParams.append('userId', user.id);
+        url.searchParams.append('role', user.role || 'user');
+      } else {
+        // not logged in: do not request admin-level data; server endpoints will typically return empty arrays for missing userId
+      }
 
-    if (filters.minPrice && parseFloat(property.price) < filters.minPrice) {
-      matches = false;
-    }
-
-    if (filters.maxPrice && parseFloat(property.price) > filters.maxPrice) {
-      matches = false;
-    }
-
-    return matches;
+      const response = await fetch(url.toString());
+      if (!response.ok) throw new Error("Failed to fetch listings");
+      return response.json();
+    },
   });
 
-  const handleSaveSearch = () => {
-    console.log("Saving search with filters:", filters);
-  };
+  // Filter listings
+  const filteredListings = listings.filter((listing: any) => {
+    if (!listing.isActive) return false;
+    if (searchTerm && !listing.title?.toLowerCase().includes(searchTerm.toLowerCase())) return false;
+    if (cityFilter !== "all" && listing.city !== cityFilter) return false;
+    return true;
+  });
 
-  const handleClearFilters = () => {
-    setFilters({ priceType: "sale" });
-  };
+  const cities = [...new Set(listings.map((l: any) => l.city).filter(Boolean))];
+
+  if (categoryLoading || listingsLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <Header />
+        <div className="container mx-auto px-4 py-16 text-center">
+          <p className="text-muted-foreground">Loading...</p>
+        </div>
+        <Footer />
+      </div>
+    );
+  }
+
+  if (!apiEndpoint) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <Header />
+        <div className="container mx-auto px-4 py-16 text-center">
+          <h2 className="text-2xl font-bold mb-4">Subcategory Not Found</h2>
+          <Link href="/">
+            <Button>
+              <HomeIcon className="w-4 h-4 mr-2" />
+              Back to Home
+            </Button>
+          </Link>
+        </div>
+        <Footer />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
       <Header />
 
       {/* Hero Section */}
-      <section className="bg-gradient-to-r from-primary/10 via-primary/5 to-background py-12 border-b">
+      <section className="bg-gradient-to-r from-purple-100 to-purple-50 py-12">
         <div className="container mx-auto px-4">
           {/* Breadcrumb */}
           <nav className="flex items-center space-x-2 text-sm text-muted-foreground mb-6">
@@ -78,10 +267,14 @@ export default function SubcategoryPage() {
               Home
             </Link>
             <span>{'>'}</span>
-            <Link href="/properties" className="hover:text-foreground transition-colors">
-              Properties
-            </Link>
-            <span>{'>'}</span>
+            {category && (
+              <>
+                <Link href={`/category/${category.id}`} className="hover:text-foreground transition-colors">
+                  {category.name}
+                </Link>
+                <span>{'>'}</span>
+              </>
+            )}
             <span className="text-foreground font-medium">{subcategoryName}</span>
           </nav>
 
@@ -89,22 +282,23 @@ export default function SubcategoryPage() {
           <div className="flex items-center justify-between">
             <div>
               <div className="flex items-center space-x-3 mb-2">
-                <Link href="/">
-                  <Button variant="outline" size="sm" className="gap-2">
-                    <ArrowLeft className="w-4 h-4" />
-                    Back
-                  </Button>
-                </Link>
+                {category && (
+                  <Link href={`/category/${category.id}`}>
+                    <Button variant="outline" size="sm" className="gap-2">
+                      <ArrowLeft className="w-4 h-4" />
+                      Back to {category.name}
+                    </Button>
+                  </Link>
+                )}
                 <Badge variant="secondary" className="text-sm">
-                  {filteredProperties.length} Properties
+                  {filteredListings.length} Listings
                 </Badge>
               </div>
               <h1 className="text-4xl font-bold text-foreground mb-2">
                 {subcategoryName}
               </h1>
               <p className="text-lg text-muted-foreground max-w-2xl">
-                Discover the best property deals for buying and selling in Nepal. 
-                Browse through verified listings with competitive prices.
+                Browse {subcategoryName.toLowerCase()} listings
               </p>
             </div>
 
@@ -134,91 +328,62 @@ export default function SubcategoryPage() {
       </section>
 
       {/* Filters */}
-      <SearchFilters
-        filters={filters}
-        onFiltersChange={setFilters}
-        onSaveSearch={handleSaveSearch}
-        onClearFilters={handleClearFilters}
-      />
-
-      {/* Stats Bar */}
-      <section className="bg-white py-4 border-b">
-        <div className="container mx-auto px-4">
-          <div className="flex flex-wrap items-center justify-between gap-4">
-            <div className="flex items-center space-x-6 text-sm">
-              <div className="flex items-center space-x-2">
-                <MapPin className="w-4 h-4 text-primary" />
-                <span className="text-muted-foreground">All Locations</span>
+      <section className="container mx-auto px-4 py-8">
+        <Card className="mb-8">
+          <CardContent className="p-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                <Input
+                  placeholder={`Search ${subcategoryName.toLowerCase()}...`}
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10"
+                />
               </div>
-              <div className="flex items-center space-x-2">
-                <Filter className="w-4 h-4 text-primary" />
-                <span className="text-muted-foreground">
-                  {Object.keys(filters).filter(key => filters[key as keyof Filters]).length} Active Filters
-                </span>
-              </div>
-            </div>
 
-            {/* Mobile View Toggle */}
-            <div className="md:hidden flex items-center space-x-2 bg-gray-100 rounded-lg p-1">
-              <Button
-                variant={viewMode === "grid" ? "default" : "ghost"}
-                size="sm"
-                onClick={() => setViewMode("grid")}
-              >
-                <LayoutGrid className="w-4 h-4" />
-              </Button>
-              <Button
-                variant={viewMode === "list" ? "default" : "ghost"}
-                size="sm"
-                onClick={() => setViewMode("list")}
-              >
-                <LayoutList className="w-4 h-4" />
-              </Button>
+              <Select value={cityFilter} onValueChange={setCityFilter}>
+                <SelectTrigger>
+                  <SelectValue placeholder="All Cities" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Cities</SelectItem>
+                  {cities.map((city) => (
+                    <SelectItem key={city} value={city}>{city}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
+          </CardContent>
+        </Card>
+
+        <div className="mb-6">
+          <p className="text-sm text-muted-foreground">
+            Showing <span className="font-semibold">{filteredListings.length}</span> results
+          </p>
+        </div>
+
+        {filteredListings.length === 0 ? (
+          <Card>
+            <CardContent className="py-12 text-center">
+              <p className="text-muted-foreground">No listings found</p>
+            </CardContent>
+          </Card>
+        ) : (
+          <div className={
+            viewMode === "grid"
+              ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+              : "space-y-4"
+          }>
+            {filteredListings.map((listing: any) => (
+              <CategoryListingCard
+                key={listing.id}
+                listing={listing}
+                categorySlug={subcategorySlug || ''}
+              />
+            ))}
           </div>
-        </div>
-      </section>
-
-      {/* Properties Grid/List */}
-      <section className="py-8 md:py-12">
-        <div className="container mx-auto px-4">
-          {filteredProperties.length === 0 ? (
-            <div className="text-center py-16">
-              <div className="mb-4">
-                <div className="w-20 h-20 mx-auto bg-gray-100 rounded-full flex items-center justify-center">
-                  <HomeIcon className="w-10 h-10 text-gray-400" />
-                </div>
-              </div>
-              <h3 className="text-2xl font-semibold text-foreground mb-2">
-                No properties found
-              </h3>
-              <p className="text-muted-foreground mb-6">
-                Try adjusting your filters to see more results
-              </p>
-              <Button onClick={handleClearFilters}>
-                Clear All Filters
-              </Button>
-            </div>
-          ) : (
-            <>
-              <div className="mb-6 flex items-center justify-between">
-                <p className="text-sm text-muted-foreground">
-                  Showing <span className="font-semibold text-foreground">{filteredProperties.length}</span> properties
-                </p>
-              </div>
-
-              <div className={
-                viewMode === "grid"
-                  ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
-                  : "space-y-4"
-              }>
-                {filteredProperties.map((property) => (
-                  <PropertyCard key={property.id} property={property} />
-                ))}
-              </div>
-            </>
-          )}
-        </div>
+        )}
       </section>
 
       <Footer />

@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -41,6 +40,7 @@ interface User {
   firstName?: string;
   lastName?: string;
   accountType?: string;
+  role?: string;
 }
 
 function BuyerSidebar({ activeSection, setActiveSection }: { activeSection: string; setActiveSection: (section: string) => void }) {
@@ -179,24 +179,24 @@ export default function BuyerDashboard() {
 
       try {
         const userData = JSON.parse(storedUser);
-        
+
         // Fetch fresh user data from database
         const response = await fetch(`/api/users/${userData.id}`);
         if (response.ok) {
           const freshUserData = await response.json();
-          
-          // Check account type
-          if (freshUserData.accountType !== "buyer") {
+
+          // Check account type and role
+          if (freshUserData.role === "user" || (freshUserData.accountType !== "buyer" && freshUserData.role !== "admin")) {
             setLocation("/");
             return;
           }
-          
+
           setUser(freshUserData);
           // Update localStorage with fresh data
           localStorage.setItem("user", JSON.stringify(freshUserData));
         } else {
           // Fallback to stored data if API fails
-          if (userData.accountType !== "buyer") {
+          if (userData.role === "user" || (userData.accountType !== "buyer" && userData.role !== "admin")) {
             setLocation("/");
             return;
           }

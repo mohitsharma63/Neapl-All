@@ -1,3 +1,9 @@
+
+import type { Express } from "express";
+import { db } from "./db";
+import { categories, subcategories } from "@shared/schema";
+import { eq } from "drizzle-orm";
+
 import type { Express } from "express";
 import { createServer } from "http";
 import { db } from "./db";
@@ -593,8 +599,15 @@ export function registerRoutes(app: Express) {
         return res.status(403).json({ message: "Account is inactive. Please contact support." });
       }
 
-      // Return user without password
+      // Return user without password and store user in server session
       const { password: _, ...userWithoutPassword } = user;
+      try {
+        (req as any).session = (req as any).session || {};
+        (req as any).session.user = userWithoutPassword;
+      } catch (e) {
+        // ignore session set errors (session middleware may not be configured)
+      }
+
       res.json({
         message: "Login successful",
         user: userWithoutPassword,
@@ -1474,7 +1487,7 @@ export function registerRoutes(app: Express) {
       let materials;
 
       // Base query with role-based filtering
-      if (role === 'admin') {
+      if (role === 'admin' || role === 'user') {
         materials = await db.query.constructionMaterials.findMany({
           orderBy: desc(constructionMaterials.createdAt),
         });
@@ -1713,7 +1726,7 @@ export function registerRoutes(app: Express) {
       const { userId, role } = req.query;
       let deals;
       
-      if (role === 'admin') {
+      if (role === 'admin' || role === 'user') {
         deals = await db.query.propertyDeals.findMany({
           orderBy: desc(propertyDeals.createdAt),
         });
@@ -1857,7 +1870,7 @@ export function registerRoutes(app: Express) {
       const { userId, role } = req.query;
       let properties;
       
-      if (role === 'admin') {
+      if (role === 'admin' || role === 'user') {
         properties = await db.query.commercialProperties.findMany({
           orderBy: desc(commercialProperties.createdAt),
         });
@@ -2001,7 +2014,7 @@ export function registerRoutes(app: Express) {
       const { userId, role } = req.query;
       let lands;
 
-      if (role === 'admin') {
+      if (role === 'admin' || role === 'user') {
         lands = await db.query.industrialLand.findMany({
           orderBy: desc(industrialLand.createdAt),
         });
@@ -2145,7 +2158,7 @@ export function registerRoutes(app: Express) {
       const { userId, role } = req.query;
       let offices;
       
-      if (role === 'admin') {
+      if (role === 'admin' || role === 'user') {
         offices = await db.query.officeSpaces.findMany({
           orderBy: desc(officeSpaces.createdAt),
         });
@@ -2286,27 +2299,28 @@ export function registerRoutes(app: Express) {
   // GET all cars & bikes
   app.get("/api/admin/cars-bikes", async (req, res) => {
     try {
-      const { userId, role } = req.query;
+      // Derive user identity from server-side session rather than trusting query params
+      const sessionUser = (req as any).session?.user || null;
 
-      let vehicles;
+      let carsBikes = [];
 
-      // If user is admin, fetch all vehicles
-      if (role === 'admin') {
-        vehicles = await db.query.carsBikes.findMany({
+      if (sessionUser && sessionUser.role === 'admin') {
+        // Admin sees all vehicles
+        carsBikes = await db.query.carsBikes.findMany({
           orderBy: desc(carsBikes.createdAt),
         });
-      } else if (userId) {
-        // For non-admin users (sellers), filter by sellerId at database level
-        vehicles = await db.query.carsBikes.findMany({
-          where: eq(carsBikes.sellerId, userId as string),
+      } else if (sessionUser && sessionUser.id) {
+        // Sellers / regular users see only their own vehicles (sellerId)
+        carsBikes = await db.query.carsBikes.findMany({
+          where: eq(carsBikes.sellerId, sessionUser.id as string),
           orderBy: desc(carsBikes.createdAt),
         });
       } else {
-        // If no userId provided and not admin, return empty array
-        vehicles = [];
+        // Not authenticated: return empty array to avoid leaking data
+        carsBikes = [];
       }
 
-      res.json(vehicles);
+      res.json(carsBikes);
     } catch (error: any) {
       res.status(500).json({ message: error.message });
     }
@@ -2589,7 +2603,7 @@ export function registerRoutes(app: Express) {
       const { userId, role } = req.query;
       let showroomsList;
       
-      if (role === 'admin') {
+      if (role === 'admin' || role === 'user') {
         showroomsList = await db.query.showrooms.findMany({
           orderBy: desc(showrooms.createdAt),
         });
@@ -2757,7 +2771,7 @@ export function registerRoutes(app: Express) {
       let equipment;
 
       // If user is admin, fetch all equipment
-      if (role === 'admin') {
+      if (role === 'admin' || role === 'user') {
         equipment = await db.query.heavyEquipment.findMany({
           orderBy: desc(heavyEquipment.createdAt),
         });
@@ -2998,7 +3012,7 @@ export function registerRoutes(app: Express) {
       let vehicles;
 
       // If user is admin, fetch all vehicles
-      if (role === 'admin') {
+      if (role === 'admin' || role === 'user') {
         vehicles = await db.query.secondHandCarsBikes.findMany({
           orderBy: desc(secondHandCarsBikes.createdAt),
         });
@@ -3150,7 +3164,7 @@ export function registerRoutes(app: Express) {
     let listings;
 
     // If user is admin, fetch all listings
-    if (role === 'admin') {
+    if (role === 'admin' || role === 'user') {
       listings = await db.select().from(secondHandCarsBikes);
     } else if (userId) {
       // For non-admin users, filter by userId at database level
@@ -3197,7 +3211,7 @@ export function registerRoutes(app: Express) {
       let rentals;
 
       // If user is admin, fetch all rentals
-      if (role === 'admin') {
+      if (role === 'admin' || role === 'user') {
         rentals = await db.query.carBikeRentals.findMany({
           orderBy: desc(carBikeRentals.createdAt),
         });
@@ -3293,7 +3307,7 @@ export function registerRoutes(app: Express) {
       let services;
 
       // If user is admin, fetch all services
-      if (role === 'admin') {
+      if (role === 'admin' || role === 'user') {
         services = await db.query.transportationMovingServices.findMany({
           orderBy: desc(transportationMovingServices.createdAt),
         });
@@ -3458,7 +3472,7 @@ export function registerRoutes(app: Express) {
       let classes;
 
       // If user is admin, fetch all classes
-      if (role === 'admin') {
+      if (role === 'admin' || role === 'user') {
         classes = await db.query.vehicleLicenseClasses.findMany({
           orderBy: desc(vehicleLicenseClasses.createdAt),
         });
@@ -3751,7 +3765,7 @@ export function registerRoutes(app: Express) {
 
       let items;
 
-      if (role === 'admin') {
+      if (role === 'admin' || role === 'user') {
         // Admin sees all items
         items = await db.query.jewelryAccessories.findMany({
           orderBy: desc(jewelryAccessories.createdAt),
@@ -4224,7 +4238,7 @@ export function registerRoutes(app: Express) {
       let services;
 
       // If user is admin, fetch all services
-      if (role === 'admin') {
+      if (role === 'admin' || role === 'user') {
         services = await db.query.eventDecorationServices.findMany({
           orderBy: desc(eventDecorationServices.createdAt),
         });
@@ -5297,7 +5311,7 @@ export function registerRoutes(app: Express) {
 
       let classes;
 
-      if (role === 'admin') {
+      if (role === 'admin' || role === 'user') {
         classes = await db.query.danceKarateGymYoga.findMany({
           orderBy: desc(danceKarateGymYoga.createdAt),
         });
@@ -5470,7 +5484,7 @@ export function registerRoutes(app: Express) {
 
       let classes;
 
-      if (role === 'admin') {
+      if (role === 'admin' || role === 'user') {
         classes = await db.query.languageClasses.findMany({ orderBy: desc(languageClasses.createdAt) });
       } else if (userId) {
         classes = await db.query.languageClasses.findMany({ where: eq(languageClasses.userId, userId as string), orderBy: desc(languageClasses.createdAt) });
@@ -5624,7 +5638,7 @@ app.get("/api/admin/academies-music-arts-sports", async (req, res) => {
       let academies;
 
       // If user is admin, fetch all academies
-      if (role === 'admin') {
+      if (role === 'admin' || role === 'user') {
         academies = await db.query.academiesMusicArtsSports.findMany({
           orderBy: desc(academiesMusicArtsSports.createdAt),
         });
@@ -6363,7 +6377,8 @@ app.patch("/api/admin/skill-training-certification/:id/toggle-featured", async (
 
       let classes;
 
-      if (role === 'admin') {
+      // If role is 'admin' or 'user', return all records
+      if (role === 'admin' || role === 'user') {
         classes = await db.query.tuitionPrivateClasses.findMany({
           orderBy: desc(tuitionPrivateClasses.createdAt),
         });
@@ -6512,7 +6527,7 @@ app.patch("/api/admin/skill-training-certification/:id/toggle-featured", async (
       let services;
 
       // If user is admin, fetch all services
-      if (role === 'admin') {
+      if (role === 'admin' || role === 'user') {
         services = await db.query.educationalConsultancyStudyAbroad.findMany({
           orderBy: desc(educationalConsultancyStudyAbroad.createdAt),
         });
@@ -6658,7 +6673,7 @@ app.patch("/api/admin/skill-training-certification/:id/toggle-featured", async (
       let stores;
 
       // If user is admin, fetch all stores
-      if (role === 'admin') {
+      if (role === 'admin' || role === 'user') {
         stores = await db.query.pharmacyMedicalStores.findMany({
           orderBy: desc(pharmacyMedicalStores.createdAt),
         });

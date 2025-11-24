@@ -9,6 +9,7 @@ export interface PropertyWithRelations extends Property {
 export interface SearchFilters {
   locationId?: string;
   categoryId?: string;
+  subcategoryId?: string;
   agencyId?: string;
   propertyType?: string;
   minPrice?: number;
