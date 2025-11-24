@@ -701,8 +701,6 @@ export default function Home() {
         </div>
       </section>
 
-      <StatsSection />
-      <FAQSection />
       <Footer />
 
       {/* Back to Top Button */}
