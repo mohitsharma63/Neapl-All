@@ -10,7 +10,6 @@ import { CategoryListingCard } from "@/components/category-listing-card";
 import Header from "@/components/header";
 import Footer from "@/components/footer";
 import { useState } from "react";
-import { useUser } from '@/hooks/use-user';
 
 // Map subcategory slugs to their API endpoints
 const SUBCATEGORY_API_MAP: Record<string, string> = {
@@ -161,7 +160,6 @@ const SUBCATEGORY_NAMES: Record<string, string> = {
   'TelecommunicationServices': 'Telecommunication Services',
   'ServiceCentreWarranty': 'Service Centre & Warranty',
   'Service Centre / Warranty': 'Service Centre / Warranty',
-  'Service Centre % Warranty': 'Service Centre / Warranty',
 };
 
 export default function SubcategoryPage() {
@@ -181,33 +179,39 @@ export default function SubcategoryPage() {
   // Find the current category
   const category = categories.find((cat: any) => cat.id === categoryId);
 
-  // Get API endpoint for this subcategory
-  const apiEndpoint = SUBCATEGORY_API_MAP[subcategorySlug || ''];
-  const subcategoryName = SUBCATEGORY_NAMES[subcategorySlug || ''] || subcategorySlug;
-
-  const { user } = useUser();
-
-  // Fetch listings for this subcategory (send role/userId so server returns appropriate results)
-  const { data: listings = [], isLoading: listingsLoading } = useQuery({
-    queryKey: [apiEndpoint, user?.id, user?.role],
-    enabled: !!apiEndpoint,
+  // Fetch subcategory data to ensure it exists and get its name/slug
+  const { data: subcategoryData } = useQuery({
+    queryKey: ["subcategory", categoryId, subcategorySlug],
     queryFn: async () => {
-      // Build URL with role/userId query params. Server endpoints under /api/admin/* use these to decide what to return.
-      const base = apiEndpoint || '';
-      const url = new URL(base, window.location.origin);
+      const response = await fetch(`/api/admin/categories`);
+      if (!response.ok) throw new Error("Failed to fetch categories");
+      const categories = await response.json();
 
-      // If user is admin, tell server role=admin so it returns all data.
-      if (user?.role === 'admin') {
-        url.searchParams.append('role', 'admin');
-      } else if (user?.id) {
-        // If logged-in (seller or regular user), request only their records by userId (server will return owner-specific records)
-        url.searchParams.append('userId', user.id);
-        url.searchParams.append('role', user.role || 'user');
-      } else {
-        // not logged in: do not request admin-level data; server endpoints will typically return empty arrays for missing userId
-      }
+      const category = categories.find((c: any) => c.id === categoryId);
+      if (!category) return null;
 
-      const response = await fetch(url.toString());
+      // Decode the URL slug to match against database slugs
+      const decodedSlug = decodeURIComponent(subcategorySlug || '');
+
+      const subcategory = category.subcategories?.find(
+        (s: any) => s.slug === decodedSlug || s.slug === subcategorySlug || s.name === decodedSlug
+      );
+
+      return subcategory;
+    },
+  });
+
+  // Get API endpoint for this subcategory
+  const decodedSubcategorySlug = decodeURIComponent(subcategorySlug || '');
+  const endpoint = SUBCATEGORY_API_MAP[subcategorySlug || ''] || SUBCATEGORY_API_MAP[decodedSubcategorySlug];
+  const subcategoryName = subcategoryData?.name || SUBCATEGORY_NAMES[subcategorySlug || ''] || subcategorySlug;
+
+  // Fetch listings for this subcategory
+  const { data: listings = [], isLoading: listingsLoading } = useQuery({
+    queryKey: [endpoint],
+    enabled: !!endpoint,
+    queryFn: async () => {
+      const response = await fetch(endpoint);
       if (!response.ok) throw new Error("Failed to fetch listings");
       return response.json();
     },
@@ -235,7 +239,7 @@ export default function SubcategoryPage() {
     );
   }
 
-  if (!apiEndpoint) {
+  if (!endpoint) {
     return (
       <div className="min-h-screen bg-gray-50">
         <Header />

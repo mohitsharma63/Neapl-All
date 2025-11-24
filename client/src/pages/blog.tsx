@@ -7,97 +7,59 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Link } from "wouter";
+import { useQuery } from "@tanstack/react-query";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 
 export default function Blog() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
+  const [openPost, setOpenPost] = useState<any | null>(null);
 
-  const categories = [
-    { id: "all", name: "All Posts", count: 24 },
-    { id: "real-estate", name: "Real Estate", count: 8 },
-    { id: "property-tips", name: "Property Tips", count: 6 },
-    { id: "market-trends", name: "Market Trends", count: 5 },
-    { id: "legal", name: "Legal & Documentation", count: 3 },
-    { id: "investment", name: "Investment", count: 2 },
-  ];
+  const { data: categories = [], isLoading: categoriesLoading } = useQuery({
+    queryKey: ["blog-categories"],
+    queryFn: async () => {
+      const res = await fetch("/api/blog/categories");
+      if (!res.ok) throw new Error("Failed to fetch categories");
+      return res.json();
+    },
+  });
 
-  const featuredPost = {
-    id: 1,
-    title: "2025 Nepal Real Estate Market Outlook: What to Expect",
-    excerpt: "An in-depth analysis of the upcoming trends in Nepal's real estate sector, including price predictions and investment opportunities.",
-    image: "https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=800&h=400&fit=crop",
-    author: "Mohit Sharma",
-    date: "January 15, 2025",
-    readTime: "8 min read",
-    category: "Market Trends",
-    views: "2.4K"
-  };
+  const { data: posts = [], isLoading: postsLoading } = useQuery({
+    queryKey: ["blog-posts", selectedCategory],
+    queryFn: async () => {
+      const url = selectedCategory && selectedCategory !== "all" ? `/api/blog/posts?category=${encodeURIComponent(selectedCategory)}` : "/api/blog/posts";
+      const res = await fetch(url);
+      if (!res.ok) throw new Error("Failed to fetch posts");
+      return res.json();
+    },
+  });
 
-  const blogPosts = [
-    {
-      id: 2,
-      title: "Understanding Property Ownership Laws in Nepal",
-      excerpt: "A comprehensive guide to property ownership, documentation, and legal requirements for buyers in Nepal.",
-      image: "https://images.unsplash.com/photo-1450101499163-c8848c66ca85?w=400&h=250&fit=crop",
-      author: "Sita Gautam",
-      date: "January 12, 2025",
-      readTime: "6 min read",
-      category: "Legal & Documentation",
-      views: "1.8K"
+  // Fetch all posts (unfiltered) to compute category counts and overall stats
+  const { data: allPosts = [], isLoading: allPostsLoading } = useQuery({
+    queryKey: ["blog-posts-all"],
+    queryFn: async () => {
+      const res = await fetch("/api/blog/posts");
+      if (!res.ok) throw new Error("Failed to fetch all posts");
+      return res.json();
     },
-    {
-      id: 3,
-      title: "Top 10 Areas for Property Investment in Kathmandu Valley",
-      excerpt: "Discover the most promising neighborhoods for real estate investment with high growth potential.",
-      image: "https://images.unsplash.com/photo-1582407947304-fd86f028f716?w=400&h=250&fit=crop",
-      author: "Ram Thapa",
-      date: "January 10, 2025",
-      readTime: "5 min read",
-      category: "Investment",
-      views: "3.1K"
-    },
-    {
-      id: 4,
-      title: "How to Get the Best Deal When Buying Property",
-      excerpt: "Expert tips and negotiation strategies to help you secure the best price for your dream property.",
-      image: "https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?w=400&h=250&fit=crop",
-      author: "Asha Rai",
-      date: "January 8, 2025",
-      readTime: "7 min read",
-      category: "Property Tips",
-      views: "2.2K"
-    },
-    {
-      id: 5,
-      title: "The Rise of Smart Homes in Nepal",
-      excerpt: "Exploring the growing trend of smart home technology and automation in Nepali properties.",
-      image: "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400&h=250&fit=crop",
-      author: "Prakash Karki",
-      date: "January 5, 2025",
-      readTime: "4 min read",
-      category: "Real Estate",
-      views: "1.5K"
-    },
-    {
-      id: 6,
-      title: "Renting vs Buying: Making the Right Choice",
-      excerpt: "A detailed comparison to help you decide whether renting or buying is the better option for you.",
-      image: "https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=400&h=250&fit=crop",
-      author: "Binita Shrestha",
-      date: "January 3, 2025",
-      readTime: "6 min read",
-      category: "Property Tips",
-      views: "2.7K"
-    },
-  ];
+  });
 
   const trendingTopics = [
     "Property Valuation",
     "Home Loans",
     "Interior Design",
     "Sustainable Housing",
-    "Property Insurance"
+    "Property Insurance",
   ];
+
+  // derive displayed posts after search filter
+  const normalizedQuery = searchQuery.trim().toLowerCase();
+  const displayedPosts = (posts || []).filter((p: any) => {
+    if (!normalizedQuery) return true;
+    const hay = `${p.title || ""} ${p.excerpt || ""} ${p.content || ""}`.toLowerCase();
+    return hay.includes(normalizedQuery);
+  });
 
   return (
     <div className="min-h-screen bg-background" data-testid="page-blog">
@@ -141,149 +103,166 @@ export default function Blog() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-2">
-                  {categories.map((category) => (
-                    <button
-                      key={category.id}
-                      onClick={() => setSelectedCategory(category.id)}
-                      className={`w-full flex items-center justify-between px-4 py-3 rounded-lg transition-colors ${
-                        selectedCategory === category.id
-                          ? "bg-blue-600 text-white"
-                          : "hover:bg-gray-100 text-gray-700"
-                      }`}
-                    >
-                      <span>{category.name}</span>
-                      <Badge variant={selectedCategory === category.id ? "secondary" : "outline"}>
-                        {category.count}
-                      </Badge>
-                    </button>
-                  ))}
+                  <button
+                    onClick={() => setSelectedCategory("all")}
+                    className={`w-full flex items-center justify-between px-4 py-3 rounded-lg transition-colors ${
+                      selectedCategory === "all" ? "bg-blue-600 text-white" : "hover:bg-gray-100 text-gray-700"
+                    }`}
+                  >
+                    <span>All Posts</span>
+                    <Badge variant={selectedCategory === "all" ? "secondary" : "outline"}>{allPosts.length}</Badge>
+                  </button>
+
+                  {categories.map((category: any) => {
+                    // compute count from allPosts so counts remain accurate regardless of current filter
+                    const count = (allPosts || []).filter((p: any) => p.category === category.slug).length;
+                    return (
+                      <button
+                        key={category.id}
+                        onClick={() => setSelectedCategory(category.slug)}
+                        className={`w-full flex items-center justify-between px-4 py-3 rounded-lg transition-colors ${
+                          selectedCategory === category.slug ? "bg-blue-600 text-white" : "hover:bg-gray-100 text-gray-700"
+                        }`}
+                      >
+                        <span>{category.name}</span>
+                        <Badge variant={selectedCategory === category.slug ? "secondary" : "outline"}>{count}</Badge>
+                      </button>
+                    );
+                  })}
                 </div>
               </CardContent>
             </Card>
 
-            {/* Trending Topics */}
-            <Card>
-              <CardHeader>
-                <h3 className="text-lg font-semibold flex items-center gap-2">
-                  <TrendingUp className="w-5 h-5 text-orange-500" />
-                  Trending Topics
-                </h3>
-              </CardHeader>
-              <CardContent>
-                <div className="flex flex-wrap gap-2">
-                  {trendingTopics.map((topic, index) => (
-                    <Badge key={index} variant="outline" className="cursor-pointer hover:bg-blue-50">
-                      <Tag className="w-3 h-3 mr-1" />
-                      {topic}
-                    </Badge>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Newsletter */}
-            <Card className="bg-gradient-to-br from-blue-50 to-purple-50">
-              <CardHeader>
-                <h3 className="text-lg font-semibold">Subscribe to Newsletter</h3>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm text-muted-foreground mb-4">
-                  Get weekly updates on latest articles and market insights
-                </p>
-                <Input placeholder="Your email" type="email" className="mb-3" />
-                <Button className="w-full bg-blue-600 hover:bg-blue-700">
-                  Subscribe
-                </Button>
-              </CardContent>
-            </Card>
+            
           </aside>
 
           {/* Main Content */}
           <div className="lg:col-span-3 space-y-8">
-            {/* Featured Post */}
-            <Card className="overflow-hidden hover:shadow-xl transition-shadow duration-300">
-              <div className="grid md:grid-cols-2 gap-0">
-                <div className="relative h-64 md:h-auto">
-                  <img
-                    src={featuredPost.image}
-                    alt={featuredPost.title}
-                    className="w-full h-full object-cover"
-                  />
-                  <Badge className="absolute top-4 left-4 bg-orange-500">Featured</Badge>
-                </div>
-                <CardContent className="p-8 flex flex-col justify-center">
-                  <Badge className="w-fit mb-3">{featuredPost.category}</Badge>
-                  <h2 className="text-3xl font-bold mb-4 hover:text-blue-600 transition-colors cursor-pointer">
-                    {featuredPost.title}
-                  </h2>
-                  <p className="text-muted-foreground mb-6">
-                    {featuredPost.excerpt}
-                  </p>
-                  <div className="flex items-center gap-4 text-sm text-muted-foreground mb-6">
-                    <div className="flex items-center gap-2">
-                      <User className="w-4 h-4" />
-                      <span>{featuredPost.author}</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Calendar className="w-4 h-4" />
-                      <span>{featuredPost.date}</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Clock className="w-4 h-4" />
-                      <span>{featuredPost.readTime}</span>
-                    </div>
-                  </div>
-                  <Button className="w-fit bg-blue-600 hover:bg-blue-700">
-                    Read More
-                    <ArrowRight className="w-4 h-4 ml-2" />
-                  </Button>
-                </CardContent>
-              </div>
-            </Card>
-
-            {/* Blog Posts Grid */}
-            <div>
-              <h2 className="text-2xl font-bold mb-6">Latest Articles</h2>
-              <div className="grid md:grid-cols-2 gap-6">
-                {blogPosts.map((post) => (
-                  <Card key={post.id} className="overflow-hidden hover:shadow-lg transition-shadow duration-300 group">
-                    <div className="relative h-48 overflow-hidden">
-                      <img
-                        src={post.image}
-                        alt={post.title}
-                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
-                      />
-                      <Badge className="absolute top-4 left-4">{post.category}</Badge>
-                    </div>
-                    <CardContent className="p-6">
-                      <h3 className="text-xl font-bold mb-3 hover:text-blue-600 transition-colors cursor-pointer line-clamp-2">
-                        {post.title}
-                      </h3>
-                      <p className="text-muted-foreground mb-4 line-clamp-2">
-                        {post.excerpt}
-                      </p>
-                      <div className="flex items-center justify-between text-sm text-muted-foreground">
-                        <div className="flex items-center gap-2">
-                          <User className="w-4 h-4" />
-                          <span>{post.author}</span>
-                        </div>
-                        <div className="flex items-center gap-3">
-                          <span>{post.readTime}</span>
-                          <span>• {post.views} views</span>
-                        </div>
+            {/* Featured Post (first featured, or fallback to first post) */}
+            {posts && posts.length > 0 && (
+              (() => {
+                const featured = posts.find((p: any) => p.isFeatured) || posts[0];
+                return (
+                  <Card className="overflow-hidden hover:shadow-xl transition-shadow duration-300">
+                    <div className="grid md:grid-cols-2 gap-0">
+                      <div className="relative h-64 md:h-auto">
+                        <img
+                          src={featured.coverImageUrl || featured.imageUrl || "https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=800&h=400&fit=crop"}
+                          alt={featured.title}
+                          className="w-full h-full object-cover"
+                        />
+                        {featured.isFeatured && <Badge className="absolute top-4 left-4 bg-orange-500">Featured</Badge>}
                       </div>
-                    </CardContent>
+                      <CardContent className="p-8 flex flex-col justify-center">
+                        <Badge className="w-fit mb-3">{featured.category}</Badge>
+                        <Link to={`/blog/${featured.slug}`}>
+                          <h2 className="text-3xl font-bold mb-4 hover:text-blue-600 transition-colors cursor-pointer">
+                            {featured.title}
+                          </h2>
+                        </Link>
+                        <p className="text-muted-foreground mb-6">{featured.excerpt}</p>
+                        <div className="flex items-center gap-4 text-sm text-muted-foreground mb-6">
+                          <div className="flex items-center gap-2">
+                            <User className="w-4 h-4" />
+                            <span>{featured.authorName || featured.author || "Admin"}</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Calendar className="w-4 h-4" />
+                            <span>{featured.publishedAt ? new Date(featured.publishedAt).toDateString() : ""}</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Clock className="w-4 h-4" />
+                            <span>{featured.readTime || "—"}</span>
+                          </div>
+                        </div>
+                        <Button
+                          onClick={() => setOpenPost(featured)}
+                          className="w-fit bg-blue-600 hover:bg-blue-700"
+                        >
+                          Read More
+                          <ArrowRight className="w-4 h-4 ml-2" />
+                        </Button>
+                      </CardContent>
+                    </div>
                   </Card>
-                ))}
-              </div>
+                );
+              })()
+            )}
 
-              {/* Load More */}
-              <div className="text-center mt-8">
-                <Button variant="outline" size="lg">
-                  Load More Articles
-                </Button>
-              </div>
+            {/* Posts Grid */}
+            <div>
+              <h2 className="text-2xl font-bold mt-6 mb-6">Latest Blog</h2>
+
+              {postsLoading ? (
+                <div className="text-center py-12">Loading posts...</div>
+              ) : displayedPosts.length === 0 ? (
+                <div className="text-center py-12">No posts found.</div>
+              ) : (
+                <div className="grid md:grid-cols-2 gap-6">
+                  {displayedPosts.map((post: any) => (
+                    <Card key={post.id} className="overflow-hidden hover:shadow-lg transition-shadow duration-300 group">
+                      <div className="relative h-48 overflow-hidden">
+                        <img
+                          src={post.coverImageUrl || post.imageUrl || "https://images.unsplash.com/photo-1450101499163-c8848c66ca85?w=400&h=250&fit=crop"}
+                          alt={post.title}
+                          className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                        />
+                        <Badge className="absolute top-4 left-4">{post.category}</Badge>
+                      </div>
+                      <CardContent className="p-6">
+                        <Link to={`/blog/${post.slug}`}>
+                          <h3 className="text-xl font-bold mb-3 hover:text-blue-600 transition-colors cursor-pointer line-clamp-2">
+                            {post.title}
+                          </h3>
+                        </Link>
+                        <p className="text-muted-foreground mb-4 line-clamp-2">{post.excerpt}</p>
+                        <div className="flex items-center justify-between text-sm text-muted-foreground mb-3">
+                          <div className="flex items-center gap-2">
+                            <User className="w-4 h-4" />
+                            <span>{post.authorName || "Admin"}</span>
+                          </div>
+                          <div className="flex items-center gap-3">
+                            <span>{post.readTime || "—"}</span>
+                            <span>• {post.viewCount ?? 0} views</span>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <Button variant="outline" onClick={() => setOpenPost(post)}>
+                            Read More
+                          </Button>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              )}
             </div>
+
+            {/* Post Modal */}
+            <Dialog open={!!openPost} onOpenChange={(open) => { if (!open) setOpenPost(null); }}>
+              <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+                <DialogHeader>
+                  <DialogTitle>{openPost?.title}</DialogTitle>
+                  <DialogDescription>{openPost?.excerpt}</DialogDescription>
+                </DialogHeader>
+
+                {openPost?.coverImageUrl && (
+                  <div className="my-4">
+                    <img src={openPost.coverImageUrl} alt={openPost.title} className="w-full h-80 object-cover rounded-md" />
+                  </div>
+                )}
+
+                <div className="prose max-w-none whitespace-pre-wrap">
+                  {openPost?.content && typeof openPost.content === "string" && /</.test(openPost.content) ? (
+                    <div dangerouslySetInnerHTML={{ __html: openPost.content }} />
+                  ) : (
+                    <div>{openPost?.content}</div>
+                  )}
+                </div>
+              </DialogContent>
+            </Dialog>
+
+         
           </div>
         </div>
       </div>

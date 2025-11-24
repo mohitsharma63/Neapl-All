@@ -3246,3 +3246,57 @@ export const ebooksOnlineCourses = pgTable("ebooks_online_courses", {
 export const insertEbooksOnlineCoursesSchema = createInsertSchema(ebooksOnlineCourses).omit({ id: true, createdAt: true, updatedAt: true });
 export type InsertEbooksOnlineCourses = z.infer<typeof insertEbooksOnlineCoursesSchema>;
 export type EbooksOnlineCourses = typeof ebooksOnlineCourses.$inferSelect;
+
+
+// Sliders table for admin-managed homepage sliders
+export const sliders = pgTable("sliders", {
+  id: varchar("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  title: text("title").notNull(),
+  description: text("description"),
+  imageUrl: text("image_url").notNull(),
+  linkUrl: text("link_url"),
+  buttonText: text("button_text"),
+  sortOrder: integer("sort_order").default(0),
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export type Slider = typeof sliders.$inferSelect;
+export type NewSlider = typeof sliders.$inferInsert;
+
+// Blog posts table for site blog / admin-managed articles
+export const blogPosts = pgTable("blog_posts", {
+  id: varchar("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  title: text("title").notNull(),
+  slug: text("slug").notNull().unique(),
+  excerpt: text("excerpt"),
+  content: text("content"),
+  authorId: varchar("author_id").references(() => users.id, { onDelete: "set null" }),
+  authorName: text("author_name"),
+  category: text("category"),
+  tags: jsonb("tags").$type<string[]>().default([]),
+  coverImageUrl: text("cover_image_url"),
+  publishedAt: timestamp("published_at"),
+  isPublished: boolean("is_published").default(false),
+  isFeatured: boolean("is_featured").default(false),
+  viewCount: integer("view_count").default(0),
+  seoTitle: text("seo_title"),
+  seoDescription: text("seo_description"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+  userId: varchar("user_id").references(() => users.id),
+  role: text("role"),
+});
+
+export const blogPostsRelations = relations(blogPosts, ({ one }) => ({
+  author: one(users, {
+    fields: [blogPosts.authorId],
+    references: [users.id],
+  }),
+}));
+
+export const insertBlogPostSchema = createInsertSchema(blogPosts).omit({ id: true, createdAt: true, updatedAt: true });
+export type InsertBlogPost = z.infer<typeof insertBlogPostSchema>;
+export type BlogPost = typeof blogPosts.$inferSelect;
+export type NewBlogPost = typeof blogPosts.$inferInsert;

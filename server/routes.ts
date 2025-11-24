@@ -57,6 +57,8 @@ import {
   healthWellnessServices, // Added
   telecommunicationServices,
   serviceCentreWarranty,
+  sliders,
+  blogPosts,
 } from "../shared/schema";
 import { eq, sql, desc, or } from "drizzle-orm";
 
@@ -1105,6 +1107,230 @@ export function registerRoutes(app: Express) {
     try {
       await db.delete(users).where(eq(users.id, req.params.id));
       res.json({ message: "User deleted successfully" });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Sliders - Admin CRUD + Public list
+  // Public: get active sliders for homepage (ordered)
+  app.get("/api/sliders", async (_req, res) => {
+    try {
+      const allActive = await db.query.sliders.findMany({
+        where: eq(sliders.isActive, true),
+        orderBy: [sliders.sortOrder, desc(sliders.createdAt)],
+      });
+      res.json(allActive);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Admin: list all sliders
+  app.get("/api/admin/sliders", async (_req, res) => {
+    try {
+      const list = await db.query.sliders.findMany({
+        orderBy: [sliders.sortOrder, desc(sliders.createdAt)],
+      });
+      res.json(list);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Admin: get single slider
+  app.get("/api/admin/sliders/:id", async (req, res) => {
+    try {
+      const item = await db.query.sliders.findFirst({ where: eq(sliders.id, req.params.id) });
+      if (!item) return res.status(404).json({ message: "Slider not found" });
+      res.json(item);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Admin: create slider
+  app.post("/api/admin/sliders", async (req, res) => {
+    try {
+      const payload = req.body || {};
+      // Basic coercions
+      if (payload.sortOrder !== undefined) payload.sortOrder = parseInt(payload.sortOrder) || 0;
+      if (payload.isActive !== undefined) payload.isActive = !!payload.isActive;
+
+      const [newSlider] = await db.insert(sliders).values({ ...payload }).returning();
+      res.status(201).json(newSlider);
+    } catch (error: any) {
+      res.status(400).json({ message: error.message });
+    }
+  });
+
+  // Admin: update slider
+  app.put("/api/admin/sliders/:id", async (req, res) => {
+    try {
+      const payload = req.body || {};
+      if (payload.sortOrder !== undefined) payload.sortOrder = parseInt(payload.sortOrder) || 0;
+      if (payload.isActive !== undefined) payload.isActive = !!payload.isActive;
+
+      const [updated] = await db
+        .update(sliders)
+        .set({ ...payload, updatedAt: new Date() })
+        .where(eq(sliders.id, req.params.id))
+        .returning();
+
+      if (!updated) return res.status(404).json({ message: "Slider not found" });
+      res.json(updated);
+    } catch (error: any) {
+      res.status(400).json({ message: error.message });
+    }
+  });
+
+  // Admin: delete slider
+  app.delete("/api/admin/sliders/:id", async (req, res) => {
+    try {
+      const deleted = await db.delete(sliders).where(eq(sliders.id, req.params.id)).returning();
+      if (deleted.length === 0) return res.status(404).json({ message: "Slider not found" });
+      res.json({ message: "Slider deleted successfully", id: req.params.id });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Admin: toggle active
+  app.patch("/api/admin/sliders/:id/toggle-active", async (req, res) => {
+    try {
+      const item = await db.query.sliders.findFirst({ where: eq(sliders.id, req.params.id) });
+      if (!item) return res.status(404).json({ message: "Slider not found" });
+      const [updated] = await db
+        .update(sliders)
+        .set({ isActive: !item.isActive, updatedAt: new Date() })
+        .where(eq(sliders.id, req.params.id))
+        .returning();
+      res.json(updated);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Blog public endpoints
+  app.get("/api/blog/categories", async (_req, res) => {
+    try {
+      const categories = await db.query.adminCategories.findMany({
+        where: eq(adminCategories.isActive, true),
+        orderBy: [adminCategories.sortOrder, adminCategories.name],
+      });
+      res.json(categories);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.get("/api/blog/posts", async (req, res) => {
+    try {
+      const { category } = req.query;
+
+      let posts;
+      if (category && typeof category === "string") {
+        posts = await db.query.blogPosts.findMany({
+          where: (blogPosts, { and, eq }) => and(eq(blogPosts.isPublished, true), eq(blogPosts.category, category)),
+          orderBy: [desc(blogPosts.publishedAt), desc(blogPosts.createdAt)],
+        });
+      } else {
+        posts = await db.query.blogPosts.findMany({
+          where: eq(blogPosts.isPublished, true),
+          orderBy: [desc(blogPosts.publishedAt), desc(blogPosts.createdAt)],
+        });
+      }
+
+      res.json(posts);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.get("/api/blog/posts/:slug", async (req, res) => {
+    try {
+      const slug = req.params.slug;
+      const post = await db.query.blogPosts.findFirst({ where: eq(blogPosts.slug, slug) });
+      if (!post || !post.isPublished) return res.status(404).json({ message: "Post not found" });
+
+      // increment viewCount
+      const [updated] = await db
+        .update(blogPosts)
+        .set({ viewCount: (post.viewCount || 0) + 1, updatedAt: new Date() })
+        .where(eq(blogPosts.id, post.id))
+        .returning();
+
+      res.json(updated || post);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Admin: Blog posts CRUD (used by admin dashboard)
+  app.get('/api/admin/blog/posts', async (_req, res) => {
+    try {
+      const list = await db.query.blogPosts.findMany({ orderBy: [desc(blogPosts.createdAt)] });
+      res.json(list);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.get('/api/admin/blog/posts/:id', async (req, res) => {
+    try {
+      const item = await db.query.blogPosts.findFirst({ where: eq(blogPosts.id, req.params.id) });
+      if (!item) return res.status(404).json({ message: 'Post not found' });
+      res.json(item);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.post('/api/admin/blog/posts', async (req, res) => {
+    try {
+      const payload = req.body || {};
+      // Ensure minimal coercions
+      if (payload.publishedAt) payload.publishedAt = new Date(payload.publishedAt);
+      const [created] = await db.insert(blogPosts).values({ ...payload }).returning();
+      res.status(201).json(created);
+    } catch (error: any) {
+      res.status(400).json({ message: error.message });
+    }
+  });
+
+  app.put('/api/admin/blog/posts/:id', async (req, res) => {
+    try {
+      const id = req.params.id;
+      const updateData = { ...req.body, updatedAt: new Date() };
+      if (updateData.publishedAt) updateData.publishedAt = new Date(updateData.publishedAt);
+      const [updated] = await db.update(blogPosts).set(updateData).where(eq(blogPosts.id, id)).returning();
+      if (!updated) return res.status(404).json({ message: 'Post not found' });
+      res.json(updated);
+    } catch (error: any) {
+      res.status(400).json({ message: error.message });
+    }
+  });
+
+  app.delete('/api/admin/blog/posts/:id', async (req, res) => {
+    try {
+      const deleted = await db.delete(blogPosts).where(eq(blogPosts.id, req.params.id)).returning();
+      if (deleted.length === 0) return res.status(404).json({ message: 'Post not found' });
+      res.json({ message: 'Post deleted', id: req.params.id });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.patch('/api/admin/blog/posts/:id/toggle-publish', async (req, res) => {
+    try {
+      const item = await db.query.blogPosts.findFirst({ where: eq(blogPosts.id, req.params.id) });
+      if (!item) return res.status(404).json({ message: 'Post not found' });
+      const [updated] = await db
+        .update(blogPosts)
+        .set({ isPublished: !item.isPublished, publishedAt: !item.isPublished ? new Date() : item.publishedAt, updatedAt: new Date() })
+        .where(eq(blogPosts.id, req.params.id))
+        .returning();
+      res.json(updated);
     } catch (error: any) {
       res.status(500).json({ message: error.message });
     }

@@ -23,6 +23,7 @@ import {
   FileText,
   Home,
   Shield,
+  Image,
   Bookmark,
   Eye,
   Mail,
@@ -90,6 +91,8 @@ import { useUser } from '@/hooks/use-user';
 import TelecommunicationServicesForm from "@/components/telecommunication-services-form";
 import ServiceCentreWarrantyForm from "@/components/service-centre-warranty-form";
 import CyberCafeInternetServicesForm from "@/components/cyber-cafe-internet-services-form";
+import { SliderForm } from "@/components/slider-form";
+import BlogForm from "@/components/blog-form";
 
 
 // Educational Consultancy - Study Abroad Section Component
@@ -2943,6 +2946,8 @@ function AppSidebar({ activeSection, setActiveSection }: { activeSection: string
   const staticItems = [
     { title: "Dashboard", icon: Home, key: "dashboard" },
     { title: "Categories", icon: FileText, key: "categories" },
+    { title: "Sliders", icon: Image, key: "sliders" },
+    { title: "Blogs", icon: FileText, key: "blogs" },
   ];
 
   return (
@@ -3262,7 +3267,7 @@ function CategoriesSection() {
   const [editingSubcategory, setEditingSubcategory] = useState<AdminSubcategory | undefined>(undefined);
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(() => {
     const saved = localStorage.getItem('expandedCategories');
-    return saved ? new Set(JSON.JSON.parse(saved)) : new Set();
+    return saved ? new Set(JSON.parse(saved)) : new Set();
   });
 
   useEffect(() => {
@@ -3270,7 +3275,7 @@ function CategoriesSection() {
   }, []);
 
   useEffect(() => {
-    localStorage.setItem('expandedCategories', JSON.JSON.stringify(Array.from(expandedCategories)));
+   localStorage.setItem('expandedCategories', JSON.stringify(Array.from(expandedCategories)));
   }, [expandedCategories]);
 
   const toggleCategoryExpand = (categoryId: string) => {
@@ -5626,6 +5631,8 @@ export default function AdminDashboard() {
       case "e-books-&-online-courses":
       case "ebooks-online-courses":
         return <EbooksOnlineCoursesSection />;
+      case "sliders":
+        return <SlidersSection />;
       case "cricket-sports-training":
         return <CricketSportsTrainingSection />;
       case "educational-consultancy-study-abroad":
@@ -5649,6 +5656,9 @@ export default function AdminDashboard() {
         return <AcademiesMusicArtsSportsSection />;
       case "skill-training--certification":
         return <SkillTrainingCertificationSection />;
+      case "blogs":
+      case "blog":
+        return <BlogsSection />;
       default:
         return <DashboardSection />;
     }
@@ -7883,6 +7893,253 @@ function FurnitureInteriorDecorSection() {
           </CardContent>
         </Card>
       )}
+    </div>
+  );
+}
+
+// Sliders Section Component
+function SlidersSection() {
+  const [sliders, setSliders] = useState<any[]>([]);
+  const [showForm, setShowForm] = useState(false);
+  const [editingSlider, setEditingSlider] = useState<any>(null);
+
+  useEffect(() => {
+    fetchSliders();
+  }, []);
+
+  const fetchSliders = async () => {
+    try {
+      const res = await fetch('/api/admin/sliders');
+      const data = await res.json();
+      setSliders(Array.isArray(data) ? data : []);
+    } catch (err) {
+      console.error('Error fetching sliders:', err);
+      setSliders([]);
+    }
+  };
+
+  const handleAdd = () => {
+    setEditingSlider(null);
+    setShowForm(true);
+  };
+
+  const handleEdit = (s: any) => {
+    setEditingSlider(s);
+    setShowForm(true);
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!confirm('Are you sure you want to delete this slider?')) return;
+    try {
+      const res = await fetch(`/api/admin/sliders/${id}`, { method: 'DELETE' });
+      if (res.ok) fetchSliders();
+    } catch (err) {
+      console.error('Error deleting slider:', err);
+    }
+  };
+
+  const toggleActive = async (id: string) => {
+    try {
+      const res = await fetch(`/api/admin/sliders/${id}/toggle-active`, { method: 'PATCH' });
+      if (res.ok) fetchSliders();
+    } catch (err) {
+      console.error('Error toggling slider active:', err);
+    }
+  };
+
+  const handleSuccess = () => {
+    setShowForm(false);
+    setEditingSlider(null);
+    fetchSliders();
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-2xl font-bold">Sliders</h2>
+          <p className="text-muted-foreground">Manage homepage sliders</p>
+        </div>
+        <Button onClick={handleAdd}>
+          <Plus className="w-4 h-4 mr-2" />
+          Add Slider
+        </Button>
+      </div>
+
+      <Dialog open={showForm} onOpenChange={(open) => { setShowForm(open); if (!open) setEditingSlider(null); }}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>{editingSlider ? 'Edit Slider' : 'Add New Slider'}</DialogTitle>
+            <DialogDescription>Fill slider details</DialogDescription>
+          </DialogHeader>
+          <SliderForm slider={editingSlider} onSuccess={handleSuccess} onCancel={() => setShowForm(false)} />
+        </DialogContent>
+      </Dialog>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        {Array.isArray(sliders) && sliders.map((s) => (
+          <Card key={s.id} className="group hover:shadow-lg transition-shadow">
+            <CardHeader>
+              <div className="flex items-start justify-between">
+                <div className="flex-1">
+                  <CardTitle className="text-lg mb-2">{s.title || 'Untitled'}</CardTitle>
+                </div>
+                <div className="flex gap-1">
+                  <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleEdit(s)}>
+                    <Edit className="w-4 h-4" />
+                  </Button>
+                  <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => handleDelete(s.id)}>
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {s.imageUrl && <img src={s.imageUrl} alt={s.title || 'slider'} className="w-full h-40 object-cover rounded-md" />}
+              {s.description && <p className="text-sm text-muted-foreground mt-2 line-clamp-3">{s.description}</p>}
+              <div className="mt-3 flex items-center justify-between">
+                <span className="text-sm text-muted-foreground">Order: {s.sortOrder ?? 0}</span>
+                <Badge variant={s.isActive ? 'default' : 'secondary'}>{s.isActive ? 'Active' : 'Inactive'}</Badge>
+              </div>
+            </CardContent>
+            <CardFooter className="pt-0 flex gap-2">
+              <Button variant={s.isActive ? 'outline' : 'default'} size="sm" className="flex-1" onClick={() => toggleActive(s.id)}>
+                {s.isActive ? 'Deactivate' : 'Activate'}
+              </Button>
+            </CardFooter>
+          </Card>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// Blogs Section Component
+function BlogsSection() {
+  const [posts, setPosts] = useState<any[]>([]);
+  const [showForm, setShowForm] = useState(false);
+  const [editingPost, setEditingPost] = useState<any>(null);
+  const [categories, setCategories] = useState<AdminCategory[]>([]);
+
+  useEffect(() => {
+    fetchPosts();
+    fetchCategories();
+  }, []);
+
+  const fetchPosts = async () => {
+    try {
+      const res = await fetch('/api/admin/blog/posts');
+      const data = await res.json();
+      setPosts(Array.isArray(data) ? data : []);
+    } catch (err) {
+      console.error('Error fetching posts:', err);
+      setPosts([]);
+    }
+  };
+
+  const fetchCategories = async () => {
+    try {
+      const res = await fetch('/api/admin/categories');
+      const data = await res.json();
+      setCategories(Array.isArray(data) ? data : []);
+    } catch (err) {
+      console.error('Error fetching categories:', err);
+      setCategories([]);
+    }
+  };
+
+  const handleAdd = () => {
+    setEditingPost(null);
+    setShowForm(true);
+  };
+
+  const handleEdit = (p: any) => {
+    setEditingPost(p);
+    setShowForm(true);
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!confirm('Are you sure you want to delete this post?')) return;
+    try {
+      const res = await fetch(`/api/admin/blog/posts/${id}`, { method: 'DELETE' });
+      if (res.ok) fetchPosts();
+    } catch (err) {
+      console.error('Error deleting post:', err);
+    }
+  };
+
+  const togglePublish = async (id: string) => {
+    try {
+      const res = await fetch(`/api/admin/blog/posts/${id}/toggle-publish`, { method: 'PATCH' });
+      if (res.ok) fetchPosts();
+    } catch (err) {
+      console.error('Error toggling publish:', err);
+    }
+  };
+
+  const handleSuccess = () => {
+    setShowForm(false);
+    setEditingPost(null);
+    fetchPosts();
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-2xl font-bold">Blogs</h2>
+          <p className="text-muted-foreground">Manage blog posts</p>
+        </div>
+        <Button onClick={handleAdd}>
+          <Plus className="w-4 h-4 mr-2" />
+          Add Post
+        </Button>
+      </div>
+
+      <Dialog open={showForm} onOpenChange={(open) => { setShowForm(open); if (!open) setEditingPost(null); }}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>{editingPost ? 'Edit Post' : 'Add New Post'}</DialogTitle>
+            <DialogDescription>Fill post details</DialogDescription>
+          </DialogHeader>
+          <BlogForm post={editingPost} categories={categories} onCancel={() => setShowForm(false)} onSuccess={handleSuccess} />
+        </DialogContent>
+      </Dialog>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        {posts.map((p) => (
+          <Card key={p.id} className="group hover:shadow-lg transition-shadow">
+            <CardHeader>
+              <div className="flex items-start justify-between">
+                <div className="flex-1">
+                  <CardTitle className="text-lg mb-2">{p.title || 'Untitled'}</CardTitle>
+                </div>
+                <div className="flex gap-1">
+                  <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleEdit(p)}>
+                    <Edit className="w-4 h-4" />
+                  </Button>
+                  <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => handleDelete(p.id)}>
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {p.coverImageUrl && <img src={p.coverImageUrl} alt={p.title || 'cover'} className="w-full h-40 object-cover rounded-md" />}
+              {p.excerpt && <p className="text-sm text-muted-foreground mt-2 line-clamp-3">{p.excerpt}</p>}
+              <div className="mt-3 flex items-center justify-between">
+                <span className="text-sm text-muted-foreground">Category: {p.category || 'Uncategorized'}</span>
+                <Badge variant={p.isPublished ? 'default' : 'secondary'}>{p.isPublished ? 'Published' : 'Draft'}</Badge>
+              </div>
+            </CardContent>
+            <CardFooter className="pt-0 flex gap-2">
+              <Button variant={p.isPublished ? 'outline' : 'default'} size="sm" className="flex-1" onClick={() => togglePublish(p.id)}>
+                {p.isPublished ? 'Unpublish' : 'Publish'}
+              </Button>
+            </CardFooter>
+          </Card>
+        ))}
+      </div>
     </div>
   );
 }

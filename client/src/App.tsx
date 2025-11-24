@@ -5,6 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import Home from "@/pages/home";
 import Blog from "@/pages/blog";
+import BlogPost from "@/pages/blog-post";
 import Articles from "@/pages/articles";
 import About from "@/pages/about";
 import Contact from "@/pages/contact";
@@ -43,6 +44,7 @@ function Router() {
       <Route path="/buyer-dashboard" component={BuyerDashboard} />
       <Route path="/seller-dashboard" component={SellerDashboard} />
       <Route path="/blog" component={Blog} />
+      <Route path="/blog/:slug" component={BlogPost} />
       <Route path="/articles" component={Articles} />
       <Route path="/about" component={About} />
       <Route path="/tuition-private-classes" component={TuitionPrivateClasses} />

@@ -140,6 +140,24 @@ export default function Home() {
     },
   });
 
+  const { data: sliders = [], isLoading: slidersLoading } = useQuery({
+    queryKey: ["sliders"],
+    queryFn: async () => {
+      const res = await fetch("/api/sliders");
+      if (!res.ok) throw new Error("Failed to fetch sliders");
+      return res.json();
+    },
+  });
+
+  const { data: blogPosts = [], isLoading: blogLoading } = useQuery({
+    queryKey: ["blog-posts-home"],
+    queryFn: async () => {
+      const res = await fetch("/api/blog/posts");
+      if (!res.ok) throw new Error("Failed to fetch blog posts");
+      return res.json();
+    },
+  });
+
   // Static data instead of API call, cast to Property type
 
   const handleSaveSearch = () => {
@@ -261,35 +279,69 @@ export default function Home() {
       <section className="container mx-auto px-4 py-8">
         <Carousel className="w-full" opts={{ loop: true }}>
           <CarouselContent>
-            <CarouselItem>
-              <div className="relative h-[500px] rounded-3xl overflow-hidden">
-                <img
-                  src="https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=1920&h=500&fit=crop"
-                  alt="Nepal Real Estate"
-                  className="w-full h-full object-cover"
-                />
-              </div>
-            </CarouselItem>
-            
-            <CarouselItem>
-              <div className="relative h-[500px] rounded-3xl overflow-hidden">
-                <img
-                  src="https://images.unsplash.com/photo-1582407947304-fd86f028f716?w=1920&h=500&fit=crop"
-                  alt="Nepal Services"
-                  className="w-full h-full object-cover"
-                />
-              </div>
-            </CarouselItem>
+            {slidersLoading ? (
+              <CarouselItem>
+                <div className="relative h-[500px] rounded-3xl overflow-hidden bg-gray-100 flex items-center justify-center">
+                  <div className="text-muted-foreground">Loading sliders...</div>
+                </div>
+              </CarouselItem>
+            ) : sliders && sliders.length > 0 ? (
+              sliders.map((s: any) => (
+                <CarouselItem key={s.id}>
+                  <div className="relative h-[500px] rounded-3xl overflow-hidden">
+                    <img src={s.imageUrl} alt={s.title || "slider"} className="w-full h-full object-cover" />
+                    {(s.title || s.description || s.buttonText) && (
+                      <div className="absolute inset-0 flex items-end">
+                        <div className="bg-gradient-to-t from-black/60 to-transparent w-full p-8">
+                          <h3 className="text-3xl font-bold text-white">{s.title}</h3>
+                          {s.description && <p className="text-white/90 mt-2">{s.description}</p>}
+                          {s.linkUrl && s.buttonText && (
+                            <div className="mt-4">
+                              <a href={s.linkUrl} className="inline-block bg-white text-black px-4 py-2 rounded-md">
+                                {s.buttonText}
+                              </a>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </CarouselItem>
+              ))
+            ) : (
+              // Fallback static slides when no sliders configured
+              <>
+                <CarouselItem>
+                  <div className="relative h-[500px] rounded-3xl overflow-hidden">
+                    <img
+                      src="https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=1920&h=500&fit=crop"
+                      alt="Nepal Real Estate"
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                </CarouselItem>
 
-            <CarouselItem>
-              <div className="relative h-[500px] rounded-3xl overflow-hidden">
-                <img
-                  src="https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?w=1920&h=500&fit=crop"
-                  alt="Nepal Business"
-                  className="w-full h-full object-cover"
-                />
-              </div>
-            </CarouselItem>
+                <CarouselItem>
+                  <div className="relative h-[500px] rounded-3xl overflow-hidden">
+                    <img
+                      src="https://images.unsplash.com/photo-1582407947304-fd86f028f716?w=1920&h=500&fit=crop"
+                      alt="Nepal Services"
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                </CarouselItem>
+
+                <CarouselItem>
+                  <div className="relative h-[500px] rounded-3xl overflow-hidden">
+                    <img
+                      src="https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?w=1920&h=500&fit=crop"
+                      alt="Nepal Business"
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                </CarouselItem>
+              </>
+            )}
           </CarouselContent>
           <CarouselPrevious className="left-4" />
           <CarouselNext className="right-4" />
@@ -433,83 +485,130 @@ export default function Home() {
         </div>
 
         <div className="grid md:grid-cols-3 gap-6">
-          <Card className="overflow-hidden hover:shadow-xl transition-all duration-300 group">
-            <div className="relative h-48 overflow-hidden">
-              <img
-                src="https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=400&h=250&fit=crop"
-                alt="Blog post"
-                className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
-              />
-              <Badge className="absolute top-4 left-4 bg-blue-600">Market Trends</Badge>
-            </div>
-            <CardContent className="p-6">
-              <h3 className="text-xl font-bold mb-2 hover:text-blue-600 transition-colors cursor-pointer line-clamp-2">
-                2025 Nepal Real Estate Market Outlook
-              </h3>
-              <p className="text-muted-foreground mb-4 line-clamp-2">
-                An in-depth analysis of the upcoming trends in Nepal's real estate sector
-              </p>
-              <div className="flex items-center justify-between text-sm text-muted-foreground">
-                <div className="flex items-center gap-2">
-                  <User className="w-4 h-4" />
-                  <span>Mohit Sharma</span>
+          {blogLoading ? (
+            // show three placeholders while loading
+            [1, 2, 3].map((i) => (
+              <Card key={i} className="overflow-hidden animate-pulse">
+                <div className="relative h-48 bg-gray-100" />
+                <CardContent className="p-6">
+                  <div className="h-6 bg-gray-200 rounded mb-3 w-3/4" />
+                  <div className="h-4 bg-gray-200 rounded mb-2 w-full" />
+                  <div className="h-4 bg-gray-200 rounded w-1/2 mt-2" />
+                </CardContent>
+              </Card>
+            ))
+          ) : blogPosts && blogPosts.length > 0 ? (
+            blogPosts.slice(0, 3).map((p: any) => {
+              const words = (p.content || p.excerpt || "").replace(/<[^>]+>/g, "").split(/\s+/).filter(Boolean).length;
+              const readTime = Math.max(1, Math.ceil(words / 200));
+              return (
+                <Card key={p.id} className="overflow-hidden hover:shadow-xl transition-all duration-300 group">
+                  <div className="relative h-48 overflow-hidden">
+                    <img
+                      src={p.coverImageUrl || "https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=400&h=250&fit=crop"}
+                      alt={p.title || "Blog post"}
+                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                    />
+                    <Badge className="absolute top-4 left-4 bg-blue-600">{p.category || 'Blog'}</Badge>
+                  </div>
+                  <CardContent className="p-6">
+                    <h3 className="text-xl font-bold mb-2 hover:text-blue-600 transition-colors cursor-pointer line-clamp-2">
+                      <Link to={`/blog/${p.slug}`}>{p.title}</Link>
+                    </h3>
+                    <p className="text-muted-foreground mb-4 line-clamp-2">{p.excerpt}</p>
+                    <div className="flex items-center justify-between text-sm text-muted-foreground">
+                      <div className="flex items-center gap-2">
+                        <User className="w-4 h-4" />
+                        <span>{p.authorName || 'Admin'}</span>
+                      </div>
+                      <span>{readTime} min read</span>
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })
+          ) : (
+            // fallback static placeholders if no posts
+            <>
+              <Card className="overflow-hidden hover:shadow-xl transition-all duration-300 group">
+                <div className="relative h-48 overflow-hidden">
+                  <img
+                    src="https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=400&h=250&fit=crop"
+                    alt="Blog post"
+                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                  />
+                  <Badge className="absolute top-4 left-4 bg-blue-600">Market Trends</Badge>
                 </div>
-                <span>8 min read</span>
-              </div>
-            </CardContent>
-          </Card>
+                <CardContent className="p-6">
+                  <h3 className="text-xl font-bold mb-2 hover:text-blue-600 transition-colors cursor-pointer line-clamp-2">
+                    2025 Nepal Real Estate Market Outlook
+                  </h3>
+                  <p className="text-muted-foreground mb-4 line-clamp-2">
+                    An in-depth analysis of the upcoming trends in Nepal's real estate sector
+                  </p>
+                  <div className="flex items-center justify-between text-sm text-muted-foreground">
+                    <div className="flex items-center gap-2">
+                      <User className="w-4 h-4" />
+                      <span>Mohit Sharma</span>
+                    </div>
+                    <span>8 min read</span>
+                  </div>
+                </CardContent>
+              </Card>
 
-          <Card className="overflow-hidden hover:shadow-xl transition-all duration-300 group">
-            <div className="relative h-48 overflow-hidden">
-              <img
-                src="https://images.unsplash.com/photo-1582407947304-fd86f028f716?w=400&h=250&fit=crop"
-                alt="Blog post"
-                className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
-              />
-              <Badge className="absolute top-4 left-4 bg-blue-600">Investment</Badge>
-            </div>
-            <CardContent className="p-6">
-              <h3 className="text-xl font-bold mb-2 hover:text-blue-600 transition-colors cursor-pointer line-clamp-2">
-                Top 10 Areas for Property Investment
-              </h3>
-              <p className="text-muted-foreground mb-4 line-clamp-2">
-                Discover the most promising neighborhoods for real estate investment
-              </p>
-              <div className="flex items-center justify-between text-sm text-muted-foreground">
-                <div className="flex items-center gap-2">
-                  <User className="w-4 h-4" />
-                  <span>Ram Thapa</span>
+              <Card className="overflow-hidden hover:shadow-xl transition-all duration-300 group">
+                <div className="relative h-48 overflow-hidden">
+                  <img
+                    src="https://images.unsplash.com/photo-1582407947304-fd86f028f716?w=400&h=250&fit=crop"
+                    alt="Blog post"
+                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                  />
+                  <Badge className="absolute top-4 left-4 bg-blue-600">Investment</Badge>
                 </div>
-                <span>5 min read</span>
-              </div>
-            </CardContent>
-          </Card>
+                <CardContent className="p-6">
+                  <h3 className="text-xl font-bold mb-2 hover:text-blue-600 transition-colors cursor-pointer line-clamp-2">
+                    Top 10 Areas for Property Investment
+                  </h3>
+                  <p className="text-muted-foreground mb-4 line-clamp-2">
+                    Discover the most promising neighborhoods for real estate investment
+                  </p>
+                  <div className="flex items-center justify-between text-sm text-muted-foreground">
+                    <div className="flex items-center gap-2">
+                      <User className="w-4 h-4" />
+                      <span>Ram Thapa</span>
+                    </div>
+                    <span>5 min read</span>
+                  </div>
+                </CardContent>
+              </Card>
 
-          <Card className="overflow-hidden hover:shadow-xl transition-all duration-300 group">
-            <div className="relative h-48 overflow-hidden">
-              <img
-                src="https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?w=400&h=250&fit=crop"
-                alt="Blog post"
-                className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
-              />
-              <Badge className="absolute top-4 left-4 bg-blue-600">Property Tips</Badge>
-            </div>
-            <CardContent className="p-6">
-              <h3 className="text-xl font-bold mb-2 hover:text-blue-600 transition-colors cursor-pointer line-clamp-2">
-                How to Get the Best Deal When Buying
-              </h3>
-              <p className="text-muted-foreground mb-4 line-clamp-2">
-                Expert tips and negotiation strategies to help you secure the best price
-              </p>
-              <div className="flex items-center justify-between text-sm text-muted-foreground">
-                <div className="flex items-center gap-2">
-                  <User className="w-4 h-4" />
-                  <span>Asha Rai</span>
+              <Card className="overflow-hidden hover:shadow-xl transition-all duration-300 group">
+                <div className="relative h-48 overflow-hidden">
+                  <img
+                    src="https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?w=400&h=250&fit=crop"
+                    alt="Blog post"
+                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                  />
+                  <Badge className="absolute top-4 left-4 bg-blue-600">Property Tips</Badge>
                 </div>
-                <span>7 min read</span>
-              </div>
-            </CardContent>
-          </Card>
+                <CardContent className="p-6">
+                  <h3 className="text-xl font-bold mb-2 hover:text-blue-600 transition-colors cursor-pointer line-clamp-2">
+                    How to Get the Best Deal When Buying
+                  </h3>
+                  <p className="text-muted-foreground mb-4 line-clamp-2">
+                    Expert tips and negotiation strategies to help you secure the best price
+                  </p>
+                  <div className="flex items-center justify-between text-sm text-muted-foreground">
+                    <div className="flex items-center gap-2">
+                      <User className="w-4 h-4" />
+                      <span>Asha Rai</span>
+                    </div>
+                    <span>7 min read</span>
+                  </div>
+                </CardContent>
+              </Card>
+            </>
+          )}
         </div>
       </section>
 
