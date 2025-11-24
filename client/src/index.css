@@ -3,6 +3,23 @@
 @tailwind components;
 @tailwind utilities;
 
+@layer utilities {
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  
+  /* Horizontal scroll for category tabs */
+  @media (max-width: 768px) {
+    .overflow-x-auto {
+      -webkit-overflow-scrolling: touch;
+    }
+  }
+}
+
 /* Custom animations and transitions */
 @layer components {
   .smooth-transition {

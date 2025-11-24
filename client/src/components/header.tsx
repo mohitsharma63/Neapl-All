@@ -57,8 +57,36 @@ export default function Header() {
     { href: "/health", label: "स्वास्थ्य | Health", shortLabel: "Health", isActive: location.startsWith("/health"), hasRoute: false },
   ];
 
+  const topNav = [
+    { href: "/", label: "Home", isActive: location === "/" || location.startsWith("/") },
+    { href: "/about", label: "About Us", isActive: location.startsWith("/about") },
+    { href: "/contact", label: "Contact", isActive: location.startsWith("/contact") },
+    { href: "/blog", label: "Blog", isActive: location.startsWith("/blog") },
+    { href: "/articles", label: "Articles", isActive: location.startsWith("/articles") },
+  ];
+
   return (
     <>
+      {/* Top simple nav - static links */}
+      <div className="bg-white border-b">
+        <div className="container mx-auto px-4">
+          <nav className="flex items-center justify-end space-x-4 text-sm py-2">
+            {topNav.map((item) => (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={`px-2 py-1 rounded-md hover:bg-gray-100 transition-colors ${
+                  item.isActive ? "font-semibold text-gray-900" : "text-gray-700"
+                }`}
+                aria-label={item.label}
+              >
+                {item.label}
+              </Link>
+            ))}
+          </nav>
+        </div>
+      </div>
+
       <header ref={headerRef} className="nepal-gradient text-primary-foreground shadow-lg sticky top-0 z-50" data-testid="header">
         <div className="container mx-auto px-4">
           <div className="flex items-center justify-between h-16">
@@ -77,7 +105,6 @@ export default function Header() {
 
             {/* Header Actions */}
             <div className="flex items-center space-x-2 md:space-x-4" data-testid="header-actions">
-             
               <Button
                 size="sm"
                 className="bg-accent text-accent-foreground hover:bg-accent/90 text-xs md:text-sm px-2 md:px-4"
@@ -129,8 +156,23 @@ export default function Header() {
           <div className="fixed top-16 left-0 right-0 bg-white shadow-lg max-h-[80vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
             <nav className="container mx-auto px-4 py-6" data-testid="nav-mobile">
               <div className="space-y-2">
-                {/* Categories */}
-                {activeCategories.map((category: any) => {
+                    {/* Top static pages for mobile */}
+                    {topNav.map((item) => (
+                      <Link
+                        key={item.href}
+                        href={item.href}
+                        className={`flex items-center gap-3 py-3 px-4 rounded-lg ${
+                          item.isActive ? 'text-primary-foreground' : 'text-gray-700 hover:bg-gray-100'
+                        }`}
+                        onClick={() => setIsMobileMenuOpen(false)}
+                        data-testid={`mobile-top-${item.label.toLowerCase().replace(/\s+/g, '-')}`}
+                      >
+                        {item.label}
+                      </Link>
+                    ))}
+
+                    {/* Categories */}
+                    {activeCategories.map((category: any) => {
                   const Icon = iconMap[category.icon] || Settings;
                   const hasSubcategories = category.subcategories && category.subcategories.filter((sub: any) => sub.isActive).length > 0;
                   const isExpanded = activeCategory === category.id;

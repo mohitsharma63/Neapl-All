@@ -1,5 +1,27 @@
 import { useState } from "react";
-import { Home as HomeIcon, Building, Globe, Bus, Users, GraduationCap, List, Map, Building2, MapPin, Briefcase, Settings } from "lucide-react";
+import { 
+  Home as HomeIcon, 
+  Building, 
+  Globe, 
+  Bus, 
+  Users, 
+  GraduationCap, 
+  List, 
+  Map, 
+  Building2, 
+  MapPin, 
+  Briefcase, 
+  Settings,
+  Laptop,
+  Smartphone,
+  Shirt,
+  Sofa,
+  Car,
+  BookOpen,
+  Monitor,
+  Sparkles,
+  Home as House
+} from "lucide-react";
 import { Link } from "wouter";
 import Header from "@/components/header";
 import SearchFilters from "@/components/search-filters";
@@ -14,13 +36,27 @@ import type { SearchFilters as SearchFiltersType } from "@/lib/types";
 import { useQuery } from "@tanstack/react-query";
 
 const iconMap: Record<string, any> = {
-  'home': Home,
-  'building': Building2,
-  'map-pin': MapPin,
-  'briefcase': Briefcase,
+  'home': HomeIcon,
+  'building': Building,
+  'building2': Building2,
+  'globe': Globe,
+  'bus': Bus,
   'users': Users,
   'graduation-cap': GraduationCap,
+  'list': List,
+  'map': Map,
+  'map-pin': MapPin,
+  'briefcase': Briefcase,
   'settings': Settings,
+  'laptop': Laptop,
+  'smartphone': Smartphone,
+  'shirt': Shirt,
+  'sofa': Sofa,
+  'car': Car,
+  'book-open': BookOpen,
+  'monitor': Monitor,
+  'sparkles': Sparkles,
+  'house': House,
 };
 
 // Helper function to cast JSON properties to the Property type
@@ -80,104 +116,106 @@ export default function Home() {
       <section className="container mx-auto px-4 py-12">
         
 
-        {/* Quick Categories */}
-        <div className="mb-8">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-2xl font-bold">Browse Categories</h2>
-            <Link href="/categories">
-              <Button variant="outline" size="sm">View All Categories</Button>
-            </Link>
-          </div>
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
-            {categories.slice(0, 12).map((category: any) => {
-              const Icon = iconMap[category.icon] || Settings;
-              return (
-                <Link
-                  key={category.id}
-                  href={`/category/${category.slug}`}
-                  className="group"
-                >
-                  <div className="nepali-card p-4 text-center hover:scale-105 transition-all duration-300 cursor-pointer h-full flex flex-col items-center justify-center min-h-[140px]">
-                    <div 
-                      className="w-14 h-14 mx-auto mb-2 rounded-2xl flex items-center justify-center transform group-hover:rotate-12 transition-transform"
-                      style={{ backgroundColor: `${category.color}20` }}
+        {/* Horizontal Category Navigation - Clean & Luxury */}
+        <div className="mb-10">
+          {/* Top Category Tabs */}
+          <div className="bg-white rounded-2xl border border-gray-200/60 shadow-sm overflow-hidden mb-6">
+            <div className="overflow-x-auto scrollbar-hide">
+              <div className="flex items-center gap-2 px-6 py-4 min-w-max">
+                {categories.map((category: any) => {
+                  const Icon = iconMap[category.icon] || Settings;
+                  const isActive = activeCategory === category.id;
+                  return (
+                    <button
+                      key={category.id}
+                      onClick={() => setActiveCategory(isActive ? "" : category.id)}
+                      className={`flex flex-col items-center justify-center px-8 py-4 min-w-[140px] rounded-xl transition-all duration-300 ${
+                        isActive
+                          ? 'bg-gradient-to-br from-blue-600 to-blue-700 text-white shadow-lg scale-105'
+                          : 'bg-gray-50/80 hover:bg-gray-100 text-gray-700 hover:shadow-md'
+                      }`}
                     >
-                      <Icon className="w-7 h-7" style={{ color: category.color }} />
-                    </div>
-                    <h3 className="font-semibold text-xs leading-tight line-clamp-2">{category.name}</h3>
-                  </div>
-                </Link>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Featured Services Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2">
-            <Card className="nepali-card">
-              <CardContent className="p-8">
-                <div className="flex items-center justify-between mb-6">
-                  <h2 className="text-2xl font-bold">Popular Services</h2>
-                  <Button variant="outline" size="sm">View All</Button>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {categories.slice(0, 4).map((category: any) => {
-                    const Icon = iconMap[category.icon] || Settings;
-                    return (
-                      <Link
-                        key={category.id}
-                        href={`/category/${category.slug}`}
-                        className="flex items-center gap-4 p-4 rounded-xl border border-border hover:border-primary hover:bg-primary/5 transition-all"
-                      >
-                        <div 
-                          className="w-12 h-12 rounded-lg flex items-center justify-center flex-shrink-0"
-                          style={{ backgroundColor: `${category.color}20` }}
-                        >
-                          <Icon className="w-6 h-6" style={{ color: category.color }} />
-                        </div>
-                        <div className="flex-1">
-                          <h3 className="font-semibold">{category.name}</h3>
-                          <p className="text-sm text-muted-foreground">
-                            {category.subcategories?.length || 0} subcategories
-                          </p>
-                        </div>
-                      </Link>
-                    );
-                  })}
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Sidebar */}
-          <div className="lg:col-span-1">
-            <div className="bg-card border border-border rounded-xl overflow-hidden shadow-lg mb-6" data-testid="property-promotion-card">
-              <div
-                className="relative h-80 bg-gradient-to-br from-orange-400 to-pink-500"
-                style={{
-                  backgroundImage: "linear-gradient(rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.4)), url('https://images.unsplash.com/photo-1564013799919-ab600027ffc6?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&h=600')",
-                  backgroundSize: "cover",
-                  backgroundPosition: "center"
-                }}
-              >
-                <div className="absolute inset-0 flex flex-col justify-center items-center text-white text-center p-6">
-                  <h3 className="text-2xl font-bold mb-2" data-testid="text-promo-title-1">Find Your Next</h3>
-                  <h3 className="text-2xl font-bold mb-4" data-testid="text-promo-title-2">Home with Jeevika</h3>
-                  <h3 className="text-xl font-bold mb-6" data-testid="text-promo-title-3">Services Properties!</h3>
-                  <div className="text-center text-orange-200 font-bold text-lg" data-testid="text-promo-nepali">
-                    तपाईंको अर्को घर<br />
-                    जीविका सेवाको साथ<br />
-                    फेला पार्नुहोस्!
-                  </div>
-                  <Button className="mt-6 bg-white text-primary hover:bg-white/90">
-                    Get Started
-                  </Button>
-                </div>
+                      <div className={`w-12 h-12 rounded-xl flex items-center justify-center mb-2 ${
+                        isActive ? 'bg-white/20' : 'bg-white'
+                      }`}>
+                        <Icon className={`w-6 h-6 ${isActive ? 'text-white' : 'text-blue-600'}`} />
+                      </div>
+                      <span className="text-xs font-semibold text-center leading-tight">
+                        {category.name}
+                      </span>
+                    </button>
+                  );
+                })}
               </div>
             </div>
           </div>
+
+          {/* Expanded Category View with Subcategories */}
+          {activeCategory && (() => {
+            const selectedCategory = categories.find((c: any) => c.id === activeCategory);
+            if (!selectedCategory) return null;
+            
+            const Icon = iconMap[selectedCategory.icon] || Settings;
+            const activeSubcategories = selectedCategory.subcategories?.filter((s: any) => s.isActive) || [];
+
+            return (
+              <div className="space-y-6">
+                {/* Category Header - Luxury Design */}
+                <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-blue-600 via-blue-700 to-blue-800 p-8 shadow-xl">
+                  <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full -mr-32 -mt-32"></div>
+                  <div className="absolute bottom-0 left-0 w-48 h-48 bg-white/5 rounded-full -ml-24 -mb-24"></div>
+                  <div className="relative flex items-center gap-6">
+                    <div className="w-20 h-20 rounded-2xl flex items-center justify-center flex-shrink-0 bg-white/10 backdrop-blur-sm border border-white/20">
+                      <Icon className="w-10 h-10 text-white" />
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="text-3xl font-bold mb-2 text-white">{selectedCategory.name}</h3>
+                      {selectedCategory.description && (
+                        <p className="text-white/90 text-sm mb-2">{selectedCategory.description}</p>
+                      )}
+                      <p className="text-xs text-white/70 inline-flex items-center gap-1.5 bg-white/10 px-3 py-1 rounded-full">
+                        <span className="w-1.5 h-1.5 rounded-full bg-white/70"></span>
+                        {activeSubcategories.length} subcategories available
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Subcategories Grid - Clean & Minimal */}
+                {activeSubcategories.length > 0 ? (
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-5">
+                    {activeSubcategories.map((subcategory: any) => {
+                      const SubIcon = iconMap[subcategory.icon] || Icon;
+                      return (
+                        <Link
+                          key={subcategory.id}
+                          href={`/subcategory/${subcategory.slug}`}
+                          className="group"
+                        >
+                          <div className="bg-white rounded-2xl p-5 text-center hover:shadow-xl transition-all duration-300 cursor-pointer border border-gray-100 hover:border-blue-200 hover:-translate-y-1">
+                            <div className="w-14 h-14 mx-auto mb-3 rounded-xl bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center group-hover:from-blue-50 group-hover:to-blue-100 transition-all duration-300">
+                              <SubIcon className="w-7 h-7 text-gray-600 group-hover:text-blue-600 transition-colors duration-300" />
+                            </div>
+                            <h4 className="font-semibold text-sm leading-tight text-gray-800 line-clamp-2">{subcategory.name}</h4>
+                          </div>
+                        </Link>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <div className="text-center py-16 bg-gradient-to-br from-gray-50 to-white rounded-2xl border border-gray-100">
+                    <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gray-100 flex items-center justify-center">
+                      <Icon className="w-8 h-8 text-gray-400" />
+                    </div>
+                    <p className="text-muted-foreground text-sm font-medium">No subcategories available</p>
+                  </div>
+                )}
+              </div>
+            );
+          })()}
         </div>
+
+   
       </section>
 
       <StatsSection />
