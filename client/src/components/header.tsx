@@ -1,6 +1,6 @@
 import { Heart, User, Plus, Menu, X, Home, Building2, MapPin, Briefcase, Users as UsersIcon, GraduationCap, Settings, ChevronDown } from "lucide-react";
 import { Link, useLocation } from "wouter";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useQuery } from "@tanstack/react-query";
 
@@ -15,6 +15,11 @@ const iconMap: Record<string, any> = {
 };
 
 export default function Header() {
+  const headerRef = useRef<HTMLDivElement | null>(null);
+  const scrollRef = useRef<HTMLDivElement | null>(null);
+  const subScrollRef = useRef<HTMLDivElement | null>(null);
+  const linkRefs = useRef<Record<string, HTMLAnchorElement | null>>({});
+  const [submenuLeft, setSubmenuLeft] = useState<number | null>(null);
   const [location] = useLocation();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [activeCategory, setActiveCategory] = useState<string>("");
@@ -30,6 +35,7 @@ export default function Header() {
   });
 
   const activeCategories = categories.filter((cat: any) => cat.isActive);
+  const activeCat = activeCategories.find((c: any) => c.id === activeCategory);
 
   const navItems = [
     { href: "/properties", label: "घर जग्गा | Properties", shortLabel: "Properties", isActive: location.startsWith("/properties") || location === "/", hasRoute: true },
@@ -42,7 +48,7 @@ export default function Header() {
 
   return (
     <>
-      <header className="nepal-gradient text-primary-foreground shadow-lg sticky top-0 z-50" data-testid="header">
+      <header ref={headerRef} className="nepal-gradient text-primary-foreground shadow-lg sticky top-0 z-50" data-testid="header">
         <div className="container mx-auto px-4">
           <div className="flex items-center justify-between h-16">
             {/* Logo */}
@@ -58,70 +64,135 @@ export default function Header() {
               </div>
             </Link>
 
-            {/* Desktop Navigation - Category Dropdown */}
-            <nav className="hidden md:flex items-center space-x-4 relative">
-              {activeCategories.map((category: any) => {
-                const Icon = iconMap[category.icon] || Settings;
-                const hasSubcategories = category.subcategories && category.subcategories.filter((sub: any) => sub.isActive).length > 0;
-                
-                return (
-                  <div 
-                    key={category.id} 
-                    className="relative group"
-                    onMouseEnter={() => {
-                      setActiveCategory(category.id);
-                      setShowSubcategories(true);
-                    }}
-                    onMouseLeave={() => {
-                      setShowSubcategories(false);
-                    }}
+            {/* Desktop Category Card Bar (replaces dropdown navigation) */}
+              <div className="hidden md:block w-full" onMouseLeave={() => setShowSubcategories(false)}>
+              <div className="container mx-auto px-4 py-6 relative">
+                <div className="relative">
+                  <div
+                    ref={scrollRef}
+                    className="overflow-x-auto hide-scrollbar"
+                    style={{ scrollBehavior: 'smooth' }}
                   >
-                    <Link
-                      href={`/category/${category.slug}`}
-                      className={`flex items-center space-x-2 px-3 py-2 rounded-lg text-sm font-medium transition-all hover:bg-white/10 ${
-                        location === `/category/${category.slug}` ? "bg-white/20 text-accent" : "text-white"
-                      }`}
-                    >
-                      <Icon className="h-4 w-4" />
-                      <span>{category.name}</span>
-                      {hasSubcategories && <ChevronDown className="h-3 w-3" />}
-                    </Link>
+                    <div className="flex items-center gap-6 flex-nowrap" style={{ minWidth: 'max-content' }}>
+                    {activeCategories.map((category: any) => {
+                      return (
+                        <div className="relative inline-block flex-shrink-0" key={category.id}>
+                          <Link
+                            ref={(el: any) => (linkRefs.current[category.id] = el)}
+                            href={`/category/${category.slug}`}
+                            onMouseEnter={() => {
+                              setActiveCategory(category.id);
+                              setShowSubcategories(true);
+                              // compute left offset for submenu
+                              if (headerRef.current && linkRefs.current[category.id]) {
+                                const headerRect = headerRef.current.getBoundingClientRect();
+                                const linkRect = linkRefs.current[category.id]!.getBoundingClientRect();
+                                setSubmenuLeft(linkRect.left - headerRect.left);
+                              }
+                            }}
+                            onFocus={() => {
+                              setActiveCategory(category.id);
+                              setShowSubcategories(true);
+                            }}
+                            className={`inline-block px-4 py-2 rounded-md text-sm font-medium text-white hover:bg-white/10 transition-colors`}
+                            style={{ textDecoration: 'none' }}
+                          >
+                            {category.name}
+                          </Link>
+                        </div>
+                      );
+                    })}
+                    </div>
+                  </div>
 
-                    {/* Subcategories Dropdown */}
-                    {hasSubcategories && showSubcategories && activeCategory === category.id && (
-                      <div className="absolute top-full left-0 mt-1 w-64 bg-white rounded-lg shadow-xl border border-gray-200 py-2 z-50">
-                     
-                        {category.subcategories
-                          .filter((sub: any) => sub.isActive)
-                          .map((subcategory: any) => {
-                            const SubIcon = iconMap[subcategory.icon] || Settings;
+                  {/* Left / Right controls for the category scroller */}
+                  <button
+                    aria-label="Scroll left"
+                    onClick={() => {
+                      if (scrollRef.current) scrollRef.current.scrollBy({ left: -300, behavior: 'smooth' });
+                    }}
+                    className="hidden lg:flex items-center justify-center absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-white/90 shadow-md hover:bg-white"
+                    style={{ zIndex: 60 }}
+                  >
+                    <svg className="w-4 h-4 text-gray-700" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+                  </button>
+
+                  <button
+                    aria-label="Scroll right"
+                    onClick={() => {
+                      if (scrollRef.current) scrollRef.current.scrollBy({ left: 300, behavior: 'smooth' });
+                    }}
+                    className="hidden lg:flex items-center justify-center absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-white/90 shadow-md hover:bg-white"
+                    style={{ zIndex: 60 }}
+                  >
+                    <svg className="w-4 h-4 text-gray-700" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                  </button>
+                </div>
+
+                {/* Subcategory popup positioned under the hovered category */}
+                {showSubcategories && activeCat && activeCat.subcategories && activeCat.subcategories.filter((s: any) => s.isActive).length > 0 && submenuLeft !== null && (
+                  <div
+                    className="absolute left-0 right-0 pointer-events-none"
+                    style={{ top: '100%', zIndex: 60 }}
+                  >
+                    <div
+                          className="pointer-events-auto bg-white rounded-lg shadow-sm border border-gray-100 mx-4"
+                          style={{ position: 'absolute', left: submenuLeft, transform: 'translateX(0)', minWidth: 320 }}
+                        >
+                          <div className="px-2 py-3 relative">
+                            <div
+                              ref={subScrollRef}
+                              className="overflow-x-auto hide-scrollbar"
+                              style={{ scrollBehavior: 'smooth' }}
+                            >
+                              <div className="flex items-center gap-4 px-2">
+                                {activeCat.subcategories.filter((s: any) => s.isActive).map((sub: any) => {
+                            const SubIcon = iconMap[activeCat.icon] || Settings;
                             return (
                               <Link
-                                key={subcategory.id}
-                                href={`/subcategory/${subcategory.slug}`}
-                                className="flex items-center gap-3 px-4 py-2 hover:bg-gray-50 transition-colors"
+                                key={sub.id}
+                                href={`/subcategory/${sub.slug}`}
+                                className="flex items-center gap-3 bg-white rounded-lg px-4 py-2 hover:bg-gray-50 transition-colors min-w-[160px]"
+                                onClick={() => setShowSubcategories(false)}
+                                style={{ textDecoration: 'none' }}
                               >
-                                <div 
-                                  className="p-1.5 rounded-lg"
-                                  style={{ backgroundColor: `${category.color}15` }}
-                                >
-                                  <SubIcon className="w-4 h-4" style={{ color: category.color }} />
+                                <div className="p-2 rounded-md" style={{ backgroundColor: `${activeCat.color || '#eee'}20` }}>
+                                  <SubIcon className="w-5 h-5" style={{ color: activeCat.color || '#333' }} />
                                 </div>
-                                <div className="flex-1">
-                                  <p className="text-sm font-medium text-gray-900">{subcategory.name}</p>
-                                  {subcategory.description && (
-                                    <p className="text-xs text-gray-500 line-clamp-1">{subcategory.description}</p>
-                                  )}
+                                <div>
+                                  <div className="text-sm font-medium text-gray-800">{sub.name}</div>
+                                  {sub.description && <div className="text-xs text-gray-500">{sub.description}</div>}
                                 </div>
                               </Link>
                             );
-                          })}
-                      </div>
-                    )}
+                              })}
+                              </div>
+                            </div>
+
+                            {/* Sub-scroll left/right controls */}
+                            <button
+                              aria-label="Scroll subcategories left"
+                              onClick={() => { if (subScrollRef.current) subScrollRef.current.scrollBy({ left: -240, behavior: 'smooth' }); }}
+                              className="hidden lg:flex items-center justify-center absolute left-1 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-white/90 shadow-sm hover:bg-white"
+                              style={{ zIndex: 70 }}
+                            >
+                              <svg className="w-3 h-3 text-gray-700" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+                            </button>
+
+                            <button
+                              aria-label="Scroll subcategories right"
+                              onClick={() => { if (subScrollRef.current) subScrollRef.current.scrollBy({ left: 240, behavior: 'smooth' }); }}
+                              className="hidden lg:flex items-center justify-center absolute right-1 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-white/90 shadow-sm hover:bg-white"
+                              style={{ zIndex: 70 }}
+                            >
+                              <svg className="w-3 h-3 text-gray-700" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                            </button>
+                          </div>
+                    </div>
                   </div>
-                );
-              })}
-            </nav>
+                )}
+              </div>
+            </div>
 
             {/* Header Actions */}
             <div className="flex items-center space-x-2 md:space-x-4" data-testid="header-actions">
@@ -152,6 +223,10 @@ export default function Header() {
                   );
                 })()}
               </Link>
+                <Link href="/settings" className="hidden sm:flex items-center gap-2 p-2 hover:bg-primary/80 rounded-lg transition-colors" data-testid="button-settings">
+                  <Settings className="w-4 h-4 text-white" />
+                  <span className="hidden md:inline text-white">Settings</span>
+                </Link>
 
               {/* Mobile Menu Button */}
               <button
@@ -212,8 +287,8 @@ export default function Header() {
                         <div className="ml-8 mt-2 space-y-1">
                           {category.subcategories
                             .filter((sub: any) => sub.isActive)
-                            .map((subcategory: any) => {
-                              const SubIcon = iconMap[subcategory.icon] || Settings;
+                              .map((subcategory: any) => {
+                                const SubIcon = iconMap[category.icon] || Settings;
                               return (
                                 <Link
                                   key={subcategory.id}
@@ -266,6 +341,16 @@ export default function Header() {
                   })()}
                   <span>Profile</span>
                 </Link>
+                  <Link
+                    href="/settings"
+                    className="flex items-center gap-3 py-3 px-4 rounded-lg text-gray-700 hover:bg-gray-100 transition-colors"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    data-testid="mobile-link-settings"
+                  >
+                    <Settings className="w-5 h-5" />
+                    <span>Settings</span>
+                    
+                  </Link>
               </div>
             </nav>
           </div>

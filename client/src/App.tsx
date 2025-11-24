@@ -9,6 +9,7 @@ import Contact from "@/pages/contact";
 import Login from "@/pages/login";
 import Signup from "@/pages/signup";
 import Profile from "@/pages/profile";
+import Settings from "@/pages/settings";
 import AdminDashboard from "@/pages/admin-dashboard";
 import BuyerDashboard from "@/pages/buyer-dashboard";
 import SellerDashboard from "@/pages/seller-dashboard";
@@ -24,6 +25,7 @@ function Router() {
       <Route path="/login" component={Login} />
       <Route path="/signup" component={Signup} />
       <Route path="/profile" component={Profile} />
+      <Route path="/settings" component={Settings} />
       <Route path="/admin" component={AdminDashboard} />
       <Route path="/buyer-dashboard" component={BuyerDashboard} />
       <Route path="/seller-dashboard" component={SellerDashboard} />

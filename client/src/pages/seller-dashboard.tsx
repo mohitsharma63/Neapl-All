@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import '@/lib/attachUserToFetch';
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
@@ -30,6 +30,7 @@ import {
   Coffee,
   Mail,
   Phone,
+  Search,
   ChevronDown,
   Pencil,
   Trash
@@ -93,6 +94,7 @@ import { useUser } from '@/hooks/use-user';
 import TelecommunicationServicesForm from "@/components/telecommunication-services-form";
 import ServiceCentreWarrantyForm from "@/components/service-centre-warranty-form";
 import CyberCafeInternetServicesForm from "@/components/cyber-cafe-internet-services-form";
+import DynamicFilter from '@/components/dynamic-filter';
 import { ChartContainer, ChartTooltip, ChartTooltipContent, ChartLegend, ChartLegendContent } from "@/components/ui/chart";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, PieChart, Pie, Cell } from "recharts";
 
@@ -101,14 +103,22 @@ function EducationalConsultancyStudyAbroadSection() {
   const [consultancies, setConsultancies] = useState<any[]>([]);
   const [showForm, setShowForm] = useState(false);
   const [editingConsultancy, setEditingConsultancy] = useState(null);
+  const [filters, setFilters] = useState<any>({ search: '', country: '', isActive: '', isFeatured: '' });
 
   useEffect(() => {
     fetchConsultancies();
-  }, []);
+  }, [filters]);
 
   const fetchConsultancies = async () => {
     try {
-      const response = await fetch('/api/admin/educational-consultancy-study-abroad');
+      const params = new URLSearchParams();
+      if (filters.search) params.append('q', filters.search);
+      if (filters.country) params.append('country', filters.country);
+      if (filters.isActive !== '' && filters.isActive != null) params.append('isActive', String(filters.isActive));
+      if (filters.isFeatured !== '' && filters.isFeatured != null) params.append('isFeatured', String(filters.isFeatured));
+
+      const query = params.toString() ? `?${params.toString()}` : '';
+      const response = await fetch(`/api/admin/educational-consultancy-study-abroad${query}`);
       const data = await response.json();
       setConsultancies(Array.isArray(data) ? data : []);
     } catch (error) {
@@ -177,8 +187,22 @@ function EducationalConsultancyStudyAbroadSection() {
       </div>
 
 
+      <div className="mb-4">
+        <DynamicFilter
+          fields={[
+            { type: 'search', name: 'search', placeholder: 'Search consultancies...' },
+            { type: 'select', name: 'country', label: 'Country', options: [] },
+            { type: 'toggle', name: 'isActive', label: 'Active' },
+            { type: 'toggle', name: 'isFeatured', label: 'Featured' },
+          ]}
+          filters={filters}
+          onChange={(next) => setFilters(next)}
+          onReset={() => setFilters({ search: '', country: '', isActive: '', isFeatured: '' })}
+        />
+      </div>
+
       <Dialog open={showForm} onOpenChange={setShowForm}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-visible">
           <DialogHeader>
             <DialogTitle>Add New Educational Consultancy/Study Abroad Listing</DialogTitle>
             <DialogDescription>Fill in the details to create a new listing</DialogDescription>
@@ -280,14 +304,22 @@ function EventDecorationServicesSection() {
   const [editingItem, setEditingItem] = useState<any>(null); // Added state for editingItem
   const [viewingService, setViewingService] = useState<any>(null);
   const [showDetailsDialog, setShowDetailsDialog] = useState(false);
+  const [filters, setFilters] = useState<any>({ search: '', venueType: '', isActive: '', isFeatured: '' });
 
   useEffect(() => {
     fetchServices();
-  }, []);
+  }, [filters]);
 
   const fetchServices = async () => {
     try {
-      const response = await fetch('/api/admin/event-decoration-services');
+      const params = new URLSearchParams();
+      if (filters.search) params.append('q', filters.search);
+      if (filters.venueType) params.append('venueType', filters.venueType);
+      if (filters.isActive !== '' && filters.isActive != null) params.append('isActive', String(filters.isActive));
+      if (filters.isFeatured !== '' && filters.isFeatured != null) params.append('isFeatured', String(filters.isFeatured));
+
+      const query = params.toString() ? `?${params.toString()}` : '';
+      const response = await fetch(`/api/admin/event-decoration-services${query}`);
       const data = await response.json();
       setServices(Array.isArray(data) ? data : []);
     } catch (error) {
@@ -365,6 +397,20 @@ function EventDecorationServicesSection() {
           <Plus className="w-4 h-4 mr-2" />
           Add Service
         </Button>
+      </div>
+
+      <div className="mb-4">
+        <DynamicFilter
+          fields={[
+            { type: 'search', name: 'search', placeholder: 'Search services...' },
+            { type: 'select', name: 'venueType', label: 'Venue Type', options: [] },
+            { type: 'toggle', name: 'isActive', label: 'Active' },
+            { type: 'toggle', name: 'isFeatured', label: 'Featured' },
+          ]}
+          filters={filters}
+          onChange={(next) => setFilters(next)}
+          onReset={() => setFilters({ search: '', venueType: '', isActive: '', isFeatured: '' })}
+        />
       </div>
 
       <EventDecorationServicesForm />
@@ -461,7 +507,7 @@ function EventDecorationServicesSection() {
 
       {/* View Details Dialog */}
       <Dialog open={showDetailsDialog} onOpenChange={setShowDetailsDialog}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-visible">
           <DialogHeader>
             <DialogTitle className="text-2xl">{viewingService?.title}</DialogTitle>
             <DialogDescription>Complete service details</DialogDescription>
@@ -596,14 +642,22 @@ function FashionBeautyProductsSection() {
   const [editingProduct, setEditingProduct] = useState<any>(null);
   const [viewingProduct, setViewingProduct] = useState<any>(null);
   const [showDetailsDialog, setShowDetailsDialog] = useState(false);
+  const [filters, setFilters] = useState<any>({ search: '', category: '', isActive: '', isFeatured: '' });
 
   useEffect(() => {
     fetchProducts();
-  }, []);
+  }, [filters]);
 
   const fetchProducts = async () => {
     try {
-      const response = await fetch('/api/admin/fashion-beauty-products');
+      const params = new URLSearchParams();
+      if (filters.search) params.append('q', filters.search);
+      if (filters.category) params.append('category', filters.category);
+      if (filters.isActive !== '' && filters.isActive != null) params.append('isActive', String(filters.isActive));
+      if (filters.isFeatured !== '' && filters.isFeatured != null) params.append('isFeatured', String(filters.isFeatured));
+
+      const query = params.toString() ? `?${params.toString()}` : '';
+      const response = await fetch(`/api/admin/fashion-beauty-products${query}`);
       const data = await response.json();
       setProducts(Array.isArray(data) ? data : []);
     } catch (error) {
@@ -683,12 +737,25 @@ function FashionBeautyProductsSection() {
           Add Product
         </Button>
       </div>
+      <div className="mb-4">
+        <DynamicFilter
+          fields={[
+            { type: 'search', name: 'search', placeholder: 'Search products...' },
+            { type: 'select', name: 'category', label: 'Category', options: [] },
+            { type: 'toggle', name: 'isActive', label: 'Active' },
+            { type: 'toggle', name: 'isFeatured', label: 'Featured' },
+          ]}
+          filters={filters}
+          onChange={(next) => setFilters(next)}
+          onReset={() => setFilters({ search: '', category: '', isActive: '', isFeatured: '' })}
+        />
+      </div>
 
       <Dialog open={showForm} onOpenChange={(open) => {
         setShowForm(open);
         if (!open) setEditingProduct(null);
       }}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-visible">
           <DialogHeader>
             <DialogTitle>{editingProduct ? 'Edit Fashion & Beauty Product' : 'Add New Fashion & Beauty Product'}</DialogTitle>
             <DialogDescription>Fill in the details to {editingProduct ? 'update' : 'create'} a fashion or beauty product listing</DialogDescription>
@@ -699,7 +766,7 @@ function FashionBeautyProductsSection() {
 
       {/* View Details Dialog */}
       <Dialog open={showDetailsDialog} onOpenChange={setShowDetailsDialog}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-visible">
           <DialogHeader>
             <DialogTitle className="text-2xl">{viewingProduct?.title}</DialogTitle>
             <DialogDescription>Complete product details</DialogDescription>
@@ -1114,7 +1181,7 @@ function SareeClothingShoppingSection() {
         setShowForm(open);
         if (!open) setEditingProduct(null);
       }}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-visible">
           <DialogHeader>
             <DialogTitle>{editingProduct ? 'Edit Product' : 'Add New Product'}</DialogTitle>
             <DialogDescription>Fill in the details to {editingProduct ? 'update' : 'create'} a product listing</DialogDescription>
@@ -1133,7 +1200,7 @@ function SareeClothingShoppingSection() {
 
       {/* View Details Dialog */}
       <Dialog open={showDetailsDialog} onOpenChange={setShowDetailsDialog}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-visible">
           <DialogHeader>
             <DialogTitle className="text-2xl">{viewingProduct?.title}</DialogTitle>
             <DialogDescription>Complete product details</DialogDescription>
@@ -1373,7 +1440,7 @@ function PharmacyMedicalStoresSection() {
       />
 
       <Dialog open={showDetailsDialog} onOpenChange={setShowDetailsDialog}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-visible">
           <DialogHeader>
             <DialogTitle className="text-2xl">{viewingStore?.title || viewingStore?.storeName}</DialogTitle>
             <DialogDescription>Complete store details</DialogDescription>
@@ -1818,7 +1885,7 @@ function JewelryAccessoriesSection() {
         setShowForm(open);
         if (!open) setEditingItem(null);
       }}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-visible">
           <DialogHeader>
             <DialogTitle>{editingItem ? 'Edit Jewelry/Accessory Item' : 'Add New Jewelry/Accessory Item'}</DialogTitle>
             <DialogDescription>Fill in the details to {editingItem ? 'update' : 'create'} a jewelry or accessory listing</DialogDescription>
@@ -1920,7 +1987,7 @@ function JewelryAccessoriesSection() {
 
       {/* View Details Dialog */}
       <Dialog open={showDetailsDialog} onOpenChange={setShowDetailsDialog}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-visible">
           <DialogHeader>
             <DialogTitle className="text-2xl">{viewingItem?.title}</DialogTitle>
             <DialogDescription>Complete jewelry/accessory details</DialogDescription>
@@ -2181,7 +2248,7 @@ function HealthWellnessServicesSection() {
         setShowForm(open);
         if (!open) setEditingService(null);
       }}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-visible">
           <DialogHeader>
             <DialogTitle>{editingService ? 'Edit Health & Wellness Service' : 'Add New Health & Wellness Service'}</DialogTitle>
             <DialogDescription>Fill in the details to {editingService ? 'update' : 'create'} a health & wellness service listing</DialogDescription>
@@ -2404,7 +2471,7 @@ function HouseholdServicesSection() {
             setEditingItem(null); // Reset editingItem when dialog closes
         }
       }}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-visible">
           <DialogHeader>
             <DialogTitle>{editingService ? "Edit Household Service" : "Add New Household Service"}</DialogTitle>
             <DialogDescription>
@@ -2537,7 +2604,7 @@ function HouseholdServicesSection() {
 
       {/* View Details Dialog */}
       <Dialog open={showDetailsDialog} onOpenChange={setShowDetailsDialog}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-visible">
           <DialogHeader>
             <DialogTitle className="text-2xl">{viewingService?.title}</DialogTitle>
             <DialogDescription>Complete service details</DialogDescription>
@@ -2813,6 +2880,7 @@ function AppSidebar({ activeSection, setActiveSection }: { activeSection: string
   const [categories, setCategories] = React.useState<AdminCategory[]>([]);
   const [expandedCategories, setExpandedCategories] = React.useState<Set<string>>(new Set());
   const [categoryPreferences, setCategoryPreferences] = React.useState<any[]>([]);
+  const [searchQuery, setSearchQuery] = React.useState<string>('');
   const { user } = useUser();
 
   React.useEffect(() => {
@@ -2824,6 +2892,20 @@ function AppSidebar({ activeSection, setActiveSection }: { activeSection: string
       fetchPreferences();
     }
   }, [user?.id]);
+
+  // Filter preferences by search query (category name or subcategory name)
+  const filteredCategoryPreferences = React.useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    if (!q) return categoryPreferences;
+    return categoryPreferences.filter((pref: any) => {
+      const categoryName = (pref.categoryName || pref.categorySlug || '').toString().toLowerCase();
+      if (categoryName.includes(q)) return true;
+      if (Array.isArray(pref.subcategoriesWithNames)) {
+        return pref.subcategoriesWithNames.some((s: any) => (s.name || s.slug || '').toString().toLowerCase().includes(q));
+      }
+      return false;
+    });
+  }, [categoryPreferences, searchQuery]);
 
   const fetchCategories = async () => {
     try {
@@ -2865,96 +2947,176 @@ function AppSidebar({ activeSection, setActiveSection }: { activeSection: string
   ];
 
   return (
-    <aside className="h-full w-64 bg-white dark:bg-gray-950 shadow-xl rounded-xl m-4 flex flex-col border border-gray-200 dark:border-gray-800">
-      <div className="flex items-center gap-3 px-6 py-5 border-b bg-gradient-to-r from-blue-50 to-green-50 dark:from-blue-950 dark:to-green-950 rounded-t-xl">
-        <div className="w-12 h-12 bg-gradient-to-br from-blue-600 to-green-600 rounded-xl flex items-center justify-center shadow-lg">
-          <Shield className="w-6 h-6 text-white" />
+    <aside className="sticky top-4 self-start h-[calc(100vh-2rem)] w-64 bg-white dark:bg-gray-950 shadow-xl rounded-xl m-4 flex flex-col border border-gray-200 dark:border-gray-800" aria-label="Seller dashboard sidebar">
+      <div className="flex items-center gap-3 px-4 py-4 border-b bg-gradient-to-r from-blue-50 to-green-50 dark:from-blue-950 dark:to-green-950 rounded-t-xl">
+        <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-green-600 rounded-lg flex items-center justify-center shadow-sm">
+          <Shield className="w-5 h-5 text-white" />
         </div>
-        <div className="flex-1">
-          <h1 className="font-bold text-xl bg-gradient-to-r from-blue-700 to-green-600 bg-clip-text text-transparent">Seller Dashboard</h1>
-          <p className="text-xs text-muted-foreground">Manage Your Services</p>
+        <div className="flex-1 min-w-0">
+          <h1 className="font-semibold text-lg leading-tight text-gray-800 dark:text-gray-100">Seller Dashboard</h1>
+          <p className="text-xs text-muted-foreground truncate">Manage your services and listings</p>
         </div>
       </div>
 
-      <nav className="flex-1 px-4 py-6 overflow-y-auto scrollbar-thin scrollbar-thumb-blue-200 scrollbar-track-transparent">
-        <div className="mb-2">
-          <span className="px-2 py-1 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Main Navigation</span>
+      <nav className="flex-1 px-3 py-3 overflow-y-auto" role="navigation">
+        <div className="mb-3 px-1">
+          <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Main Navigation</span>
         </div>
-       
-        <ul className="space-y-2">
-          {/* Dashboard */}
+
+        <div className="px-1 mb-3">
+          <label className="sr-only">Search categories</label>
+          <div className="relative">
+            <Search className="absolute left-3 top-3 w-4 h-4 text-gray-400" />
+            <input
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search categories or subcategories"
+              className="w-full pl-10 pr-3 py-2 text-sm rounded-md border border-gray-200 dark:border-gray-800 bg-transparent focus:outline-none focus:ring-2 focus:ring-blue-300"
+              aria-label="Search categories"
+            />
+          </div>
+        </div>
+
+        <ul className="space-y-2 px-1">
           <li>
             <button
-              className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg font-medium transition-all duration-200 shadow-sm border border-transparent ${activeSection === "dashboard" ? "bg-gradient-to-r from-blue-600 to-green-600 text-white shadow-md scale-[1.03]" : "hover:bg-blue-50 dark:hover:bg-gray-900 text-gray-700 dark:text-gray-200"}`}
+              className={`w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-colors ${activeSection === "dashboard" ? "bg-gradient-to-r from-blue-600 to-green-600 text-white" : "hover:bg-gray-50 dark:hover:bg-gray-900 text-gray-700 dark:text-gray-200"}`}
               onClick={() => setActiveSection("dashboard")}
+              aria-current={activeSection === 'dashboard' ? 'page' : undefined}
             >
-              <Home className="w-5 h-5" />
-              Dashboard
+              <Home className="w-4 h-4" />
+              <span className="flex-1 text-left">Dashboard</span>
             </button>
           </li>
 
-          {/* User's Selected Categories and Subcategories */}
-          {categoryPreferences.map(pref => {
+          {filteredCategoryPreferences.length === 0 && (
+            <li className="px-3 py-2 text-sm text-muted-foreground">No categories found.</li>
+          )}
+
+          {filteredCategoryPreferences.map((pref: any) => {
             const category = categories.find(c => c.id === pref.categorySlug || c.slug === pref.categorySlug);
-            const categoryName = pref.categoryName || category?.name || pref.categorySlug.replace(/_/g, ' ');
+            const categoryName = pref.categoryName || category?.name || (pref.categorySlug || '').toString().replace(/_/g, ' ');
             const hasSubcategories = pref.subcategoriesWithNames && pref.subcategoriesWithNames.length > 0;
             const isExpanded = expandedCategories.has(pref.categorySlug);
+            const subCount = Array.isArray(pref.subcategoriesWithNames) ? pref.subcategoriesWithNames.length : 0;
             return (
-              <React.Fragment key={pref.categorySlug}>
-                <li className="mb-2">
+              <li key={pref.categorySlug} className="mb-0">
+                <div className="flex items-center gap-2">
                   <button
-                    className={`w-full flex items-center gap-2 px-3 py-2 rounded-md font-medium text-base transition-all duration-200 shadow-sm border border-transparent ${activeSection === pref.categorySlug ? "bg-gradient-to-r from-blue-600 to-green-600 text-white shadow-md scale-[1.01]" : "hover:bg-blue-50 dark:hover:bg-gray-900 text-gray-700 dark:text-gray-200"}`}
+                    className={`flex-1 flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-all text-left ${activeSection === pref.categorySlug ? 'bg-blue-600 text-white' : 'hover:bg-gray-50 dark:hover:bg-gray-900 text-gray-700 dark:text-gray-200'}`}
                     style={{ minHeight: '40px' }}
                     onClick={() => {
                       setActiveSection(pref.categorySlug);
                       if (hasSubcategories) toggleCategoryExpand(pref.categorySlug);
                     }}
+                    aria-expanded={hasSubcategories ? isExpanded : undefined}
+                    aria-controls={hasSubcategories ? `subcat-${pref.categorySlug}` : undefined}
+                    title={categoryName}
                   >
                     {iconMap[pref.icon] ? (
                       React.createElement(iconMap[pref.icon], { className: "w-4 h-4 text-blue-500" })
                     ) : (
                       <Bookmark className="w-4 h-4 text-blue-500" />
                     )}
-                    <span className="flex-1 text-left">{categoryName}</span>
+                    <span className="flex-1 truncate">{categoryName}</span>
                     {hasSubcategories && (
-                      <span className={`ml-auto transition-transform ${isExpanded ? 'rotate-90' : ''}`}>
-                        <ChevronDown className="w-3 h-3" />
-                      </span>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs text-muted-foreground hidden sm:inline">{subCount}</span>
+                        <span className={`transition-transform ${isExpanded ? 'rotate-90' : ''}`}>
+                          <ChevronDown className="w-4 h-4 text-gray-400" />
+                        </span>
+                      </div>
                     )}
                   </button>
-                </li>
-                {/* Subcategories */}
+                </div>
+
                 {hasSubcategories && isExpanded && (
-                  <div className="mt-1 ml-6 max-h-56 overflow-y-auto scrollbar-thin scrollbar-thumb-blue-200 scrollbar-track-transparent">
-                    <ul className="flex flex-col gap-0.5">
+                  <div id={`subcat-${pref.categorySlug}`} className="mt-1 ml-6 max-h-56 overflow-y-auto hide-scrollbar" role="region" aria-label={`${categoryName} subcategories`}>
+                    <ul className="flex flex-col gap-1">
                       {pref.subcategoriesWithNames.map((sub: any) => (
                         <li key={sub.slug || sub.id}>
                           <button
-                            className={`w-full text-left px-3 py-2 rounded-md text-sm font-normal transition-colors duration-150 flex items-center gap-2 border-l-4 ${activeSection === (sub.slug || sub.name)
-                              ? "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-100 border-blue-500"
-                              : "hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-500 dark:text-gray-400 border-transparent"}`}
+                            className={`w-full text-left px-3 py-2 rounded-md text-sm font-normal transition-colors flex items-center gap-2 ${activeSection === (sub.slug || sub.name) ? 'bg-blue-50 text-blue-700 border-l-2 border-blue-400' : 'hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-500 dark:text-gray-400'}`}
                             onClick={() => setActiveSection(sub.slug || sub.name)}
+                            title={sub.name || sub.slug}
                           >
-                            <span className="w-2 h-2 rounded-full bg-blue-400 mr-2"></span>
-                            <span className="font-normal">{sub.name || sub.slug}</span>
+                            <span className="w-2 h-2 rounded-full bg-blue-400 mr-2 shrink-0" aria-hidden></span>
+                            <span className="truncate">{sub.name || sub.slug}</span>
                           </button>
                         </li>
                       ))}
                     </ul>
                   </div>
                 )}
-              </React.Fragment>
+              </li>
             );
           })}
         </ul>
       </nav>
-      
+
+      <div className="px-3 py-3 border-t bg-transparent">
+        <ProfileFooter />
+      </div>
     </aside>
   );
 
   // ...existing code...
 
 }
+
+  // Profile footer component with dropdown for Profile / Settings / Logout
+  function ProfileFooter() {
+    const { user } = useUser();
+    const [open, setOpen] = useState(false);
+    const menuRef = useRef<HTMLDivElement | null>(null);
+
+    useEffect(() => {
+      function onDocClick(e: MouseEvent) {
+        if (!menuRef.current) return;
+        if (!menuRef.current.contains(e.target as Node)) {
+          setOpen(false);
+        }
+      }
+      document.addEventListener('mousedown', onDocClick);
+      return () => document.removeEventListener('mousedown', onDocClick);
+    }, []);
+
+    const handleLogout = () => {
+      localStorage.removeItem('user');
+      window.location.href = '/';
+    };
+
+    return (
+      <div className="relative" ref={menuRef}>
+        <button
+          className="w-full flex items-center gap-3 px-2 py-2 rounded-md hover:bg-gray-50 dark:hover:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-300"
+          onClick={() => setOpen(prev => !prev)}
+          aria-haspopup="menu"
+          aria-expanded={open}
+        >
+          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-600 to-green-600 flex items-center justify-center text-white font-semibold">{user?.firstName?.[0] || user?.username?.[0] || 'U'}</div>
+          <div className="flex-1 min-w-0 text-left">
+            <div className="text-sm font-medium truncate">{user?.firstName ? `${user.firstName} ${user.lastName || ''}` : user?.username || 'User'}</div>
+            <div className="text-xs text-muted-foreground truncate">{user?.email}</div>
+          </div>
+          <div>
+            <ChevronDown className="w-4 h-4 text-gray-400" />
+          </div>
+        </button>
+
+        {open && (
+          <div role="menu" aria-label="Profile menu" className="absolute right-0 bottom-14 w-48 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md shadow-lg z-20">
+            <div className="py-1">
+              <button role="menuitem" onClick={() => { window.location.href = '/profile'; }} className="w-full text-left px-3 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700">Profile</button>
+              <button role="menuitem" onClick={() => { window.location.href = '/settings'; }} className="w-full text-left px-3 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700">Settings</button>
+              <div className="border-t border-gray-100 dark:border-gray-700 my-1" />
+              <button role="menuitem" onClick={handleLogout} className="w-full text-left px-3 py-2 text-sm text-red-600 hover:bg-gray-100 dark:hover:bg-gray-700">Logout</button>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
 
 // Categories Section
 function CategoriesSection() {
@@ -2965,7 +3127,7 @@ function CategoriesSection() {
   const [editingSubcategory, setEditingSubcategory] = useState<AdminSubcategory | undefined>(undefined);
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(() => {
     const saved = localStorage.getItem('expandedCategories');
-    return saved ? new Set(JSON.JSON.parse(saved)) : new Set();
+    return saved ? new Set(JSON.parse(saved)) : new Set();
   });
 
   useEffect(() => {
@@ -2973,7 +3135,7 @@ function CategoriesSection() {
   }, []);
 
   useEffect(() => {
-    localStorage.setItem('expandedCategories', JSON.JSON.stringify(Array.from(expandedCategories)));
+    localStorage.setItem('expandedCategories', JSON.stringify(Array.from(expandedCategories)));
   }, [expandedCategories]);
 
   const toggleCategoryExpand = (categoryId: string) => {
@@ -3020,7 +3182,7 @@ function CategoriesSection() {
       const response = await fetch(`/api/admin/categories/${category.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.JSON.stringify({ ...category, isActive: !category.isActive }),
+        body: JSON.stringify({ ...category, isActive: !category.isActive }),
       });
 
       if (response.ok) {
@@ -3052,7 +3214,7 @@ function CategoriesSection() {
       const response = await fetch(`/api/admin/subcategories/${subcategory.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.JSON.stringify({ ...subcategory, isActive: !subcategory.isActive }),
+        body: JSON.stringify({ ...subcategory, isActive: !subcategory.isActive }),
       });
 
       if (response.ok) {
@@ -3303,7 +3465,7 @@ function UsersSection() {
       const response = await fetch('/api/admin/users', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.JSON.stringify(userForm),
+        body: JSON.stringify(userForm),
       });
 
       if (response.ok) {
@@ -3529,7 +3691,7 @@ function AgenciesSection() {
 
       {showForm && (
         <Dialog open={showForm} onOpenChange={setShowForm}>
-          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogContent className="max-w-4xl max-h-[90vh] overflow-visible">
             <DialogHeader>
               <DialogTitle>
                 {editingAgency ? 'Edit Agency' : 'Add Agency'}
@@ -3860,7 +4022,7 @@ function AnalyticsSection() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="rounded-md border overflow-hidden">
+          <div className="rounded-md border max-h-72 overflow-y-auto scrollbar-thin scrollbar-thumb-blue-200 scrollbar-track-transparent">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -3904,7 +4066,7 @@ function AnalyticsSection() {
             <CardDescription>Last 5 listings you created</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="rounded-md border overflow-hidden">
+            <div className="rounded-md border overflow-hidden overflow-y-auto scrollbar-thin scrollbar-thumb-blue-200 scrollbar-track-transparent">
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -4315,7 +4477,7 @@ function HostelsPgSection() {
 
       {/* View Details Dialog */}
       <Dialog open={showDetailsDialog} onOpenChange={setShowDetailsDialog}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-visible">
           <DialogHeader>
             <DialogTitle className="text-2xl">{viewingHostel?.name}</DialogTitle>
             <DialogDescription>Complete details of the hostel/PG listing</DialogDescription>
@@ -4657,7 +4819,7 @@ function ConstructionMaterialsSection() {
       </div>
 
       <Dialog open={showDetailsDialog} onOpenChange={setShowDetailsDialog}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-visible">
           <DialogHeader>
             <DialogTitle className="text-2xl">{viewingMaterial?.name}</DialogTitle>
             <DialogDescription>Complete material details</DialogDescription>
@@ -5671,6 +5833,7 @@ export default function AdminDashboard() {
     return saved || "dashboard";
   });
   const [loading] = useState(false);
+  const [globalFilters, setGlobalFilters] = useState<any>({ search: '', isActive: '', isFeatured: '' });
 
   useEffect(() => {
     localStorage.setItem('activeSection', activeSection);
@@ -5833,6 +5996,19 @@ export default function AdminDashboard() {
             </div>
           </header>
 
+          <div className="p-6 border-b bg-card">
+            <DynamicFilter
+              fields={[
+                { type: 'search', name: 'search', placeholder: 'Search...' },
+                { type: 'toggle', name: 'isActive', label: 'Active' },
+                { type: 'toggle', name: 'isFeatured', label: 'Featured' },
+              ]}
+              filters={globalFilters}
+              onChange={(next: any) => setGlobalFilters(next)}
+              onReset={() => setGlobalFilters({ search: '', isActive: '', isFeatured: '' })}
+            />
+          </div>
+
           <main className="flex-1 p-6">
             {renderSection()}
           </main>
@@ -5954,7 +6130,7 @@ function TuitionPrivateClassesSection() {
         setShowForm(open);
         if (!open) setEditingClass(null);
       }}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-visible">
           <DialogHeader>
             <DialogTitle>{editingClass ? 'Edit Tuition/Private Class' : 'Add New Tuition/Private Class'}</DialogTitle>
             <DialogDescription>Fill in the details to {editingClass ? 'update' : 'create'} a class listing</DialogDescription>
@@ -6060,7 +6236,7 @@ function TuitionPrivateClassesSection() {
 
       {/* View Details Dialog */}
       <Dialog open={showDetailsDialog} onOpenChange={setShowDetailsDialog}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-visible">
           <DialogHeader>
             <DialogTitle className="text-2xl">{viewingClass?.title}</DialogTitle>
             <DialogDescription>Complete class details</DialogDescription>
@@ -6308,7 +6484,7 @@ function DanceKarateGymYogaSection() {
         setShowForm(open);
         if (!open) setEditingClass(null);
       }}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-visible">
           <DialogHeader>
             <DialogTitle>{editingClass ? 'Edit' : 'Add New'} Dance/Karate/Gym/Yoga Class</DialogTitle>
             <DialogDescription>Fill in the details to {editingClass ? 'update' : 'create'} a class listing</DialogDescription>
@@ -6416,7 +6592,7 @@ function DanceKarateGymYogaSection() {
 
       {/* View Details Dialog */}
       <Dialog open={showDetailsDialog} onOpenChange={setShowDetailsDialog}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-visible">
           <DialogHeader>
             <DialogTitle className="text-2xl">{viewingClass?.title}</DialogTitle>
             <DialogDescription>Complete class details</DialogDescription>
@@ -6672,7 +6848,7 @@ function LanguageClassesSection() {
         setShowForm(open);
         if (!open) setEditingClass(null);
       }}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-visible">
           <DialogHeader>
             <DialogTitle>{editingClass ? 'Edit Language Class' : 'Add New Language Class'}</DialogTitle>
             <DialogDescription>Fill in the details to {editingClass ? 'update' : 'create'} a language class listing</DialogDescription>
@@ -6682,7 +6858,7 @@ function LanguageClassesSection() {
       </Dialog>
 
       <Dialog open={showDetailsDialog} onOpenChange={setShowDetailsDialog}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-visible">
           <DialogHeader>
             <DialogTitle className="text-2xl">{viewingClass?.title}</DialogTitle>
             <DialogDescription>Complete language class details</DialogDescription>
@@ -7030,7 +7206,7 @@ function AcademiesMusicArtsSportsSection() {
         setShowForm(open);
         if (!open) setEditingAcademy(null);
       }}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-visible">
           <DialogHeader>
             <DialogTitle>{editingAcademy ? 'Edit Academy' : 'Add New Academy'}</DialogTitle>
             <DialogDescription>Fill in the details to {editingAcademy ? 'update' : 'create'} an academy listing</DialogDescription>
@@ -7040,7 +7216,7 @@ function AcademiesMusicArtsSportsSection() {
       </Dialog>
 
       <Dialog open={showDetailsDialog} onOpenChange={setShowDetailsDialog}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-visible">
           <DialogHeader>
             <DialogTitle className="text-2xl">{viewingAcademy?.title}</DialogTitle>
             <DialogDescription>Complete academy details</DialogDescription>
@@ -7349,7 +7525,7 @@ function SkillTrainingCertificationSection() {
       </div>
 
       <Dialog open={showForm} onOpenChange={setShowForm}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-visible">
           <DialogHeader>
             <DialogTitle>Add New Training Program</DialogTitle>
             <DialogDescription>Fill in the details to create a new skill training & certification program</DialogDescription>
@@ -7514,7 +7690,7 @@ function SchoolsCollegesCoachingSection() {
       </div>
 
       <Dialog open={showForm} onOpenChange={setShowForm}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-visible">
           <DialogHeader>
             <DialogTitle>Add New Educational Institution</DialogTitle>
             <DialogDescription>Fill in the details to create a new institution listing</DialogDescription>
@@ -7836,7 +8012,7 @@ function FurnitureInteriorDecorSection() {
         setShowForm(open);
         if (!open) setEditingItem(null);
       }}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-visible">
           <DialogHeader>
             <DialogTitle>{editingItem ? 'Edit Furniture/Decor Item' : 'Add New Furniture/Decor Item'}</DialogTitle>
             <DialogDescription>
@@ -7967,7 +8143,7 @@ function FurnitureInteriorDecorSection() {
 
       {/* View Details Dialog */}
       <Dialog open={showDetailsDialog} onOpenChange={setShowDetailsDialog}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-visible">
           <DialogHeader>
             <DialogTitle className="text-2xl">{viewingItem?.title}</DialogTitle>
             <DialogDescription>Complete furniture/decor item details</DialogDescription>
