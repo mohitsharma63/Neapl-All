@@ -2,8 +2,9 @@
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { MapPin, Phone, Mail, Eye, Star } from "lucide-react";
+import { MapPin, Phone, Mail, Eye, Star, Heart } from "lucide-react";
 import { Link } from "wouter";
+import useWishlist from "@/hooks/useWishlist";
 
 interface CategoryListingCardProps {
   listing: any;
@@ -11,8 +12,19 @@ interface CategoryListingCardProps {
 }
 
 export function CategoryListingCard({ listing, categorySlug }: CategoryListingCardProps) {
+  const { isInWishlist, toggleWishlist } = useWishlist();
+  const active = isInWishlist(listing.id);
+
   return (
-    <Card className="overflow-hidden hover:shadow-lg transition-shadow">
+    <Card className="overflow-hidden hover:shadow-lg transition-shadow relative">
+      <button
+        aria-label={active ? "Remove from wishlist" : "Add to wishlist"}
+        onClick={() => toggleWishlist({ id: listing.id, title: listing.title, href: `/${categorySlug}/${listing.id}`, photo: listing.photos?.[0] })}
+        className={`absolute top-3 right-3 z-10 w-9 h-9 rounded-full flex items-center justify-center shadow transition-colors ${active ? 'bg-red-50' : 'bg-white'}`}
+      >
+        <Heart className={`w-4 h-4 ${active ? 'text-red-500' : 'text-gray-600'}`} />
+      </button>
+
       <CardContent className="p-6">
         <div className="flex items-start justify-between mb-4">
           <h3 className="font-semibold text-lg line-clamp-2">{listing.title}</h3>

@@ -128,9 +128,26 @@ export default function Header() {
                 <span className="sm:hidden">Post</span>
               </Button>
 
-              <button className="p-2 hover:bg-primary/80 rounded-lg transition-colors hidden sm:block" data-testid="button-favorites">
-                <Heart className="w-4 h-4 md:w-5 md:h-5" />
-              </button>
+              <Link href="/buyer-dashboard" className="relative" data-testid="button-favorites">
+                <button className="p-2 hover:bg-primary/80 rounded-lg transition-colors hidden sm:block">
+                  <Heart className="w-4 h-4 md:w-5 md:h-5" />
+                </button>
+                {/** show wishlist count */}
+                {(() => {
+                  try {
+                    const stored = localStorage.getItem('neapl_wishlist_v1');
+                    const list = stored ? JSON.parse(stored) : [];
+                    if (list && list.length > 0) {
+                      return (
+                        <span className="absolute -top-1 -right-1 inline-flex items-center justify-center px-2 py-1 text-xs font-semibold leading-none text-white bg-red-500 rounded-full">{list.length}</span>
+                      );
+                    }
+                  } catch (e) {
+                    return null;
+                  }
+                  return null;
+                })()}
+              </Link>
 
               <Link href="/profile" className="hidden sm:block" data-testid="button-profile">
                 {(() => {

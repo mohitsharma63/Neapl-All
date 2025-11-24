@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import Header from "@/components/header";
 import Footer from "@/components/footer";
 import { useState } from "react";
+import useWishlist from "@/hooks/useWishlist";
 import { Link } from "wouter";
 
 export default function TuitionPrivateClassesPage() {
@@ -161,9 +162,7 @@ export default function TuitionPrivateClassesPage() {
                   </div>
 
                   {/* Favorite Button */}
-                  <button className="absolute top-3 right-3 w-10 h-10 bg-white rounded-full flex items-center justify-center shadow-lg hover:bg-red-50 transition-colors">
-                    <Heart className="w-5 h-5 text-gray-600 hover:text-red-500" />
-                  </button>
+                  <FavoriteButton listing={listing} />
                 </div>
 
                 {/* Content Section */}
@@ -236,5 +235,20 @@ export default function TuitionPrivateClassesPage() {
 
       <Footer />
     </div>
+  );
+}
+
+function FavoriteButton({ listing }: { listing: any }) {
+  const { isInWishlist, toggleWishlist } = useWishlist();
+  const active = isInWishlist(listing.id);
+
+  return (
+    <button
+      aria-label={active ? "Remove from wishlist" : "Add to wishlist"}
+      onClick={() => toggleWishlist({ id: listing.id, title: listing.title, href: `/tuition-private-classes/${listing.id}`, photo: listing.photos?.[0] })}
+      className={`absolute top-3 right-3 z-10 w-10 h-10 rounded-full flex items-center justify-center shadow transition-colors ${active ? 'bg-red-50' : 'bg-white'}`}
+    >
+      <Heart className={`w-5 h-5 ${active ? 'text-red-500' : 'text-gray-600'}`} />
+    </button>
   );
 }

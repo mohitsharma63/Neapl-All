@@ -32,6 +32,7 @@ import {
   BookmarkCheck,
   History
 } from "lucide-react";
+import useWishlist from "@/hooks/useWishlist";
 
 interface User {
   id: string;
@@ -163,6 +164,46 @@ function DashboardSection() {
   );
 }
 
+function FavoritesSection() {
+  const { items, removeFromWishlist } = useWishlist();
+
+  if (!items || items.length === 0) {
+    return (
+      <Card>
+        <CardContent className="py-12 text-center">
+          <p className="text-muted-foreground">You have no favorites yet. Click the heart on any listing to save it here.</p>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      <h2 className="text-xl font-semibold">Your Favorites</h2>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {items.map((it: any) => (
+          <Card key={it.id}>
+            <CardContent className="p-4">
+              <div className="flex items-start gap-4">
+                <div className="w-24 h-24 bg-gray-100 rounded overflow-hidden flex items-center justify-center">
+                  {it.photo ? <img src={it.photo} alt={it.title} className="w-full h-full object-cover" /> : <MapPin className="w-6 h-6 text-gray-400" />}
+                </div>
+                <div className="flex-1">
+                  <h3 className="font-semibold line-clamp-2">{it.title}</h3>
+                  <div className="mt-3 flex items-center gap-2">
+                    <a href={it.href} className="text-sm text-blue-600 underline">View</a>
+                    <button className="text-sm text-red-500" onClick={() => removeFromWishlist(it.id)}>Remove</button>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export default function BuyerDashboard() {
   const [, setLocation] = useLocation();
   const [activeSection, setActiveSection] = useState("dashboard");
@@ -251,7 +292,8 @@ export default function BuyerDashboard() {
 
           <main className="flex-1 p-6">
             {activeSection === "dashboard" && <DashboardSection />}
-            {activeSection !== "dashboard" && (
+            {activeSection === "favorites" && <FavoritesSection />}
+            {activeSection !== "dashboard" && activeSection !== "favorites" && (
               <div className="text-center py-16">
                 <p className="text-muted-foreground">Section under development</p>
               </div>
