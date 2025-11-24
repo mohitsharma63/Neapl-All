@@ -8,6 +8,7 @@ import StatsSection from "@/components/stats-section";
 import FAQSection from "@/components/faq-section";
 import Footer from "@/components/footer";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 import type { Property } from "@shared/schema";
 import type { SearchFilters as SearchFiltersType } from "@/lib/types";
 import { useQuery } from "@tanstack/react-query";
@@ -74,90 +75,86 @@ export default function Home() {
     <div className="min-h-screen bg-background" data-testid="page-home">
       <Header />
 
-      <SearchFilters
-        filters={filters}
-        onFiltersChange={setFilters}
-        onSaveSearch={handleSaveSearch}
-        onClearFilters={handleClearFilters}
-      />
 
-      {/* Breadcrumb Navigation */}
-      {/* <section className="bg-white py-4 border-b" data-testid="breadcrumb-navigation">
-        <div className="container mx-auto px-4">
-          <nav className="flex items-center space-x-2 text-sm text-muted-foreground mb-4">
-            <Link href="/" className="hover:text-foreground transition-colors" data-testid="link-breadcrumb-home">
-              <HomeIcon className="w-4 h-4" />
+      {/* Welcome Section */}
+      <section className="container mx-auto px-4 py-12">
+        
+
+        {/* Quick Categories */}
+        <div className="mb-8">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-2xl font-bold">Browse Categories</h2>
+            <Link href="/categories">
+              <Button variant="outline" size="sm">View All Categories</Button>
             </Link>
-            <span>{'>'}</span>
-            <Link href="/properties" className="hover:text-foreground transition-colors" data-testid="link-breadcrumb-properties">
-              Properties
-            </Link>
-            <span>{'>'}</span>
-            <span className="text-foreground font-medium">
-              {categories.find(cat => cat.id === activeCategory)?.name || 'Residential'}
-            </span>
-          </nav>
-          <div className="flex items-center justify-between">
-            <h1 className="text-2xl font-bold text-foreground" data-testid="text-page-title">
-              {categories.find(cat => cat.id === activeCategory)?.name || 'Properties'} ({featuredProperties.length} results)
-            </h1>
-            <div className="flex items-center space-x-4">
-              <div className="flex items-center space-x-2 text-sm text-muted-foreground">
-                <Button variant="outline" size="sm" data-testid="button-view-list">
-                  <List className="w-4 h-4" />
-                </Button>
-                <Button variant="outline" size="sm" data-testid="button-view-map">
-                  <Map className="w-4 h-4" />
-                </Button>
-              </div>
-              <div className="flex items-center space-x-2">
-                <span className="text-sm text-muted-foreground">Sort by:</span>
-                <select className="px-3 py-2 border border-input rounded-lg text-sm focus:ring-2 focus:ring-primary focus:border-transparent appearance-none bg-white" data-testid="select-sort">
-                  <option>Default</option>
-                  <option>Price: Low to High</option>
-                  <option>Price: High to Low</option>
-                  <option>Newest First</option>
-                </select>
-              </div>
-            </div>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+            {categories.slice(0, 12).map((category: any) => {
+              const Icon = iconMap[category.icon] || Settings;
+              return (
+                <Link
+                  key={category.id}
+                  href={`/category/${category.slug}`}
+                  className="group"
+                >
+                  <div className="nepali-card p-4 text-center hover:scale-105 transition-all duration-300 cursor-pointer h-full flex flex-col items-center justify-center min-h-[140px]">
+                    <div 
+                      className="w-14 h-14 mx-auto mb-2 rounded-2xl flex items-center justify-center transform group-hover:rotate-12 transition-transform"
+                      style={{ backgroundColor: `${category.color}20` }}
+                    >
+                      <Icon className="w-7 h-7" style={{ color: category.color }} />
+                    </div>
+                    <h3 className="font-semibold text-xs leading-tight line-clamp-2">{category.name}</h3>
+                  </div>
+                </Link>
+              );
+            })}
           </div>
         </div>
-      </section> */}
 
-      <FeaturedBanner />
-
-      {/* Property Listings */}
-      <section className="container mx-auto px-4 py-8" data-testid="property-listings">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Main Property Listings */}
-          {/* <div className="lg:col-span-2">
-            <div className="space-y-6">
-              {featuredProperties.length === 0 ? (
-                <div className="text-center py-16 bg-white rounded-xl border border-border">
-                  <div className="max-w-md mx-auto">
-                    <div className="w-24 h-24 mx-auto mb-6 bg-gray-100 rounded-full flex items-center justify-center">
-                      <HomeIcon className="w-12 h-12 text-gray-400" />
-                    </div>
-                    <h3 className="text-xl font-semibold text-gray-900 mb-2">कुनै सम्पत्ति फेला परेन</h3>
-                    <p className="text-gray-600 mb-6">हाल कुनै विशेष सम्पत्तिहरू उपलब्ध छैनन्।</p>
-                    <Link href="/properties">
-                      <Button className="bg-primary hover:bg-primary/90">सबै सम्पत्तिहरू हेर्नुहोस्</Button>
-                    </Link>
-                  </div>
+        {/* Featured Services Grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="lg:col-span-2">
+            <Card className="nepali-card">
+              <CardContent className="p-8">
+                <div className="flex items-center justify-between mb-6">
+                  <h2 className="text-2xl font-bold">Popular Services</h2>
+                  <Button variant="outline" size="sm">View All</Button>
                 </div>
-              ) : (
-                <>
-           
-                </>
-              )}
-            </div>
-          </div> */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {categories.slice(0, 4).map((category: any) => {
+                    const Icon = iconMap[category.icon] || Settings;
+                    return (
+                      <Link
+                        key={category.id}
+                        href={`/category/${category.slug}`}
+                        className="flex items-center gap-4 p-4 rounded-xl border border-border hover:border-primary hover:bg-primary/5 transition-all"
+                      >
+                        <div 
+                          className="w-12 h-12 rounded-lg flex items-center justify-center flex-shrink-0"
+                          style={{ backgroundColor: `${category.color}20` }}
+                        >
+                          <Icon className="w-6 h-6" style={{ color: category.color }} />
+                        </div>
+                        <div className="flex-1">
+                          <h3 className="font-semibold">{category.name}</h3>
+                          <p className="text-sm text-muted-foreground">
+                            {category.subcategories?.length || 0} subcategories
+                          </p>
+                        </div>
+                      </Link>
+                    );
+                  })}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
 
           {/* Sidebar */}
           <div className="lg:col-span-1">
-            <div className="bg-card border border-border rounded-xl overflow-hidden shadow-sm mb-8" data-testid="property-promotion-card">
+            <div className="bg-card border border-border rounded-xl overflow-hidden shadow-lg mb-6" data-testid="property-promotion-card">
               <div
-                className="relative h-64 bg-gradient-to-br from-orange-400 to-pink-500"
+                className="relative h-80 bg-gradient-to-br from-orange-400 to-pink-500"
                 style={{
                   backgroundImage: "linear-gradient(rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.4)), url('https://images.unsplash.com/photo-1564013799919-ab600027ffc6?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&h=600')",
                   backgroundSize: "cover",
@@ -165,14 +162,17 @@ export default function Home() {
                 }}
               >
                 <div className="absolute inset-0 flex flex-col justify-center items-center text-white text-center p-6">
-                  <h3 className="text-xl font-bold mb-2" data-testid="text-promo-title-1">Find Your Next</h3>
-                  <h3 className="text-xl font-bold mb-4" data-testid="text-promo-title-2">Home with Jeevika</h3>
+                  <h3 className="text-2xl font-bold mb-2" data-testid="text-promo-title-1">Find Your Next</h3>
+                  <h3 className="text-2xl font-bold mb-4" data-testid="text-promo-title-2">Home with Jeevika</h3>
                   <h3 className="text-xl font-bold mb-6" data-testid="text-promo-title-3">Services Properties!</h3>
-                  <div className="text-right text-orange-300 font-bold text-lg" data-testid="text-promo-nepali">
+                  <div className="text-center text-orange-200 font-bold text-lg" data-testid="text-promo-nepali">
                     तपाईंको अर्को घर<br />
                     जीविका सेवाको साथ<br />
                     फेला पार्नुहोस्!
                   </div>
+                  <Button className="mt-6 bg-white text-primary hover:bg-white/90">
+                    Get Started
+                  </Button>
                 </div>
               </div>
             </div>

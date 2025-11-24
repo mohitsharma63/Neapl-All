@@ -25,6 +25,17 @@ export default function Header() {
   const [activeCategory, setActiveCategory] = useState<string>("");
   const [showSubcategories, setShowSubcategories] = useState(false);
 
+  const handleCategoryClick = (categoryId: string, event: React.MouseEvent) => {
+    event.preventDefault();
+    if (activeCategory === categoryId) {
+      setActiveCategory("");
+      setShowSubcategories(false);
+    } else {
+      setActiveCategory(categoryId);
+      setShowSubcategories(true);
+    }
+  };
+
   const { data: categories = [] } = useQuery({
     queryKey: ["admin-categories"],
     queryFn: async () => {
@@ -64,138 +75,9 @@ export default function Header() {
               </div>
             </Link>
 
-            {/* Desktop Category Card Bar (replaces dropdown navigation) */}
-              <div className="hidden md:block w-full" onMouseLeave={() => setShowSubcategories(false)}>
-              <div className="container mx-auto px-4 py-6 relative">
-                <div className="relative">
-                  <div
-                    ref={scrollRef}
-                    className="overflow-x-auto hide-scrollbar"
-                    style={{ scrollBehavior: 'smooth' }}
-                  >
-                    <div className="flex items-center gap-6 flex-nowrap" style={{ minWidth: 'max-content' }}>
-                    {activeCategories.map((category: any) => {
-                      return (
-                        <div className="relative inline-block flex-shrink-0" key={category.id}>
-                          <Link
-                            ref={(el: any) => (linkRefs.current[category.id] = el)}
-                            href={`/category/${category.slug}`}
-                            onMouseEnter={() => {
-                              setActiveCategory(category.id);
-                              setShowSubcategories(true);
-                              // compute left offset for submenu
-                              if (headerRef.current && linkRefs.current[category.id]) {
-                                const headerRect = headerRef.current.getBoundingClientRect();
-                                const linkRect = linkRefs.current[category.id]!.getBoundingClientRect();
-                                setSubmenuLeft(linkRect.left - headerRect.left);
-                              }
-                            }}
-                            onFocus={() => {
-                              setActiveCategory(category.id);
-                              setShowSubcategories(true);
-                            }}
-                            className={`inline-block px-4 py-2 rounded-md text-sm font-medium text-white hover:bg-white/10 transition-colors`}
-                            style={{ textDecoration: 'none' }}
-                          >
-                            {category.name}
-                          </Link>
-                        </div>
-                      );
-                    })}
-                    </div>
-                  </div>
-
-                  {/* Left / Right controls for the category scroller */}
-                  <button
-                    aria-label="Scroll left"
-                    onClick={() => {
-                      if (scrollRef.current) scrollRef.current.scrollBy({ left: -300, behavior: 'smooth' });
-                    }}
-                    className="hidden lg:flex items-center justify-center absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-white/90 shadow-md hover:bg-white"
-                    style={{ zIndex: 60 }}
-                  >
-                    <svg className="w-4 h-4 text-gray-700" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
-                  </button>
-
-                  <button
-                    aria-label="Scroll right"
-                    onClick={() => {
-                      if (scrollRef.current) scrollRef.current.scrollBy({ left: 300, behavior: 'smooth' });
-                    }}
-                    className="hidden lg:flex items-center justify-center absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-white/90 shadow-md hover:bg-white"
-                    style={{ zIndex: 60 }}
-                  >
-                    <svg className="w-4 h-4 text-gray-700" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
-                  </button>
-                </div>
-
-                {/* Subcategory popup positioned under the hovered category */}
-                {showSubcategories && activeCat && activeCat.subcategories && activeCat.subcategories.filter((s: any) => s.isActive).length > 0 && submenuLeft !== null && (
-                  <div
-                    className="absolute left-0 right-0 pointer-events-none"
-                    style={{ top: '100%', zIndex: 60 }}
-                  >
-                    <div
-                          className="pointer-events-auto bg-white rounded-lg shadow-sm border border-gray-100 mx-4"
-                          style={{ position: 'absolute', left: submenuLeft, transform: 'translateX(0)', minWidth: 320 }}
-                        >
-                          <div className="px-2 py-3 relative">
-                            <div
-                              ref={subScrollRef}
-                              className="overflow-x-auto hide-scrollbar"
-                              style={{ scrollBehavior: 'smooth' }}
-                            >
-                              <div className="flex items-center gap-4 px-2">
-                                {activeCat.subcategories.filter((s: any) => s.isActive).map((sub: any) => {
-                            const SubIcon = iconMap[activeCat.icon] || Settings;
-                            return (
-                              <Link
-                                key={sub.id}
-                                href={`/subcategory/${sub.slug}`}
-                                className="flex items-center gap-3 bg-white rounded-lg px-4 py-2 hover:bg-gray-50 transition-colors min-w-[160px]"
-                                onClick={() => setShowSubcategories(false)}
-                                style={{ textDecoration: 'none' }}
-                              >
-                                <div className="p-2 rounded-md" style={{ backgroundColor: `${activeCat.color || '#eee'}20` }}>
-                                  <SubIcon className="w-5 h-5" style={{ color: activeCat.color || '#333' }} />
-                                </div>
-                                <div>
-                                  <div className="text-sm font-medium text-gray-800">{sub.name}</div>
-                                  {sub.description && <div className="text-xs text-gray-500">{sub.description}</div>}
-                                </div>
-                              </Link>
-                            );
-                              })}
-                              </div>
-                            </div>
-
-                            {/* Sub-scroll left/right controls */}
-                            <button
-                              aria-label="Scroll subcategories left"
-                              onClick={() => { if (subScrollRef.current) subScrollRef.current.scrollBy({ left: -240, behavior: 'smooth' }); }}
-                              className="hidden lg:flex items-center justify-center absolute left-1 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-white/90 shadow-sm hover:bg-white"
-                              style={{ zIndex: 70 }}
-                            >
-                              <svg className="w-3 h-3 text-gray-700" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
-                            </button>
-
-                            <button
-                              aria-label="Scroll subcategories right"
-                              onClick={() => { if (subScrollRef.current) subScrollRef.current.scrollBy({ left: 240, behavior: 'smooth' }); }}
-                              className="hidden lg:flex items-center justify-center absolute right-1 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-white/90 shadow-sm hover:bg-white"
-                              style={{ zIndex: 70 }}
-                            >
-                              <svg className="w-3 h-3 text-gray-700" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
-                            </button>
-                          </div>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-
             {/* Header Actions */}
             <div className="flex items-center space-x-2 md:space-x-4" data-testid="header-actions">
+             
               <Button
                 size="sm"
                 className="bg-accent text-accent-foreground hover:bg-accent/90 text-xs md:text-sm px-2 md:px-4"
@@ -215,7 +97,7 @@ export default function Header() {
                   const storedUser = localStorage.getItem("user");
                   const user = storedUser ? JSON.parse(storedUser) : null;
                   const initial = user?.firstName?.[0] || user?.username?.[0] || 'U';
-                  
+
                   return (
                     <div className="w-8 h-8 md:w-9 md:h-9 bg-gradient-to-br from-blue-500 to-purple-500 rounded-full flex items-center justify-center text-white font-semibold hover:opacity-90 transition-opacity">
                       {initial.toUpperCase()}
@@ -259,8 +141,8 @@ export default function Header() {
                         <Link
                           href={`/category/${category.slug}`}
                           className={`flex-1 flex items-center gap-3 py-3 px-4 rounded-lg transition-colors ${
-                            location === `/category/${category.slug}` 
-                              ? "text-primary-foreground" 
+                            location === `/category/${category.slug}`
+                              ? "text-primary-foreground"
                               : "text-gray-700 hover:bg-gray-100"
                           }`}
                           style={{
@@ -296,7 +178,7 @@ export default function Header() {
                                   className="flex items-center gap-3 py-2 px-3 rounded-lg hover:bg-gray-50 transition-colors"
                                   onClick={() => setIsMobileMenuOpen(false)}
                                 >
-                                  <div 
+                                  <div
                                     className="p-1.5 rounded-lg"
                                     style={{ backgroundColor: `${category.color}15` }}
                                   >
@@ -332,7 +214,7 @@ export default function Header() {
                     const storedUser = localStorage.getItem("user");
                     const user = storedUser ? JSON.parse(storedUser) : null;
                     const initial = user?.firstName?.[0] || user?.username?.[0] || 'U';
-                    
+
                     return (
                       <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-500 rounded-full flex items-center justify-center text-white font-semibold">
                         {initial.toUpperCase()}
@@ -349,7 +231,7 @@ export default function Header() {
                   >
                     <Settings className="w-5 h-5" />
                     <span>Settings</span>
-                    
+
                   </Link>
               </div>
             </nav>

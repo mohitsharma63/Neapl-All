@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { MapPin, SlidersHorizontal } from "lucide-react";
+import { MapPin, SlidersHorizontal, Filter } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -116,7 +116,45 @@ export default function SearchFilters({
 
           {/* Desktop: Full view or Mobile: Expanded view */}
           <div className={`${isExpanded ? 'block' : 'hidden md:block'}`}>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-7 gap-4">
+              {/* Category Filter */}
+              <div data-testid="filter-category">
+                <label className="block text-sm font-medium text-muted-foreground mb-2">
+                  Category
+                </label>
+                <Select
+                  value={filters.categoryId || "all"}
+                  onValueChange={(value) => updateFilter("categoryId", value)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="All Categories" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Categories</SelectItem>
+                    {/* Categories will be populated from API */}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Subcategory Filter */}
+              <div data-testid="filter-subcategory">
+                <label className="block text-sm font-medium text-muted-foreground mb-2">
+                  Subcategory
+                </label>
+                <Select
+                  value={filters.subcategoryId || "all"}
+                  onValueChange={(value) => updateFilter("subcategoryId", value)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="All Subcategories" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Subcategories</SelectItem>
+                    {/* Subcategories will be populated based on selected category */}
+                  </SelectContent>
+                </Select>
+              </div>
+
               {/* Location Filter */}
               <div className="relative hidden md:block" data-testid="filter-location">
                 <label className="block text-sm font-medium text-muted-foreground mb-2">
