@@ -26,6 +26,7 @@ import {
   Image,
   Bookmark,
   Eye,
+  Check,
   Mail,
   Phone,
   ChevronDown,
@@ -184,6 +185,62 @@ function EducationalConsultancyStudyAbroadSection() {
           {/* Assuming EducationalConsultancyStudyAbroadForm exists, similar to other form components */}
           {/* <EducationalConsultancyStudyAbroadForm onSuccess={handleSuccess} /> */}
           <p>Educational Consultancy Study Abroad Form Placeholder</p>
+        </DialogContent>
+      </Dialog>
+
+      {/* View Article Dialog */}
+      <Dialog open={showViewDialog} onOpenChange={setShowViewDialog}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>{viewingArticle?.title || 'View Article'}</DialogTitle>
+            <DialogDescription>Article details</DialogDescription>
+          </DialogHeader>
+          {viewingArticle ? (
+            <div className="space-y-4 p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-lg font-semibold">{viewingArticle.title}</h3>
+                  <div className="flex gap-2 mt-2">
+                    <Badge>{viewingArticle.type}</Badge>
+                    {viewingArticle.categoryName && <Badge variant="outline">{viewingArticle.categoryName}</Badge>}
+                    {viewingArticle.pages && <Badge variant="outline">{viewingArticle.pages} pages</Badge>}
+                    {viewingArticle.isPublished && <Badge className="bg-green-500">Published</Badge>}
+                  </div>
+                </div>
+                <div className="text-sm text-muted-foreground">
+                  <div>By: {viewingArticle.authorName || '—'}</div>
+                  <div>Created: {viewingArticle.createdAt ? new Date(viewingArticle.createdAt).toLocaleString() : ''}</div>
+                </div>
+              </div>
+
+              <div>
+                <h4 className="font-medium">Excerpt</h4>
+                <p className="text-muted-foreground">{viewingArticle.excerpt}</p>
+              </div>
+
+              <div>
+                <h4 className="font-medium">Content</h4>
+                <div className="prose max-w-none" dangerouslySetInnerHTML={{ __html: viewingArticle.content || '' }} />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                <div>
+                  <h4 className="font-medium">SEO Title</h4>
+                  <div className="text-muted-foreground">{viewingArticle.seoTitle || '—'}</div>
+                </div>
+                <div>
+                  <h4 className="font-medium">SEO Description</h4>
+                  <div className="text-muted-foreground">{viewingArticle.seoDescription || '—'}</div>
+                </div>
+              </div>
+
+              <div className="flex justify-end">
+                <Button variant="ghost" onClick={() => setShowViewDialog(false)}>Close</Button>
+              </div>
+            </div>
+          ) : (
+            <div className="p-4">No article selected</div>
+          )}
         </DialogContent>
       </Dialog>
 
@@ -2948,6 +3005,7 @@ function AppSidebar({ activeSection, setActiveSection }: { activeSection: string
     { title: "Categories", icon: FileText, key: "categories" },
     { title: "Sliders", icon: Image, key: "sliders" },
     { title: "Blogs", icon: FileText, key: "blogs" },
+    { title: "Articles", icon: FileText, key: "articles" },
   ];
 
   return (
@@ -3132,6 +3190,23 @@ function AppSidebar({ activeSection, setActiveSection }: { activeSection: string
                 >
                   <BarChart3 className="w-5 h-5" />
                   <span className="font-medium">Analytics</span>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  tooltip="Contact Messages"
+                  isActive={activeSection === "contact-messages"}
+                  className={`
+                    w-full justify-start rounded-lg transition-all duration-200
+                    ${activeSection === "contact-messages"
+                      ? 'bg-gradient-to-r from-blue-600 to-green-600 text-white shadow-md'
+                      : 'hover:bg-muted/80'
+                    }
+                  `}
+                  onClick={() => setActiveSection('contact-messages')}
+                >
+                  <Mail className="w-5 h-5" />
+                  <span className="font-medium">Contact Messages</span>
                 </SidebarMenuButton>
               </SidebarMenuItem>
               <SidebarMenuItem>
@@ -5633,6 +5708,8 @@ export default function AdminDashboard() {
         return <EbooksOnlineCoursesSection />;
       case "sliders":
         return <SlidersSection />;
+      case "articles":
+        return <ArticlesSection />;
       case "cricket-sports-training":
         return <CricketSportsTrainingSection />;
       case "educational-consultancy-study-abroad":
@@ -5659,10 +5736,189 @@ export default function AdminDashboard() {
       case "blogs":
       case "blog":
         return <BlogsSection />;
+      case "contact-messages":
+        return <ContactMessagesSection />;
       default:
         return <DashboardSection />;
     }
   };
+
+    // Contact Messages Section Component
+    function ContactMessagesSection() {
+      const [messages, setMessages] = useState<any[]>([]);
+      const [loadingMessages, setLoadingMessages] = useState(false);
+      const [selectedMessage, setSelectedMessage] = useState<any>(null);
+      const [showViewDialog, setShowViewDialog] = useState(false);
+
+      useEffect(() => {
+        fetchMessages();
+      }, []);
+
+      const fetchMessages = async () => {
+        try {
+          setLoadingMessages(true);
+          const res = await fetch('/api/admin/contact-messages', {
+            headers: { 'x-user-role': 'admin' },
+          });
+          if (!res.ok) {
+            setMessages([]);
+            setLoadingMessages(false);
+            return;
+          }
+          const data = await res.json();
+          setMessages(Array.isArray(data) ? data : []);
+        } catch (err) {
+          console.error('Error fetching contact messages:', err);
+          setMessages([]);
+        } finally {
+          setLoadingMessages(false);
+        }
+      };
+
+      const handleView = async (msg: any) => {
+        setSelectedMessage(msg);
+        setShowViewDialog(true);
+        if (!msg.isRead) {
+          // mark as read
+          try {
+            const res = await fetch(`/api/admin/contact-messages/${msg.id}/read`, {
+              method: 'PATCH',
+              headers: { 'x-user-role': 'admin' },
+            });
+            if (res.ok) fetchMessages();
+          } catch (e) {
+            console.error('Error marking message read', e);
+          }
+        }
+      };
+
+      const handleMarkRead = async (id: string) => {
+        try {
+          const res = await fetch(`/api/admin/contact-messages/${id}/read`, {
+            method: 'PATCH',
+            headers: { 'x-user-role': 'admin' },
+          });
+          if (res.ok) fetchMessages();
+        } catch (e) {
+          console.error('Error marking message read', e);
+        }
+      };
+
+      const handleDelete = async (id: string) => {
+        if (!confirm('Are you sure you want to delete this message?')) return;
+        try {
+          const res = await fetch(`/api/admin/contact-messages/${id}`, {
+            method: 'DELETE',
+            headers: { 'x-user-role': 'admin' },
+          });
+          if (res.ok) fetchMessages();
+        } catch (e) {
+          console.error('Error deleting message', e);
+        }
+      };
+
+      return (
+        <div className="space-y-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-2xl font-bold">Contact Messages</h2>
+              <p className="text-muted-foreground">Messages submitted via contact form</p>
+            </div>
+            <div className="flex items-center gap-2">
+              <Button onClick={fetchMessages}>
+                Refresh
+              </Button>
+            </div>
+          </div>
+
+          {loadingMessages && (
+            <Card>
+              <CardContent className="py-8 text-center">Loading messages...</CardContent>
+            </Card>
+          )}
+
+          {!loadingMessages && messages.length === 0 && (
+            <Card>
+              <CardContent className="py-12 text-center">
+                <h3 className="text-lg font-semibold mb-2">No messages</h3>
+                <p className="text-muted-foreground">No contact form submissions yet.</p>
+              </CardContent>
+            </Card>
+          )}
+
+          <div className="space-y-4">
+            {messages.map((m) => (
+              <Card key={m.id} className="group hover:shadow-sm transition-shadow">
+                <CardHeader>
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <CardTitle className="text-lg">{m.name || 'Anonymous'}</CardTitle>
+                      <div className="text-sm text-muted-foreground">
+                        {m.subject || 'No subject'} • {m.email || m.phone || 'No contact'}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {!m.isRead && <Badge className="bg-yellow-400 text-black">New</Badge>}
+                      <span className="text-sm text-muted-foreground">{new Date(m.createdAt).toLocaleString()}</span>
+                      <Button variant="ghost" size="icon" onClick={() => handleView(m)} title="View">
+                        <Eye className="w-4 h-4" />
+                      </Button>
+                      {!m.isRead && (
+                        <Button variant="ghost" size="icon" onClick={() => handleMarkRead(m.id)} title="Mark Read">
+                          <Check className="w-4 h-4" />
+                        </Button>
+                      )}
+                      <Button variant="ghost" size="icon" className="text-destructive" onClick={() => handleDelete(m.id)} title="Delete">
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  </div>
+                </CardHeader>
+                {m.message && (
+                  <CardContent>
+                    <p className="text-sm text-muted-foreground line-clamp-2">{m.message}</p>
+                  </CardContent>
+                )}
+              </Card>
+            ))}
+          </div>
+
+          <Dialog open={showViewDialog} onOpenChange={(open) => setShowViewDialog(open)}>
+            <DialogContent className="max-w-3xl">
+              <DialogHeader>
+                <DialogTitle>{selectedMessage?.subject || 'Message'}</DialogTitle>
+                <DialogDescription>Full message details</DialogDescription>
+              </DialogHeader>
+              {selectedMessage && (
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="font-medium">From: {selectedMessage.name || 'Anonymous'}</p>
+                      <p className="text-sm text-muted-foreground">{selectedMessage.email}</p>
+                      {selectedMessage.phone && <p className="text-sm text-muted-foreground">{selectedMessage.phone}</p>}
+                    </div>
+                    <div className="text-sm text-muted-foreground">{new Date(selectedMessage.createdAt).toLocaleString()}</div>
+                  </div>
+
+                  <div>
+                    <h3 className="font-semibold">Message</h3>
+                    <p className="text-muted-foreground whitespace-pre-wrap">{selectedMessage.message}</p>
+                  </div>
+
+                  <div className="flex gap-2 justify-end">
+                    {!selectedMessage.isRead && (
+                      <Button onClick={() => handleMarkRead(selectedMessage.id)}>Mark Read</Button>
+                    )}
+                    <Button variant="destructive" onClick={() => { handleDelete(selectedMessage.id); setShowViewDialog(false); }}>Delete</Button>
+                    <Button variant="outline" onClick={() => setShowViewDialog(false)}>Close</Button>
+                  </div>
+                </div>
+              )}
+            </DialogContent>
+          </Dialog>
+        </div>
+      );
+    }
 
   if (loading) {
     return (
@@ -8137,6 +8393,441 @@ function BlogsSection() {
                 {p.isPublished ? 'Unpublish' : 'Publish'}
               </Button>
             </CardFooter>
+          </Card>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// Articles Section (Admin)
+function ArticlesSection() {
+  const [articles, setArticles] = useState<any[]>([]);
+  const [categories, setCategories] = useState<any[]>([]);
+  const [showCategoryManager, setShowCategoryManager] = useState(false);
+  const [categoryForm, setCategoryForm] = useState<any>({ name: '', slug: '', description: '', isActive: true });
+  const [isCatSubmitting, setIsCatSubmitting] = useState(false);
+  const [editingCategory, setEditingCategory] = useState<any>(null);
+  const [showForm, setShowForm] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [form, setForm] = useState<any>({
+    title: "",
+    slug: "",
+    excerpt: "",
+    content: "",
+    type: "Guide",
+    authorName: "",
+    authorId: "",
+    pages: "",
+    thumbnailUrl: "",
+    isPremium: false,
+    isFeatured: false,
+    isPublished: false,
+    seoTitle: "",
+    seoDescription: "",
+    userId: "",
+    role: "",
+    categoryId: "",
+    categoryName: "",
+  });
+
+  useEffect(() => { fetchArticles(); fetchCategories(); }, []);
+
+  const [editingArticle, setEditingArticle] = useState<any>(null);
+  const [viewingArticle, setViewingArticle] = useState<any>(null);
+  const [showViewDialog, setShowViewDialog] = useState(false);
+
+  const getAdminHeaders = () => {
+    const headers: any = { 'Content-Type': 'application/json' };
+    try {
+      const stored = localStorage.getItem('user');
+      if (stored) {
+        const u = JSON.parse(stored);
+        if (u?.role) headers['x-user-role'] = u.role;
+        if (u?.id) headers['x-user-id'] = u.id;
+      }
+    } catch (e) { /* ignore */ }
+    return headers;
+  };
+
+  const fetchCategories = async () => {
+    try {
+      const r = await fetch('/api/admin/article-categories', { headers: getAdminHeaders() });
+      const data = await r.json();
+      setCategories(Array.isArray(data) ? data : []);
+    } catch (err) {
+      console.error('Error fetching article categories', err);
+      setCategories([]);
+    }
+  };
+
+  const handleCategorySave = async (e: any) => {
+    e.preventDefault();
+    setIsCatSubmitting(true);
+    try {
+      const payload = { ...categoryForm };
+      const method = editingCategory ? 'PUT' : 'POST';
+      const url = editingCategory ? `/api/admin/article-categories/${editingCategory.id}` : '/api/admin/article-categories';
+      const r = await fetch(url, { method, headers: getAdminHeaders(), body: JSON.stringify(payload) });
+      if (r.ok) {
+        setCategoryForm({ name: '', slug: '', description: '', isActive: true });
+        setEditingCategory(null);
+        fetchCategories();
+      } else {
+        const j = await r.json().catch(() => null);
+        alert(j?.message || 'Failed to save category');
+      }
+    } catch (err) {
+      console.error('Category save error', err);
+    }
+    setIsCatSubmitting(false);
+  };
+
+  const handleEditCategory = (cat: any) => {
+    setEditingCategory(cat);
+    setCategoryForm({ name: cat.name || '', slug: cat.slug || '', description: cat.description || '', isActive: !!cat.isActive });
+  };
+
+  const handleDeleteCategory = async (id: string) => {
+    if (!confirm('Delete this category?')) return;
+    try {
+      const r = await fetch(`/api/admin/article-categories/${id}`, { method: 'DELETE', headers: getAdminHeaders() });
+      if (r.ok) fetchCategories();
+    } catch (e) { console.error(e); }
+  };
+
+  const fetchArticles = async () => {
+    try {
+      const response = await fetch('/api/admin/articles');
+      const data = await response.json();
+      setArticles(Array.isArray(data) ? data : []);
+    } catch (e) {
+      console.error('Error fetching articles', e);
+      setArticles([]);
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!confirm('Delete this article?')) return;
+    try {
+      const r = await fetch(`/api/admin/articles/${id}`, { method: 'DELETE' });
+      if (r.ok) fetchArticles();
+    } catch (e) { console.error(e); }
+  };
+
+  const togglePublish = async (id: string) => {
+    try {
+      const r = await fetch(`/api/admin/articles/${id}/toggle-publish`, { method: 'PATCH' });
+      if (r.ok) fetchArticles();
+    } catch (e) { console.error(e); }
+  };
+
+  const handleSubmit = async (e: any) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    try {
+      const payload: any = { ...form };
+
+      // Attach current userId/role from localStorage if available (server expects userId sometimes)
+      try {
+        const stored = localStorage.getItem('user');
+        if (stored) {
+          const u = JSON.parse(stored);
+          if (u?.id) payload.userId = payload.userId || u.id;
+          if (u?.role) payload.role = payload.role || u.role;
+        }
+      } catch (err) {
+        // ignore parsing errors
+      }
+
+      // Coerce pages to integer if provided, otherwise remove
+      if (payload.pages === "" || payload.pages === null || payload.pages === undefined) {
+        delete payload.pages;
+      } else {
+        const p = Number(payload.pages);
+        if (!Number.isFinite(p) || isNaN(p)) {
+          alert('Pages must be a number');
+          setIsSubmitting(false);
+          return;
+        }
+        payload.pages = Math.floor(p);
+      }
+
+      // Booleans
+      payload.isFeatured = !!payload.isFeatured;
+      payload.isPublished = !!payload.isPublished;
+      payload.isPremium = !!payload.isPremium;
+
+      // Remove empty strings for optional fields so server-side insert schema accepts
+      ['authorId','authorName','thumbnailUrl','seoTitle','seoDescription','role','userId','downloads','likes','categoryId','categoryName'].forEach(k => {
+        if (payload[k] === "" || payload[k] === null || payload[k] === undefined) delete payload[k];
+      });
+
+      const method = editingArticle ? 'PUT' : 'POST';
+      const url = editingArticle ? `/api/admin/articles/${editingArticle.id}` : '/api/admin/articles';
+
+      const r = await fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+
+      if (r.ok) {
+        setShowForm(false);
+        setEditingArticle(null);
+        setForm({ title:'', slug:'', excerpt:'', content:'', type:'Guide', authorName:'', authorId:'', pages:'', thumbnailUrl:'', isPremium:false, isFeatured:false, isPublished:false, seoTitle:'', seoDescription:'', userId:'', role:'', categoryId:'', categoryName:'' });
+        fetchArticles();
+      } else {
+        const json = await r.json().catch(() => null);
+        console.error('Save failed', json || await r.text());
+        alert(json?.message || 'Failed to save article. Check console for details.');
+      }
+    } catch (e) { console.error(e); }
+    setIsSubmitting(false);
+  };
+
+  const handleEditArticle = (a: any) => {
+    setEditingArticle(a);
+    setForm({
+      title: a.title || '',
+      slug: a.slug || '',
+      excerpt: a.excerpt || '',
+      content: a.content || '',
+      type: a.type || 'Guide',
+      authorName: a.authorName || '',
+      authorId: a.authorId || '',
+      pages: a.pages ?? '',
+      thumbnailUrl: a.thumbnailUrl || '',
+      isPremium: !!a.isPremium,
+      isFeatured: !!a.isFeatured,
+      isPublished: !!a.isPublished,
+      seoTitle: a.seoTitle || '',
+      seoDescription: a.seoDescription || '',
+      userId: a.userId || '',
+      role: a.role || '',
+      categoryId: a.categoryId || '',
+      categoryName: a.categoryName || '',
+    });
+    setShowForm(true);
+  };
+
+  const handleViewArticle = (a: any) => {
+    setViewingArticle(a);
+    setShowViewDialog(true);
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-2xl font-bold">Articles</h2>
+          <p className="text-muted-foreground">Manage guides, research papers and whitepapers</p>
+        </div>
+        <Button onClick={() => setShowForm(true)}>
+          <Plus className="w-4 h-4 mr-2" />
+          Add Article
+        </Button>
+        <Button variant="outline" onClick={() => setShowCategoryManager(true)} className="ml-2">
+          <Settings className="w-4 h-4 mr-2" />
+          Manage Categories
+        </Button>
+      </div>
+
+      <Dialog open={showForm} onOpenChange={setShowForm}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Create Article</DialogTitle>
+            <DialogDescription>Fill fields and create an article</DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleSubmit} className="space-y-4 p-4">
+            <div className="space-y-3">
+              <Label>Title</Label>
+              <Input value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} placeholder="Title" required />
+
+              <Label>Slug</Label>
+              <Input value={form.slug} onChange={e => setForm(f => ({ ...f, slug: e.target.value }))} placeholder="Slug" required />
+
+              <Label>Excerpt</Label>
+              <Input value={form.excerpt} onChange={e => setForm(f => ({ ...f, excerpt: e.target.value }))} placeholder="Excerpt" />
+
+              <Label>Content</Label>
+              <Textarea value={form.content} onChange={e => setForm(f => ({ ...f, content: e.target.value }))} rows={8} placeholder="Content" />
+              <Label>Category</Label>
+              <Select value={form.categoryId || ''} onValueChange={(v) => {
+                const sel = categories.find((c:any) => c.id === v);
+                setForm(f => ({ ...f, categoryId: v, categoryName: sel?.name || '' }));
+              }}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select category" />
+                </SelectTrigger>
+                <SelectContent>
+                  {categories.map((c:any) => (
+                    <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                <div>
+                  <Label>Type</Label>
+                  <select className="input w-full" value={form.type} onChange={e => setForm(f => ({ ...f, type: e.target.value }))}>
+                    <option>Guide</option>
+                    <option>Research</option>
+                    <option>Whitepaper</option>
+                  </select>
+                </div>
+                <div>
+                  <Label>Pages</Label>
+                  <Input type="number" min={0} value={form.pages} onChange={e => setForm(f => ({ ...f, pages: e.target.value }))} placeholder="Pages (number)" />
+                </div>
+              </div>
+
+              <Label>Cover Image URL</Label>
+              <Input value={form.thumbnailUrl} onChange={e => setForm(f => ({ ...f, thumbnailUrl: e.target.value }))} placeholder="Cover Image URL" />
+              <div>
+                <Label>Or choose file</Label>
+                <input type="file" className="w-full" onChange={e => {
+                  const file = e.target.files && e.target.files[0];
+                  if (file) setForm(f => ({ ...f, thumbnailUrl: file.name }));
+                }} />
+              </div>
+
+              <Label>Author name</Label>
+              <Input value={form.authorName} onChange={e => setForm(f => ({ ...f, authorName: e.target.value }))} placeholder="Author name" />
+
+              <Label>Author ID (optional)</Label>
+              <Input value={form.authorId} onChange={e => setForm(f => ({ ...f, authorId: e.target.value }))} placeholder="Author ID (optional)" />
+
+              <div className="flex items-center gap-6">
+                <div className="flex items-center gap-2">
+                  <Switch checked={!!form.isPublished} onCheckedChange={v => setForm(f => ({ ...f, isPublished: !!v }))} />
+                  <span>Published</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Switch checked={!!form.isFeatured} onCheckedChange={v => setForm(f => ({ ...f, isFeatured: !!v }))} />
+                  <span>Featured</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Switch checked={!!form.isPremium} onCheckedChange={v => setForm(f => ({ ...f, isPremium: !!v }))} />
+                  <span>Premium</span>
+                </div>
+              </div>
+
+              <Label>SEO Title</Label>
+              <Input value={(form as any).seoTitle || ''} onChange={e => setForm(f => ({ ...f, seoTitle: e.target.value }))} placeholder="SEO Title" />
+
+              <Label>SEO Description</Label>
+              <Textarea value={(form as any).seoDescription || ''} onChange={e => setForm(f => ({ ...f, seoDescription: e.target.value }))} rows={4} placeholder="SEO Description" />
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                <div>
+                  <Label>User ID (optional)</Label>
+                  <Input value={form.userId} onChange={e => setForm(f => ({ ...f, userId: e.target.value }))} placeholder="User ID (optional)" />
+                </div>
+                <div>
+                  <Label>Role (optional)</Label>
+                  <Input value={form.role} onChange={e => setForm(f => ({ ...f, role: e.target.value }))} placeholder="Role (optional)" />
+                </div>
+              </div>
+            </div>
+
+            <div className="flex gap-2 justify-end">
+              <Button variant="ghost" onClick={() => setShowForm(false)}>Cancel</Button>
+              <Button type="submit" disabled={isSubmitting}>{isSubmitting ? 'Creating...' : 'Create Article'}</Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showCategoryManager} onOpenChange={setShowCategoryManager}>
+        <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Article Categories</DialogTitle>
+            <DialogDescription>Create and manage article categories</DialogDescription>
+          </DialogHeader>
+
+          <form onSubmit={handleCategorySave} className="space-y-4 p-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+              <div>
+                <Label>Name</Label>
+                <Input value={categoryForm.name} onChange={e => setCategoryForm((s:any) => ({ ...s, name: e.target.value }))} required />
+              </div>
+              <div>
+                <Label>Slug</Label>
+                <Input value={categoryForm.slug} onChange={e => setCategoryForm((s:any) => ({ ...s, slug: e.target.value }))} required />
+              </div>
+            </div>
+            <div>
+              <Label>Description</Label>
+              <Textarea value={categoryForm.description} onChange={e => setCategoryForm((s:any) => ({ ...s, description: e.target.value }))} rows={3} />
+            </div>
+            <div className="flex items-center gap-3">
+              <Switch checked={!!categoryForm.isActive} onCheckedChange={v => setCategoryForm((s:any) => ({ ...s, isActive: !!v }))} />
+              <span>Active</span>
+            </div>
+
+            <div className="flex justify-end gap-2">
+              <Button variant="ghost" onClick={() => { setShowCategoryManager(false); setEditingCategory(null); setCategoryForm({ name:'', slug:'', description:'', isActive:true }); }}>Close</Button>
+              <Button type="submit" disabled={isCatSubmitting}>{editingCategory ? (isCatSubmitting ? 'Saving...' : 'Save') : (isCatSubmitting ? 'Creating...' : 'Create')}</Button>
+            </div>
+          </form>
+
+          <div className="p-4">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Name</TableHead>
+                  <TableHead>Slug</TableHead>
+                  <TableHead className="w-24">Active</TableHead>
+                  <TableHead className="w-36">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {categories.map((c:any) => (
+                  <TableRow key={c.id}>
+                    <TableCell>{c.name}</TableCell>
+                    <TableCell>{c.slug}</TableCell>
+                    <TableCell>{c.isActive ? 'Yes' : 'No'}</TableCell>
+                    <TableCell>
+                      <div className="flex gap-2">
+                        <Button size="sm" variant="outline" onClick={() => handleEditCategory(c)}>Edit</Button>
+                        <Button size="sm" variant="destructive" onClick={() => handleDeleteCategory(c.id)}>Delete</Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {articles.map(a => (
+          <Card key={a.id} className="group hover:shadow-lg transition-shadow">
+            <CardHeader>
+              <div className="flex items-start justify-between">
+                <div className="flex-1">
+                  <CardTitle className="text-lg mb-1">{a.title}</CardTitle>
+                  <div className="flex gap-2 flex-wrap text-sm text-muted-foreground">
+                    <Badge>{a.type}</Badge>
+                    {a.categoryName && <Badge variant="outline">{a.categoryName}</Badge>}
+                    {a.pages && <Badge variant="outline">{a.pages} pages</Badge>}
+                    {a.isFeatured && <Badge className="bg-yellow-500">Featured</Badge>}
+                    {a.isPublished && <Badge className="bg-green-500">Published</Badge>}
+                  </div>
+                </div>
+                <div className="flex gap-1">
+                  <Button variant="ghost" size="icon" onClick={() => handleViewArticle(a)} title="View"><Eye className="w-4 h-4" /></Button>
+                  <Button variant="ghost" size="icon" onClick={() => handleEditArticle(a)} title="Edit"><Edit className="w-4 h-4" /></Button>
+                  <Button variant="ghost" size="icon" onClick={() => togglePublish(a.id)} title="Toggle Publish"><Plus className="w-4 h-4" /></Button>
+                  <Button variant="ghost" size="icon" className="text-destructive" onClick={() => handleDelete(a.id)} title="Delete"><Trash2 className="w-4 h-4" /></Button>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-muted-foreground line-clamp-3">{a.excerpt}</p>
+            </CardContent>
           </Card>
         ))}
       </div>

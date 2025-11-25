@@ -21,10 +21,14 @@ export default function Header() {
   const subScrollRef = useRef<HTMLDivElement | null>(null);
   const linkRefs = useRef<Record<string, HTMLAnchorElement | null>>({});
   const [submenuLeft, setSubmenuLeft] = useState<number | null>(null);
-  const [location] = useLocation();
+  const [location, setLocation] = useLocation();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [activeCategory, setActiveCategory] = useState<string>("");
   const [showSubcategories, setShowSubcategories] = useState(false);
+  const [showCategoriesPanel, setShowCategoriesPanel] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [highlightIndex, setHighlightIndex] = useState<number>(-1);
 
   const handleCategoryClick = (categoryId: string, event: React.MouseEvent) => {
     event.preventDefault();
@@ -48,6 +52,49 @@ export default function Header() {
 
   const activeCategories = categories.filter((cat: any) => cat.isActive);
   const activeCat = activeCategories.find((c: any) => c.id === activeCategory);
+
+  // Build grouped services: each category once, with its active subcategories
+  const serviceGroups: Array<any> = activeCategories.map((cat: any) => {
+    const subs = (cat.subcategories || [])
+      .filter((s: any) => s.isActive)
+      .map((s: any) => ({
+        id: s.id,
+        name: s.name,
+        slug: s.slug,
+        type: 'subcategory',
+        parent: { id: cat.id, name: cat.name, slug: cat.slug },
+      }));
+
+    const catEntry = { id: cat.id, name: cat.name, slug: cat.slug, type: 'category' };
+
+    return { category: catEntry, subcategories: subs };
+  });
+
+  // Filter groups based on the search query. If query matches category name or any sub, include them.
+  const lowerQ = searchQuery.trim().toLowerCase();
+  const filteredGroups = serviceGroups
+    .map((g) => {
+      const catMatches = !lowerQ || g.category.name.toLowerCase().includes(lowerQ);
+      let matchedSubs = lowerQ
+        ? g.subcategories.filter((s: any) => s.name.toLowerCase().includes(lowerQ))
+        : g.subcategories;
+
+      // If the category itself matches the query but no subs matched the query,
+      // show all active subcategories so they appear under the category header.
+      if (catMatches && matchedSubs.length === 0) {
+        matchedSubs = g.subcategories;
+      }
+
+      // include group if category matches or has any matched subcategories
+      if (catMatches || matchedSubs.length > 0) {
+        return { category: g.category, subcategories: matchedSubs };
+      }
+      return null;
+    })
+    .filter(Boolean) as Array<any>;
+
+  // Flatten filtered groups for keyboard navigation (only subcategories are selectable)
+  const flatList = filteredGroups.flatMap((g) => g.subcategories || []);
 
   const navItems = [
     { href: "/properties", label: "घर जग्गा | Properties", shortLabel: "Properties", isActive: location.startsWith("/properties") || location === "/", hasRoute: true },
@@ -105,14 +152,121 @@ export default function Header() {
             </Link>
 
             {/* Search Bar */}
-            <div className="flex-1 max-w-2xl mx-4 hidden md:block" data-testid="search-bar">
+            <div className="flex-1 max-w-2xl mx-4 hidden md:flex items-start gap-3" data-testid="search-bar">
+              {/* Categories dropdown trigger (desktop) */}
               <div className="relative">
+                <button
+                  onClick={() => setShowCategoriesPanel((s) => !s)}
+                  className="inline-flex items-center gap-2 px-3 py-2 rounded-md bg-white/10 hover:bg-white/20 text-white text-sm"
+                  aria-expanded={showCategoriesPanel}
+                  aria-haspopup="true"
+                >
+                  Categories
+                  <ChevronDown className="w-4 h-4" />
+                </button>
+
+                {showCategoriesPanel && (
+                  <div className="absolute left-0 mt-2 w-[28rem] bg-white shadow-xl rounded-md z-50 max-h-80 overflow-auto">
+                    <div className="p-3">
+                      {activeCategories.length === 0 ? (
+                        <div className="text-sm text-gray-500">No categories</div>
+                      ) : (
+                        activeCategories.map((category: any) => {
+                          const subs = (category.subcategories || []).filter((s: any) => s.isActive);
+                          return (
+                            <div key={category.id} className="border-b last:border-b-0">
+                              <div className="px-3 py-2 text-sm font-medium text-gray-800">{category.name}</div>
+                              {subs.length === 0 ? (
+                                <div className="px-6 py-2 text-sm text-gray-500">No subcategories</div>
+                              ) : (
+                                subs.map((sub: any) => (
+                                  <button
+                                    key={sub.id}
+                                    onMouseDown={(ev) => ev.preventDefault()}
+                                    onClick={() => { setLocation(`/subcategory/${sub.slug}`); setShowCategoriesPanel(false); }}
+                                    className="w-full text-left px-6 py-2 hover:bg-gray-50 transition-colors text-sm text-gray-700"
+                                  >
+                                    <div className="flex items-center justify-between">
+                                      <span>{sub.name}</span>
+                                      <span className="text-xs text-gray-400">{category.name}</span>
+                                    </div>
+                                  </button>
+                                ))
+                              )}
+                            </div>
+                          );
+                        })
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <div className="relative w-full">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
                 <Input
                   type="text"
                   placeholder="Search properties, vehicles, jobs..."
+                  value={searchQuery}
+                  onChange={(e) => { setSearchQuery(e.target.value); setShowSuggestions(true); setHighlightIndex(-1); }}
+                  onFocus={() => setShowSuggestions(true)}
+                  onBlur={() => setTimeout(() => setShowSuggestions(false), 150)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'ArrowDown') {
+                      e.preventDefault();
+                      setHighlightIndex((i) => Math.min(i + 1, flatList.length - 1));
+                    } else if (e.key === 'ArrowUp') {
+                      e.preventDefault();
+                      setHighlightIndex((i) => Math.max(i - 1, 0));
+                    } else if (e.key === 'Enter') {
+                      e.preventDefault();
+                      const target = flatList[highlightIndex] || flatList[0];
+                      if (target) {
+                        if (target.type === 'subcategory') setLocation(`/subcategory/${target.slug}`);
+                        else setLocation(`/category/${target.slug}`);
+                        setShowSuggestions(false);
+                        setSearchQuery('');
+                      } else {
+                        setLocation(`/search?q=${encodeURIComponent(searchQuery)}`);
+                        setShowSuggestions(false);
+                      }
+                    }
+                  }}
                   className="w-full pl-10 pr-4 py-2 bg-white/90 border-white/20 focus:bg-white"
                 />
+                {showSuggestions && (
+                  <div className="absolute left-0 right-0 mt-1 bg-white shadow-lg rounded-md z-50 max-h-60 overflow-auto">
+                    {flatList.length === 0 ? (
+                      <div className="p-3 text-sm text-gray-500">No services found</div>
+                    ) : (
+                      filteredGroups.map((g, gi) => {
+                        // count previous subcategories only (categories are headers, not selectable)
+                        const prevCount = filteredGroups.slice(0, gi).reduce((acc, cur) => acc + (cur.subcategories ? cur.subcategories.length : 0), 0);
+                        return (
+                          <div key={`group-${g.category.id}`} className="border-b last:border-b-0">
+                            <div className="w-full text-left px-4 py-2 bg-gray-50 text-sm font-medium text-gray-700">{g.category.name}</div>
+                            {g.subcategories && g.subcategories.map((s: any, si: number) => {
+                              const idx = prevCount + si;
+                              return (
+                                <button
+                                  key={`sub-${s.id}`}
+                                  onMouseDown={(ev) => { ev.preventDefault(); }}
+                                  onClick={() => { setLocation(`/subcategory/${s.slug}`); setShowSuggestions(false); setSearchQuery(''); }}
+                                  className={`w-full text-left px-6 py-2 hover:bg-gray-50 transition-colors flex items-center gap-3 ${highlightIndex === idx ? 'bg-gray-100' : ''}`}
+                                >
+                                  <div className="flex-1">
+                                    <div className="text-sm">{s.name}</div>
+                                    <div className="text-xs text-gray-500">{g.category.name}</div>
+                                  </div>
+                                </button>
+                              );
+                            })}
+                          </div>
+                        );
+                      })
+                    )}
+                  </div>
+                )}
               </div>
             </div>
 

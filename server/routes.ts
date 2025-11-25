@@ -57,7 +57,13 @@ import {
   healthWellnessServices, // Added
   telecommunicationServices,
   serviceCentreWarranty,
+  contactMessages,
+  insertContactMessageSchema,
   sliders,
+  articles,
+  insertArticleSchema,
+  articleCategories,
+  insertArticleCategorySchema,
   blogPosts,
 } from "../shared/schema";
 import { eq, sql, desc, or } from "drizzle-orm";
@@ -81,6 +87,237 @@ export function registerRoutes(app: Express) {
       res.status(500).json({ message: error.message });
     }
   });
+
+  // Articles public endpoints
+  app.get("/api/articles", async (req, res) => {
+    try {
+      const { type, featured } = req.query;
+      let rows = await db.query.articles.findMany({ orderBy: desc(articles.createdAt) });
+
+      if (type && typeof type === 'string') {
+        rows = rows.filter(r => r.type === type);
+      }
+      if (featured !== undefined) {
+        rows = rows.filter(r => !!r.isFeatured === (featured === 'true' || featured === true));
+      }
+
+      res.json(rows);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.get("/api/articles/:id", async (req, res) => {
+    try {
+      const item = await db.query.articles.findFirst({ where: eq(articles.id, req.params.id) });
+      if (!item) return res.status(404).json({ message: "Article not found" });
+      // increment viewCount
+      const [updated] = await db.update(articles).set({ viewCount: (item.viewCount || 0) + 1, updatedAt: new Date() }).where(eq(articles.id, item.id)).returning();
+      res.json(updated || item);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Admin: Articles CRUD
+  app.get('/api/admin/articles', async (_req, res) => {
+    try {
+      const list = await db.query.articles.findMany({ orderBy: [desc(articles.createdAt)] });
+      res.json(list);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.get('/api/admin/articles/:id', async (req, res) => {
+    try {
+      const item = await db.query.articles.findFirst({ where: eq(articles.id, req.params.id) });
+      if (!item) return res.status(404).json({ message: 'Article not found' });
+      res.json(item);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.post('/api/admin/articles', async (req, res) => {
+    try {
+      const payload: any = { ...(req.body || {}) };
+
+      // Basic coercions
+      if (payload.pages !== undefined) {
+        const p = Number(payload.pages);
+        if (Number.isFinite(p) && !isNaN(p)) payload.pages = Math.floor(p);
+        else delete payload.pages;
+      }
+      payload.isFeatured = !!payload.isFeatured;
+      payload.isPublished = !!payload.isPublished;
+      payload.isPremium = !!payload.isPremium;
+
+      // Parse publishedAt if present
+      if (payload.publishedAt) payload.publishedAt = new Date(payload.publishedAt);
+
+      // Validate foreign keys: authorId and categoryId. If referenced rows don't exist, remove the keys to avoid FK violations.
+      if (payload.authorId) {
+        const author = await db.query.users.findFirst({ where: eq(users.id, payload.authorId) });
+        if (!author) delete payload.authorId;
+      }
+      if (payload.categoryId) {
+        const cat = await db.query.articleCategories.findFirst({ where: eq(articleCategories.id, payload.categoryId) });
+        if (!cat) {
+          delete payload.categoryId;
+          if (!payload.categoryName) delete payload.categoryName;
+        }
+      }
+
+      // Validate with zod schema if provided (non-blocking)
+      try { insertArticleSchema.parse(payload); } catch (e) { /* continue without failing */ }
+
+      try {
+        const [created] = await db.insert(articles).values({ ...payload }).returning();
+        res.status(201).json(created);
+      } catch (dbErr: any) {
+        // Handle foreign key violations with clearer messages
+        const msg = (dbErr && dbErr.message) ? dbErr.message : String(dbErr);
+        if (msg.includes('foreign key') || msg.includes('violates foreign key constraint')) {
+          return res.status(400).json({ message: 'Foreign key constraint failed. Check authorId and categoryId exist.' });
+        }
+        throw dbErr;
+      }
+    } catch (error: any) {
+      res.status(400).json({ message: error.message });
+    }
+  });
+
+  app.put('/api/admin/articles/:id', async (req, res) => {
+    try {
+      const id = req.params.id;
+      const updateData: any = { ...(req.body || {}), updatedAt: new Date() };
+
+      if (updateData.pages !== undefined) {
+        const p = Number(updateData.pages);
+        if (Number.isFinite(p) && !isNaN(p)) updateData.pages = Math.floor(p);
+        else delete updateData.pages;
+      }
+      if (updateData.isFeatured !== undefined) updateData.isFeatured = !!updateData.isFeatured;
+      if (updateData.isPublished !== undefined) updateData.isPublished = !!updateData.isPublished;
+      if (updateData.isPremium !== undefined) updateData.isPremium = !!updateData.isPremium;
+      if (updateData.publishedAt) updateData.publishedAt = new Date(updateData.publishedAt);
+
+      // Validate foreign keys before updating
+      if (updateData.authorId) {
+        const author = await db.query.users.findFirst({ where: eq(users.id, updateData.authorId) });
+        if (!author) delete updateData.authorId;
+      }
+      if (updateData.categoryId) {
+        const cat = await db.query.articleCategories.findFirst({ where: eq(articleCategories.id, updateData.categoryId) });
+        if (!cat) {
+          delete updateData.categoryId;
+          if (!updateData.categoryName) delete updateData.categoryName;
+        }
+      }
+
+      const [updated] = await db.update(articles).set(updateData).where(eq(articles.id, id)).returning();
+      if (!updated) return res.status(404).json({ message: 'Article not found' });
+      res.json(updated);
+    } catch (error: any) {
+      res.status(400).json({ message: error.message });
+    }
+  });
+
+  app.delete('/api/admin/articles/:id', async (req, res) => {
+    try {
+      const deleted = await db.delete(articles).where(eq(articles.id, req.params.id)).returning();
+      if (deleted.length === 0) return res.status(404).json({ message: 'Article not found' });
+      res.json({ message: 'Article deleted', id: req.params.id });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.patch('/api/admin/articles/:id/toggle-publish', async (req, res) => {
+    try {
+      const item = await db.query.articles.findFirst({ where: eq(articles.id, req.params.id) });
+      if (!item) return res.status(404).json({ message: 'Article not found' });
+      const [updated] = await db.update(articles).set({ isPublished: !item.isPublished, updatedAt: new Date() }).where(eq(articles.id, req.params.id)).returning();
+      res.json(updated);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Article Categories - Public
+  app.get('/api/article-categories', async (_req, res) => {
+    try {
+      const list = await db.query.articleCategories.findMany({ orderBy: [articleCategories.name] });
+      res.json(list);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Article Categories - Admin CRUD
+  app.get('/api/admin/article-categories', async (_req, res) => {
+    try {
+      const list = await db.query.articleCategories.findMany({ orderBy: [articleCategories.name] });
+      res.json(list);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.post('/api/admin/article-categories', async (req, res) => {
+    try {
+      const sessionUser = (req as any).session?.user;
+      const headerRole = typeof req.headers['x-user-role'] === 'string' ? req.headers['x-user-role'] as string : undefined;
+      const bodyRole = req.body?.role;
+      const isAdmin = (sessionUser && sessionUser.role === 'admin') || headerRole === 'admin' || bodyRole === 'admin';
+      if (!isAdmin) return res.status(403).json({ message: 'Forbidden: admin access required' });
+
+      const payload = req.body || {};
+      try { insertArticleCategorySchema.parse(payload); } catch (e) { /* continue */ }
+
+      const [created] = await db.insert(articleCategories).values({ ...payload }).returning();
+      res.status(201).json(created);
+    } catch (error: any) {
+      res.status(400).json({ message: error.message });
+    }
+  });
+
+  app.put('/api/admin/article-categories/:id', async (req, res) => {
+    try {
+      const sessionUser = (req as any).session?.user;
+      const headerRole = typeof req.headers['x-user-role'] === 'string' ? req.headers['x-user-role'] as string : undefined;
+      const bodyRole = req.body?.role;
+      const isAdmin = (sessionUser && sessionUser.role === 'admin') || headerRole === 'admin' || bodyRole === 'admin';
+      if (!isAdmin) return res.status(403).json({ message: 'Forbidden: admin access required' });
+
+      const payload = req.body || {};
+      try { insertArticleCategorySchema.parse(payload); } catch (e) { /* continue */ }
+
+      const [updated] = await db.update(articleCategories).set({ ...payload, updatedAt: new Date() }).where(eq(articleCategories.id, req.params.id)).returning();
+      if (!updated) return res.status(404).json({ message: 'Category not found' });
+      res.json(updated);
+    } catch (error: any) {
+      res.status(400).json({ message: error.message });
+    }
+  });
+
+  app.delete('/api/admin/article-categories/:id', async (req, res) => {
+    try {
+      const sessionUser = (req as any).session?.user;
+      const headerRole = typeof req.headers['x-user-role'] === 'string' ? req.headers['x-user-role'] as string : undefined;
+      const bodyRole = req.body?.role;
+      const isAdmin = (sessionUser && sessionUser.role === 'admin') || headerRole === 'admin' || bodyRole === 'admin';
+      if (!isAdmin) return res.status(403).json({ message: 'Forbidden: admin access required' });
+
+      const deleted = await db.delete(articleCategories).where(eq(articleCategories.id, req.params.id)).returning();
+      if (deleted.length === 0) return res.status(404).json({ message: 'Category not found' });
+      res.json({ message: 'Category deleted', id: req.params.id });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
 
   app.get("/api/seller/dashboard", async (req, res) => {
     try {
@@ -446,6 +683,67 @@ export function registerRoutes(app: Express) {
       }
 
       res.json({ message: "Successfully subscribed to newsletter" });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Contact form - public submit
+  app.post('/api/contact', async (req, res) => {
+    try {
+      const payload = req.body || {};
+      try { insertContactMessageSchema.parse(payload); } catch (e) { /* continue */ }
+
+      const [created] = await db.insert(contactMessages).values({ ...payload }).returning();
+      res.status(201).json(created);
+    } catch (error: any) {
+      res.status(400).json({ message: error.message });
+    }
+  });
+
+  // Admin: list contact messages
+  app.get('/api/admin/contact-messages', async (req, res) => {
+    try {
+      const sessionUser = (req as any).session?.user;
+      const headerRole = typeof req.headers['x-user-role'] === 'string' ? req.headers['x-user-role'] as string : undefined;
+      const bodyRole = req.body?.role;
+      const isAdmin = (sessionUser && sessionUser.role === 'admin') || headerRole === 'admin' || bodyRole === 'admin';
+      if (!isAdmin) return res.status(403).json({ message: 'Forbidden: admin access required' });
+
+      const list = await db.query.contactMessages.findMany({ orderBy: [desc(contactMessages.createdAt)] });
+      res.json(list);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.patch('/api/admin/contact-messages/:id/read', async (req, res) => {
+    try {
+      const sessionUser = (req as any).session?.user;
+      const headerRole = typeof req.headers['x-user-role'] === 'string' ? req.headers['x-user-role'] as string : undefined;
+      const bodyRole = req.body?.role;
+      const isAdmin = (sessionUser && sessionUser.role === 'admin') || headerRole === 'admin' || bodyRole === 'admin';
+      if (!isAdmin) return res.status(403).json({ message: 'Forbidden: admin access required' });
+
+      const [updated] = await db.update(contactMessages).set({ isRead: true }).where(eq(contactMessages.id, req.params.id)).returning();
+      if (!updated) return res.status(404).json({ message: 'Message not found' });
+      res.json(updated);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.delete('/api/admin/contact-messages/:id', async (req, res) => {
+    try {
+      const sessionUser = (req as any).session?.user;
+      const headerRole = typeof req.headers['x-user-role'] === 'string' ? req.headers['x-user-role'] as string : undefined;
+      const bodyRole = req.body?.role;
+      const isAdmin = (sessionUser && sessionUser.role === 'admin') || headerRole === 'admin' || bodyRole === 'admin';
+      if (!isAdmin) return res.status(403).json({ message: 'Forbidden: admin access required' });
+
+      const deleted = await db.delete(contactMessages).where(eq(contactMessages.id, req.params.id)).returning();
+      if (deleted.length === 0) return res.status(404).json({ message: 'Message not found' });
+      res.json({ message: 'Message deleted', id: req.params.id });
     } catch (error: any) {
       res.status(500).json({ message: error.message });
     }

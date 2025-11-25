@@ -1,4 +1,5 @@
 import express, { type Request, Response, NextFunction } from "express";
+import path from "path";
 import session from "express-session";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
@@ -52,6 +53,9 @@ app.use((req, res, next) => {
 
   next();
 });
+
+// Serve uploaded files from /uploads (so article thumbnails and other uploads are accessible)
+app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
 
 (async () => {
   // Initialize database tables

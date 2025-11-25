@@ -164,8 +164,11 @@ const SUBCATEGORY_NAMES: Record<string, string> = {
 
 export default function SubcategoryPage() {
   const params = useParams();
-  const categoryId = params.categorySlug;
-  const subcategorySlug = params.subcategorySlug;
+  // support both routes:
+  // - /category/:categorySlug/subcategory/:subcategorySlug
+  // - /subcategory/:name
+  const categoryId = (params as any).categorySlug || null;
+  const subcategorySlug = (params as any).subcategorySlug || (params as any).name || "";
 
   const [searchTerm, setSearchTerm] = useState("");
   const [cityFilter, setCityFilter] = useState("all");

@@ -125,6 +125,18 @@ export const faqs = pgTable("faqs", {
   isActive: boolean("is_active").default(true),
 });
 
+// Contact Messages (from public contact form)
+export const contactMessages = pgTable("contact_messages", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: text("name").notNull(),
+  email: text("email"),
+  phone: text("phone"),
+  subject: text("subject"),
+  message: text("message").notNull(),
+  isRead: boolean("is_read").default(false),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 export const adminCategories = pgTable("admin_categories", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   name: text("name").notNull(),
@@ -271,6 +283,17 @@ export const insertPropertySchema = createInsertSchema(properties).omit({
 
 export const insertFaqSchema = createInsertSchema(faqs).omit({
   id: true,
+});
+
+export const insertContactMessageSchema = createInsertSchema(contactMessages).omit({
+  id: true,
+  createdAt: true,
+}).extend({
+  name: z.string().min(1),
+  email: z.string().optional(),
+  phone: z.string().optional(),
+  subject: z.string().optional(),
+  message: z.string().min(1),
 });
 
 export const insertAdminCategorySchema = createInsertSchema(adminCategories).omit({
@@ -774,6 +797,9 @@ export type Property = typeof properties.$inferSelect;
 
 export type InsertFaq = z.infer<typeof insertFaqSchema>;
 export type Faq = typeof faqs.$inferSelect;
+
+export type InsertContactMessage = z.infer<typeof insertContactMessageSchema>;
+export type ContactMessage = typeof contactMessages.$inferSelect;
 
 export type InsertAdminCategory = z.infer<typeof insertAdminCategorySchema>;
 export type AdminCategory = typeof adminCategories.$inferSelect;
@@ -3264,6 +3290,66 @@ export const sliders = pgTable("sliders", {
 
 export type Slider = typeof sliders.$inferSelect;
 export type NewSlider = typeof sliders.$inferInsert;
+
+// Article categories
+export const articleCategories = pgTable("article_categories", {
+  id: varchar("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  name: text("name").notNull(),
+  slug: text("slug").notNull().unique(),
+  description: text("description"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+  userId: varchar("user_id").references(() => users.id),
+  role: text("role"),
+});
+
+export const insertArticleCategorySchema = createInsertSchema(articleCategories).omit({ id: true, createdAt: true, updatedAt: true });
+export type InsertArticleCategory = z.infer<typeof insertArticleCategorySchema>;
+export type ArticleCategory = typeof articleCategories.$inferSelect;
+
+// Articles (Guides, Research, Whitepapers, etc.)
+export const articles = pgTable("articles", {
+  id: varchar("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  title: text("title").notNull(),
+  slug: text("slug").notNull().unique(),
+  excerpt: text("excerpt"),
+  content: text("content"),
+  type: text("type"), // Guide, Research, Whitepaper
+  authorId: varchar("author_id").references(() => users.id, { onDelete: "set null" }),
+  authorName: text("author_name"),
+  categoryId: varchar("category_id").references(() => articleCategories.id, { onDelete: "set null" }),
+  categoryName: text("category_name"),
+  pages: integer("pages"),
+  downloads: text("downloads").default("0"),
+  likes: integer("likes").default(0),
+  thumbnailUrl: text("thumbnail_url"),
+  isPremium: boolean("is_premium").default(false),
+  isPublished: boolean("is_published").default(false),
+  isFeatured: boolean("is_featured").default(false),
+  viewCount: integer("view_count").default(0),
+  seoTitle: text("seo_title"),
+  seoDescription: text("seo_description"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+  userId: varchar("user_id").references(() => users.id),
+  role: text("role"),
+});
+
+export const articlesRelations = relations(articles, ({ one }) => ({
+  author: one(users, {
+    fields: [articles.authorId],
+    references: [users.id],
+  }),
+  category: one(articleCategories, {
+    fields: [articles.categoryId],
+    references: [articleCategories.id],
+  }),
+}));
+
+export const insertArticleSchema = createInsertSchema(articles).omit({ id: true, createdAt: true, updatedAt: true });
+export type InsertArticle = z.infer<typeof insertArticleSchema>;
+export type Article = typeof articles.$inferSelect;
+export type NewArticle = typeof articles.$inferInsert;
 
 // Blog posts table for site blog / admin-managed articles
 export const blogPosts = pgTable("blog_posts", {

@@ -1,6 +1,7 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { FileText, Download, Share2, Bookmark, Eye, ThumbsUp, Filter, Calendar } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import Header from "@/components/header";
 import Footer from "@/components/footer";
 import { Button } from "@/components/ui/button";
@@ -11,100 +12,192 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 export default function Articles() {
   const [selectedFilter, setSelectedFilter] = useState("all");
 
-  const articleCategories = [
-    { id: "all", name: "All Articles", icon: FileText },
-    { id: "guides", name: "Guides", icon: FileText },
-    { id: "research", name: "Research", icon: FileText },
-    { id: "whitepapers", name: "Whitepapers", icon: FileText },
-  ];
+  const [articleCategories, setArticleCategories] = useState<any[]>([{ id: 'all', name: 'All Articles' }]);
 
-  const featuredArticles = [
-    {
-      id: 1,
-      title: "Complete Guide to Property Registration in Nepal 2025",
-      description: "A comprehensive step-by-step guide covering all aspects of property registration, required documents, fees, and legal procedures.",
-      type: "Guide",
-      author: "Legal Team",
-      publishedDate: "January 2025",
-      pages: 45,
-      downloads: "5.2K",
-      views: "12.4K",
-      likes: 847,
-      thumbnail: "https://images.unsplash.com/photo-1450101499163-c8848c66ca85?w=400&h=250&fit=crop",
-      isPremium: false
-    },
-    {
-      id: 2,
-      title: "Nepal Real Estate Market Report 2024-2025",
-      description: "Annual market analysis featuring price trends, investment opportunities, and forecasts for major cities across Nepal.",
-      type: "Research",
-      author: "Market Research Team",
-      publishedDate: "December 2024",
-      pages: 78,
-      downloads: "8.7K",
-      views: "18.2K",
-      likes: 1243,
-      thumbnail: "https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=400&h=250&fit=crop",
-      isPremium: true
-    },
-    {
-      id: 3,
-      title: "Sustainable Housing Development in Nepal",
-      description: "Exploring eco-friendly construction practices, green building certifications, and sustainable urban development strategies.",
-      type: "Whitepaper",
-      author: "Sustainability Experts",
-      publishedDate: "November 2024",
-      pages: 32,
-      downloads: "3.4K",
-      views: "9.1K",
-      likes: 621,
-      thumbnail: "https://images.unsplash.com/photo-1518005020951-eccb494ad742?w=400&h=250&fit=crop",
-      isPremium: false
-    },
-  ];
+  const [articlesData, setArticlesData] = useState<any[]>([]);
+  const [viewingArticle, setViewingArticle] = useState<any | null>(null);
+  const [showDialog, setShowDialog] = useState(false);
+  const [savedArticles, setSavedArticles] = useState<Record<string, boolean>>({});
+  const [showFilterPanel, setShowFilterPanel] = useState(false);
+  const [filterDraft, setFilterDraft] = useState<string | null>(null);
 
-  const recentArticles = [
-    {
-      id: 4,
-      title: "Tax Benefits for Property Owners in Nepal",
-      type: "Guide",
-      publishedDate: "January 2025",
-      pages: 18,
-      downloads: "2.1K",
-    },
-    {
-      id: 5,
-      title: "Understanding Rental Agreements and Tenant Rights",
-      type: "Guide",
-      publishedDate: "December 2024",
-      pages: 24,
-      downloads: "3.8K",
-    },
-    {
-      id: 6,
-      title: "Commercial Property Investment Strategies",
-      type: "Whitepaper",
-      publishedDate: "November 2024",
-      pages: 41,
-      downloads: "1.9K",
-    },
-    {
-      id: 7,
-      title: "Property Valuation Methods and Techniques",
-      type: "Research",
-      publishedDate: "October 2024",
-      pages: 56,
-      downloads: "4.2K",
-    },
-    {
-      id: 8,
-      title: "Smart Home Technology Integration Guide",
-      type: "Guide",
-      publishedDate: "September 2024",
-      pages: 29,
-      downloads: "2.7K",
-    },
-  ];
+  // load articles on mount
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        const resp = await fetch("/api/articles");
+        if (!mounted) return;
+        if (resp.ok) {
+          const json = await resp.json();
+          setArticlesData(Array.isArray(json) ? json : []);
+        }
+      } catch (e) {
+        // ignore fetch errors for now
+      }
+    })();
+    return () => { mounted = false; };
+  }, []);
+
+  // load saved articles from localStorage
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem('savedArticles');
+      if (raw) setSavedArticles(JSON.parse(raw));
+    } catch (e) {
+      // ignore
+    }
+  }, []);
+
+  const placeholderDataUrl = `data:image/svg+xml;utf8,${encodeURIComponent(
+    '<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="600"><rect width="100%" height="100%" fill="#f3f4f6"/><text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" fill="#9ca3af" font-family="Arial, Helvetica, sans-serif" font-size="28">No Image</text></svg>'
+  )}`;
+
+  const persistSaved = (next: Record<string, boolean>) => {
+    try {
+      localStorage.setItem('savedArticles', JSON.stringify(next));
+    } catch (e) {
+      // ignore
+    }
+  };
+
+  const handleSave = (article: any) => {
+    const id = String(article.id ?? article.slug ?? article.title);
+    const next = { ...savedArticles, [id]: !savedArticles[id] };
+    setSavedArticles(next);
+    persistSaved(next);
+  };
+
+  const handleShare = async (article: any) => {
+    const url = `${window.location.origin}/articles#${article.id ?? article.slug}`;
+    const text = `${article.title} - ${article.excerpt || ''}\n${url}`;
+    try {
+      if ((navigator as any).share) {
+        await (navigator as any).share({ title: article.title, text: article.excerpt || '', url });
+      } else if (navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(url);
+        alert('Link copied to clipboard');
+      } else {
+        // fallback: open new window with the url selected
+        window.prompt('Copy this link', url);
+      }
+    } catch (e) {
+      // ignore
+    }
+  };
+
+  const handleDownload = async (article: any) => {
+    // If an explicit download URL exists, use it
+    const dlUrl = article.downloadUrl || article.pdfUrl || article.fileUrl;
+    try {
+      if (dlUrl) {
+        const a = document.createElement('a');
+        a.href = dlUrl;
+        a.download = (article.title || 'article') + '.pdf';
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        return;
+      }
+
+      // Otherwise generate a simple HTML file from the content / excerpt
+      const content = article.content || article.excerpt || article.title || '';
+      const blob = new Blob([content], { type: 'text/html' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = (article.title || 'article') + '.html';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    } catch (e) {
+      console.error('Download failed', e);
+      alert('Unable to download this article');
+    }
+  };
+
+  const handleDownloadAll = async () => {
+    try {
+      const list = filteredArticles && filteredArticles.length > 0 ? filteredArticles : articlesData;
+      if (!list || list.length === 0) {
+        alert('No articles available to download');
+        return;
+      }
+
+      let html = `<!doctype html><html><head><meta charset="utf-8"><title>Articles</title></head><body>`;
+      for (const a of list) {
+        html += `<article style="margin-bottom:40px;">`;
+        html += `<h1>${(a.title || '').replace(/</g, '&lt;')}</h1>`;
+        html += `<p><em>By ${(a.authorName || a.author || '—')} • ${a.createdAt ? new Date(a.createdAt).toLocaleDateString() : ''}</em></p>`;
+        html += `<div>${(a.content || a.excerpt || '').replace(/</g, '&lt;').replace(/\n/g, '<br/>')}</div>`;
+        html += `</article>`;
+      }
+      html += `</body></html>`;
+
+      const blob = new Blob([html], { type: 'text/html' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `articles-${(new Date()).toISOString().slice(0,10)}.html`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    } catch (e) {
+      console.error('Download all failed', e);
+      alert('Unable to download articles');
+    }
+  };
+
+  const resolveImageSrc = (val?: string) => {
+    if (!val) return placeholderDataUrl;
+    const s = String(val || '').trim();
+    if (!s) return placeholderDataUrl;
+    // absolute URL
+    if (s.startsWith('http://') || s.startsWith('https://')) return s;
+    // root-relative path
+    if (s.startsWith('/')) return s;
+
+    // try common upload locations
+    const candidates = [
+      `/uploads/vehicles/${s}`,
+      `/uploads/${s}`,
+      `/attached_assets/${s}`,
+      `/assets/${s}`,
+      s, // last resort - whatever the string is
+    ];
+    return candidates[0];
+  };
+
+  // load categories
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        const r = await fetch('/api/article-categories');
+        if (!mounted) return;
+        if (r.ok) {
+          const j = await r.json();
+          if (Array.isArray(j)) setArticleCategories([{ id: 'all', name: 'All Articles' }, ...j]);
+        }
+      } catch (e) {
+        // ignore
+      }
+    })();
+    return () => { mounted = false; };
+  }, []);
+
+  const filteredArticles = selectedFilter && selectedFilter !== 'all'
+    ? articlesData.filter(a => String(a.categoryId) === String(selectedFilter))
+    : articlesData;
+
+  const featuredArticles = filteredArticles.filter(a => !!a.isFeatured);
+  const recentArticles = [...articlesData].sort((a,b) => {
+    const ad = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+    const bd = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+    return bd - ad;
+  }).slice(0, 10);
 
   const topDownloads = [
     { title: "Property Buying Checklist 2025", downloads: "15.3K" },
@@ -133,11 +226,11 @@ export default function Articles() {
               In-depth guides, research papers, and resources for property buyers, sellers, and investors
             </p>
             <div className="flex justify-center gap-4">
-              <Button size="lg" className="bg-white text-purple-700 hover:bg-gray-100">
+              <Button size="lg" className="bg-white text-purple-700 hover:bg-gray-100" onClick={() => { setFilterDraft(selectedFilter === 'all' ? null : selectedFilter); setShowFilterPanel(true); }}>
                 <Filter className="w-4 h-4 mr-2" />
                 Filter Articles
               </Button>
-              <Button size="lg" variant="outline" className="border-white text-white hover:bg-white/10">
+              <Button size="lg" className="bg-white text-purple-700 hover:bg-gray-100" onClick={() => handleDownloadAll()}>
                 <Download className="w-4 h-4 mr-2" />
                 Download All
               </Button>
@@ -146,22 +239,33 @@ export default function Articles() {
         </div>
       </section>
 
+      {/* Filter Dialog */}
+      <Dialog open={showFilterPanel} onOpenChange={(open) => setShowFilterPanel(open)}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Filter Articles</DialogTitle>
+            <DialogDescription>Choose a category to filter articles</DialogDescription>
+          </DialogHeader>
+          <div className="p-4 space-y-4">
+            <div>
+              <label className="block text-sm mb-2">Category</label>
+              <select value={filterDraft ?? 'all'} onChange={(e) => setFilterDraft(e.target.value === 'all' ? null : e.target.value)} className="w-full border rounded px-3 py-2">
+                <option value="all">All Articles</option>
+                {articleCategories.filter(c => c.id !== 'all').map(c => (
+                  <option key={c.id} value={c.id}>{c.name}</option>
+                ))}
+              </select>
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={() => { setFilterDraft(null); setSelectedFilter('all'); setShowFilterPanel(false); }}>Clear</Button>
+              <Button onClick={() => { setSelectedFilter(filterDraft ?? 'all'); setShowFilterPanel(false); }}>Apply</Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       <div className="container mx-auto px-4 py-12">
-        {/* Stats Section */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-12">
-          {[
-            { label: "Total Articles", value: "156", icon: FileText },
-            { label: "Total Downloads", value: "124K", icon: Download },
-            { label: "Active Readers", value: "45K", icon: Eye },
-            { label: "Expert Authors", value: "28", icon: ThumbsUp },
-          ].map((stat, index) => (
-            <Card key={index} className="text-center p-6 hover:shadow-lg transition-shadow">
-              <stat.icon className="w-8 h-8 mx-auto mb-3 text-purple-600" />
-              <p className="text-3xl font-bold mb-1">{stat.value}</p>
-              <p className="text-sm text-muted-foreground">{stat.label}</p>
-            </Card>
-          ))}
-        </div>
+       
 
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
           {/* Sidebar */}
@@ -173,61 +277,26 @@ export default function Articles() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-2">
-                  {articleCategories.map((category) => (
-                    <button
-                      key={category.id}
-                      onClick={() => setSelectedFilter(category.id)}
-                      className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
-                        selectedFilter === category.id
-                          ? "bg-purple-600 text-white"
-                          : "hover:bg-gray-100 text-gray-700"
-                      }`}
-                    >
-                      <category.icon className="w-5 h-5" />
-                      <span>{category.name}</span>
-                    </button>
-                  ))}
+                    {articleCategories.map((category) => (
+                      <button
+                        key={category.id}
+                        onClick={() => setSelectedFilter(category.id)}
+                        className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
+                          selectedFilter === category.id
+                            ? "bg-purple-600 text-white"
+                            : "hover:bg-gray-100 text-gray-700"
+                        }`}
+                      >
+                        <FileText className="w-5 h-5" />
+                        <span>{category.name}</span>
+                      </button>
+                    ))}
                 </div>
               </CardContent>
             </Card>
 
-            {/* Top Downloads */}
-            <Card>
-              <CardHeader>
-                <h3 className="text-lg font-semibold flex items-center gap-2">
-                  <Download className="w-5 h-5 text-green-500" />
-                  Top Downloads
-                </h3>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  {topDownloads.map((item, index) => (
-                    <div key={index} className="flex items-start gap-2">
-                      <Badge variant="outline" className="mt-1">{index + 1}</Badge>
-                      <div className="flex-1">
-                        <p className="text-sm font-medium line-clamp-2">{item.title}</p>
-                        <p className="text-xs text-muted-foreground">{item.downloads} downloads</p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
+          
 
-            {/* Subscribe */}
-            <Card className="bg-gradient-to-br from-purple-50 to-indigo-50">
-              <CardHeader>
-                <h3 className="text-lg font-semibold">Get New Articles</h3>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm text-muted-foreground mb-4">
-                  Be the first to access new research and guides
-                </p>
-                <Button className="w-full bg-purple-600 hover:bg-purple-700">
-                  Subscribe
-                </Button>
-              </CardContent>
-            </Card>
           </aside>
 
           {/* Main Content */}
@@ -241,9 +310,11 @@ export default function Articles() {
                     <div className="grid md:grid-cols-3 gap-0">
                       <div className="relative h-48 md:h-auto">
                         <img
-                          src={article.thumbnail}
+                          src={resolveImageSrc(article.thumbnailUrl || article.thumbnail)}
                           alt={article.title}
-                          className="w-full h-full object-cover"
+                          className="w-full h-full object-cover cursor-pointer"
+                          onClick={() => { setViewingArticle(article); setShowDialog(true); }}
+                          onError={(e) => { (e.currentTarget as HTMLImageElement).src = placeholderDataUrl; }}
                         />
                         {article.isPremium && (
                           <Badge className="absolute top-4 left-4 bg-amber-500">Premium</Badge>
@@ -254,43 +325,43 @@ export default function Articles() {
                           <Badge>{article.type}</Badge>
                           <span className="text-sm text-muted-foreground">{article.pages} pages</span>
                         </div>
-                        <h3 className="text-2xl font-bold mb-3 hover:text-purple-600 transition-colors cursor-pointer">
+                        <h3 className="text-2xl font-bold mb-3 hover:text-purple-600 transition-colors cursor-pointer" onClick={() => { setViewingArticle(article); setShowDialog(true); }}>
                           {article.title}
                         </h3>
                         <p className="text-muted-foreground mb-4">
                           {article.description}
                         </p>
                         <div className="flex items-center gap-6 text-sm text-muted-foreground mb-4">
-                          <span>By {article.author}</span>
+                          <span>By {article.authorName || article.author || '—'}</span>
                           <span className="flex items-center gap-1">
                             <Calendar className="w-4 h-4" />
-                            {article.publishedDate}
+                            {article.createdAt ? new Date(article.createdAt).toLocaleDateString() : ''}
                           </span>
                         </div>
                         <div className="flex items-center gap-6 text-sm text-muted-foreground mb-6">
                           <span className="flex items-center gap-1">
                             <Download className="w-4 h-4" />
-                            {article.downloads}
+                            {article.downloads || '0'}
                           </span>
                           <span className="flex items-center gap-1">
                             <Eye className="w-4 h-4" />
-                            {article.views}
+                            {article.viewCount ?? 0}
                           </span>
                           <span className="flex items-center gap-1">
                             <ThumbsUp className="w-4 h-4" />
-                            {article.likes}
+                            {article.likes ?? 0}
                           </span>
                         </div>
                         <div className="flex gap-3">
-                          <Button className="bg-purple-600 hover:bg-purple-700">
+                          <Button className="bg-purple-600 hover:bg-purple-700" onClick={() => handleDownload(article)}>
                             <Download className="w-4 h-4 mr-2" />
                             Download PDF
                           </Button>
-                          <Button variant="outline">
+                          <Button variant="outline" onClick={() => handleSave(article)}>
                             <Bookmark className="w-4 h-4 mr-2" />
-                            Save
+                            {savedArticles[String(article.id ?? article.slug ?? article.title)] ? 'Saved' : 'Save'}
                           </Button>
-                          <Button variant="outline">
+                          <Button variant="outline" onClick={() => handleShare(article)}>
                             <Share2 className="w-4 h-4 mr-2" />
                             Share
                           </Button>
@@ -311,16 +382,16 @@ export default function Articles() {
                     <CardContent className="p-6">
                       <Badge className="mb-3">{article.type}</Badge>
                       <h3 className="text-lg font-bold mb-3 hover:text-purple-600 transition-colors cursor-pointer line-clamp-2">
-                        {article.title}
+                        <span onClick={() => { setViewingArticle(article); setShowDialog(true); }}>{article.title}</span>
                       </h3>
                       <div className="flex items-center justify-between text-sm text-muted-foreground mb-4">
-                        <span>{article.publishedDate}</span>
-                        <span>{article.pages} pages</span>
+                        <span>{article.createdAt ? new Date(article.createdAt).toLocaleDateString() : ''}</span>
+                        <span>{article.pages ?? 0} pages</span>
                       </div>
                       <div className="flex items-center justify-between">
                         <span className="text-sm text-muted-foreground flex items-center gap-1">
                           <Download className="w-4 h-4" />
-                          {article.downloads}
+                          {article.downloads || '0'}
                         </span>
                         <Button size="sm" variant="outline">
                           <Download className="w-4 h-4 mr-2" />
@@ -335,6 +406,34 @@ export default function Articles() {
           </div>
         </div>
       </div>
+
+      {/* Article View Dialog */}
+      <Dialog open={showDialog} onOpenChange={(open) => { setShowDialog(open); if (!open) setViewingArticle(null); }}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>{viewingArticle?.title || 'Article'}</DialogTitle>
+            <DialogDescription>{viewingArticle?.excerpt || ''}</DialogDescription>
+          </DialogHeader>
+          {viewingArticle ? (
+            <div className="p-4 space-y-4">
+              { (viewingArticle.thumbnailUrl || viewingArticle.thumbnail) && (
+                <img src={resolveImageSrc(viewingArticle.thumbnailUrl || viewingArticle.thumbnail)} alt={viewingArticle.title} className="w-full h-56 object-cover rounded-md" onError={(e) => { (e.currentTarget as HTMLImageElement).src = placeholderDataUrl; }} />
+              )}
+              <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                <span>By {viewingArticle.authorName || '—'}</span>
+                <span className="flex items-center gap-1"><Calendar className="w-4 h-4" />{viewingArticle.createdAt ? new Date(viewingArticle.createdAt).toLocaleDateString() : ''}</span>
+                <span className="flex items-center gap-1"><Eye className="w-4 h-4" />{viewingArticle.viewCount ?? 0}</span>
+              </div>
+              <div className="prose max-w-none" dangerouslySetInnerHTML={{ __html: viewingArticle.content || viewingArticle.excerpt || '' }} />
+              <div className="flex justify-end">
+                <Button variant="ghost" onClick={() => { setShowDialog(false); setViewingArticle(null); }}>Close</Button>
+              </div>
+            </div>
+          ) : (
+            <div className="p-4">No article selected</div>
+          )}
+        </DialogContent>
+      </Dialog>
 
       <Footer />
     </div>
