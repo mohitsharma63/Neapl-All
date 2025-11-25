@@ -1,6 +1,6 @@
 import { Heart, User, Plus, Menu, X, Home, Building2, MapPin, Briefcase, Users as UsersIcon, GraduationCap, Settings, ChevronDown, Search } from "lucide-react";
 import { Link, useLocation } from "wouter";
-import { useRef, useState } from "react";
+import { useRef, useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useQuery } from "@tanstack/react-query";
@@ -27,8 +27,82 @@ export default function Header() {
   const [showSubcategories, setShowSubcategories] = useState(false);
   const [showCategoriesPanel, setShowCategoriesPanel] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  const [showSuggestions, setShowSuggestions] = useState(false);
-  const [highlightIndex, setHighlightIndex] = useState<number>(-1);
+  
+
+  const [showSearchPopup, setShowSearchPopup] = useState(false);
+  const [selectedSources, setSelectedSources] = useState<Record<string, boolean>>({});
+  const [searchMode, setSearchMode] = useState<'or'|'and'>('or');
+
+  const { data: searchSources } = useQuery({
+    queryKey: ["search-sources"],
+    queryFn: async () => {
+      const res = await fetch('/api/search/sources');
+      if (!res.ok) return { sources: [] };
+      return res.json();
+    },
+    enabled: true,
+  });
+
+  useEffect(() => {
+    // initialize selectedSources to all available when searchSources loads
+    if (searchSources?.sources && Object.keys(selectedSources).length === 0) {
+      const map: Record<string, boolean> = {};
+      searchSources.sources.forEach((s: any) => { map[s.key] = true; });
+      setSelectedSources(map);
+    }
+  }, [searchSources]);
+
+  const { data: searchSuggestions } = useQuery({
+    queryKey: ["search-suggestions", searchQuery, selectedSources, searchMode],
+    queryFn: async () => {
+      if (!searchQuery || searchQuery.length < 2) return { q: searchQuery, results: {} };
+      const selected = Object.keys(selectedSources || {}).filter(k => selectedSources[k]);
+      const sourcesParam = selected.length > 0 ? `&sources=${encodeURIComponent(selected.join(','))}` : '';
+      const modeParam = searchMode === 'and' ? '&mode=all' : '';
+      const res = await fetch(`/api/search?q=${encodeURIComponent(searchQuery)}&limit=5${modeParam}${sourcesParam}`);
+      if (!res.ok) return { q: searchQuery, results: {} };
+      return res.json();
+    },
+    enabled: !!searchQuery && searchQuery.length >= 2,
+  });
+
+  function getItemLink(group: string, item: any) {
+    const r = item.raw || item;
+    switch (group) {
+      case 'properties':
+        return `/properties/${r.id}`;
+      case 'cars':
+        return `/vehicles/${r.id}`;
+      case 'rentals':
+        return `/properties/rent/${r.id}`;
+      case 'propertyDeals':
+        return `/properties/deal/${r.id}`;
+      case 'commercialProperties':
+        return `/properties/commercial/${r.id}`;
+      case 'officeSpaces':
+        return `/properties/office/${r.id}`;
+      case 'blogPosts':
+        return `/blog/${r.slug || r.id}`;
+      case 'articles':
+        return `/articles/${r.id}`;
+      case 'categories':
+        return `/category/${r.raw?.slug || r.id}`;
+      case 'users':
+        return `/profile/${r.id}`;
+      default:
+        return '#';
+    }
+  }
+
+  function buildSearchUrl(q: string) {
+    const modeParam = searchMode === 'and' ? 'all' : 'or';
+    const selected = Object.keys(selectedSources || {}).filter(k => selectedSources[k]);
+    const sourcesParam = selected.length > 0 ? `&sources=${encodeURIComponent(selected.join(','))}` : '';
+    return `/search?q=${encodeURIComponent(q)}&mode=${modeParam}${sourcesParam}`;
+  }
+  
+  
+  
 
   const handleCategoryClick = (categoryId: string, event: React.MouseEvent) => {
     event.preventDefault();
@@ -70,31 +144,7 @@ export default function Header() {
     return { category: catEntry, subcategories: subs };
   });
 
-  // Filter groups based on the search query. If query matches category name or any sub, include them.
-  const lowerQ = searchQuery.trim().toLowerCase();
-  const filteredGroups = serviceGroups
-    .map((g) => {
-      const catMatches = !lowerQ || g.category.name.toLowerCase().includes(lowerQ);
-      let matchedSubs = lowerQ
-        ? g.subcategories.filter((s: any) => s.name.toLowerCase().includes(lowerQ))
-        : g.subcategories;
-
-      // If the category itself matches the query but no subs matched the query,
-      // show all active subcategories so they appear under the category header.
-      if (catMatches && matchedSubs.length === 0) {
-        matchedSubs = g.subcategories;
-      }
-
-      // include group if category matches or has any matched subcategories
-      if (catMatches || matchedSubs.length > 0) {
-        return { category: g.category, subcategories: matchedSubs };
-      }
-      return null;
-    })
-    .filter(Boolean) as Array<any>;
-
-  // Flatten filtered groups for keyboard navigation (only subcategories are selectable)
-  const flatList = filteredGroups.flatMap((g) => g.subcategories || []);
+  
 
   const navItems = [
     { href: "/properties", label: "घर जग्गा | Properties", shortLabel: "Properties", isActive: location.startsWith("/properties") || location === "/", hasRoute: true },
@@ -112,6 +162,51 @@ export default function Header() {
     { href: "/blog", label: "Blog", isActive: location.startsWith("/blog") },
     { href: "/articles", label: "Articles", isActive: location.startsWith("/articles") },
   ];
+
+  // compute backend + local combined suggestions
+  const backendSuggestions = searchSuggestions?.results || {};
+
+  // build local matches from topNav (pages) and serviceGroups (categories/subcategories)
+  const localMatches: Record<string, any[]> = (() => {
+    const q = (searchQuery || '').trim().toLowerCase();
+    if (!q || q.length < 1) return {} as Record<string, any[]>;
+    const tokens = q.split(/\s+/).filter(Boolean);
+
+    const pages = topNav.filter(p => tokens.some(t => p.label.toLowerCase().includes(t))).map(p => ({ href: p.href, label: p.label }));
+
+    const categories: any[] = [];
+    const subcategories: any[] = [];
+    serviceGroups.forEach((grp) => {
+      const catName = (grp.category.name || '').toLowerCase();
+      const catMatched = tokens.some(t => catName.includes(t));
+      if (catMatched) {
+        categories.push({ id: grp.category.id, name: grp.category.name, slug: grp.category.slug });
+      }
+      grp.subcategories.forEach((s: any) => {
+        const subName = (s.name || '').toLowerCase();
+        if (tokens.some(t => subName.includes(t))) {
+          subcategories.push({ id: s.id, name: s.name, slug: s.slug, parent: grp.category });
+        }
+      });
+    });
+
+    return { pages, categories, subcategories };
+  })();
+
+  // merge backend suggestions with localMatches (concatenate arrays, avoid duplicates roughly by id/name)
+  const combinedResults: Record<string, any[]> = {};
+  const groups = new Set([...Object.keys(backendSuggestions), ...Object.keys(localMatches)]);
+  groups.forEach((g) => {
+    const fromBackend = Array.isArray(backendSuggestions[g]) ? backendSuggestions[g] : [];
+    const fromLocal = Array.isArray(localMatches[g]) ? localMatches[g] : [];
+    // simple merge: backend first, then local (could dedupe if needed)
+    combinedResults[g] = [...fromBackend, ...fromLocal];
+  });
+
+  const combinedTotal = Object.values(combinedResults).reduce((acc: number, cur: any) => {
+    if (Array.isArray(cur)) return acc + cur.length;
+    return acc;
+  }, 0);
 
   return (
     <>
@@ -208,65 +303,132 @@ export default function Header() {
                   type="text"
                   placeholder="Search properties, vehicles, jobs..."
                   value={searchQuery}
-                  onChange={(e) => { setSearchQuery(e.target.value); setShowSuggestions(true); setHighlightIndex(-1); }}
-                  onFocus={() => setShowSuggestions(true)}
-                  onBlur={() => setTimeout(() => setShowSuggestions(false), 150)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'ArrowDown') {
-                      e.preventDefault();
-                      setHighlightIndex((i) => Math.min(i + 1, flatList.length - 1));
-                    } else if (e.key === 'ArrowUp') {
-                      e.preventDefault();
-                      setHighlightIndex((i) => Math.max(i - 1, 0));
-                    } else if (e.key === 'Enter') {
-                      e.preventDefault();
-                      const target = flatList[highlightIndex] || flatList[0];
-                      if (target) {
-                        if (target.type === 'subcategory') setLocation(`/subcategory/${target.slug}`);
-                        else setLocation(`/category/${target.slug}`);
-                        setShowSuggestions(false);
-                        setSearchQuery('');
-                      } else {
-                        setLocation(`/search?q=${encodeURIComponent(searchQuery)}`);
-                        setShowSuggestions(false);
-                      }
-                    }
-                  }}
-                  className="w-full pl-10 pr-4 py-2 bg-white/90 border-white/20 focus:bg-white"
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onFocus={() => setShowSearchPopup(true)}
+                 
+                  className="w-full pl-10 pr-4 py-2 bg-white/90 border-white/20 focus:bg-white text-black"
                 />
-                {showSuggestions && (
-                  <div className="absolute left-0 right-0 mt-1 bg-white shadow-lg rounded-md z-50 max-h-60 overflow-auto">
-                    {flatList.length === 0 ? (
-                      <div className="p-3 text-sm text-gray-500">No services found</div>
-                    ) : (
-                      filteredGroups.map((g, gi) => {
-                        // count previous subcategories only (categories are headers, not selectable)
-                        const prevCount = filteredGroups.slice(0, gi).reduce((acc, cur) => acc + (cur.subcategories ? cur.subcategories.length : 0), 0);
-                        return (
-                          <div key={`group-${g.category.id}`} className="border-b last:border-b-0">
-                            <div className="w-full text-left px-4 py-2 bg-gray-50 text-sm font-medium text-gray-700">{g.category.name}</div>
-                            {g.subcategories && g.subcategories.map((s: any, si: number) => {
-                              const idx = prevCount + si;
-                              return (
+                {/* Close / clear icon inside the input */}
+                <button
+                  type="button"
+                  onMouseDown={(ev) => ev.preventDefault()}
+                  onClick={() => { setSearchQuery(''); setShowSearchPopup(false); }}
+                  aria-label="Close search"
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700 bg-white/0 p-1 rounded"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+                {/** full popup when input focused */}
+                {showSearchPopup && (
+                  <div className="absolute left-0 right-0 mt-2 bg-white shadow-xl rounded-md z-50 max-h-[60vh] overflow-auto p-4 text-gray-800">
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="text-sm font-medium">Search options</div>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => setSearchMode((m) => m === 'or' ? 'and' : 'or')}
+                          className="px-2 py-1 bg-gray-100 rounded text-sm text-gray-800"
+                        >Mode: {searchMode === 'or' ? 'OR' : 'AND'}</button>
+                        <button onClick={() => setShowSearchPopup(false)} className="px-2 py-1 bg-gray-100 rounded text-gray-800">Close</button>
+                      </div>
+                    </div>
+
+               
+
+                
+
+                    <div className="mb-3">
+                      <div className="text-xs text-gray-500 mb-1">Pages</div>
+                      <div className="flex flex-wrap gap-2">
+                        {topNav.map((p) => (
+                          <button
+                            key={p.href}
+                            onMouseDown={(ev) => ev.preventDefault()}
+                            onClick={() => { setShowSearchPopup(false); setLocation(p.href); }}
+                            className="text-sm px-3 py-1 bg-white border rounded text-gray-800"
+                          >{p.label}</button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="mb-3">
+                      <div className="text-xs text-gray-500 mb-1">Results</div>
+                      {(!searchQuery || searchQuery.length < 2) ? (
+                        <div className="text-sm text-gray-500">Type at least 2 characters to search</div>
+                      ) : (combinedTotal > 0) ? (
+                        <div className="space-y-2">
+                          {Object.entries(combinedResults).map(([group, items]) => (
+                            Array.isArray(items) && items.length > 0 ? (
+                              <div key={group} className="mb-1">
+                                <div className="text-sm font-medium text-gray-800 px-2 py-1 capitalize">{group}</div>
+                                <div className="divide-y rounded border">
+                                  {items.map((it: any, idx: number) => (
+                                    <button
+                                      key={idx}
+                                      onMouseDown={(ev) => ev.preventDefault()}
+                                      onClick={() => {
+                                        setShowSearchPopup(false);
+                                        // local page matches
+                                        if (group === 'pages') {
+                                          setLocation(it.href);
+                                          return;
+                                        }
+                                        // local categories/subcategories
+                                        if (group === 'categories') {
+                                          setLocation(`/category/${it.slug}`);
+                                          return;
+                                        }
+                                        if (group === 'subcategories') {
+                                          setLocation(`/subcategory/${it.slug}`);
+                                          return;
+                                        }
+                                        // fallback to backend item link resolver
+                                        setLocation(getItemLink(group, it));
+                                      }}
+                                      className="w-full text-left px-3 py-2 hover:bg-gray-50 text-sm text-gray-700"
+                                    >
+                                      {group === 'pages' ? (it.label) : group === 'categories' ? (it.name) : group === 'subcategories' ? (it.name + (it.parent ? ` — ${it.parent.name}` : '')) : (it.title || it.name || it.raw?.name || it.raw?.title || it.id || String(it))}
+                                    </button>
+                                  ))}
+                                </div>
+                              </div>
+                            ) : null
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="text-sm text-gray-500">No results found</div>
+                      )}
+                    </div>
+
+                    <div className="mb-3">
+                      <div className="text-xs text-gray-500 mb-1">All categories & subcategories</div>
+                      <div className="max-h-48 overflow-auto border rounded p-2">
+                        {serviceGroups.map((grp) => (
+                          <div key={grp.category.id} className="mb-2">
+                            <div className="text-sm font-medium text-gray-800 px-2 py-1">{grp.category.name}</div>
+                            <div className="flex flex-wrap gap-2 px-2">
+                              <button
+                                onMouseDown={(ev) => ev.preventDefault()}
+                                onClick={() => { setShowSearchPopup(false); setLocation(`/category/${grp.category.slug}`); }}
+                                className="text-xs px-2 py-1 bg-white border rounded text-gray-800"
+                              >All in {grp.category.name}</button>
+                              {grp.subcategories.map((s: any) => (
                                 <button
-                                  key={`sub-${s.id}`}
-                                  onMouseDown={(ev) => { ev.preventDefault(); }}
-                                  onClick={() => { setLocation(`/subcategory/${s.slug}`); setShowSuggestions(false); setSearchQuery(''); }}
-                                  className={`w-full text-left px-6 py-2 hover:bg-gray-50 transition-colors flex items-center gap-3 ${highlightIndex === idx ? 'bg-gray-100' : ''}`}
-                                >
-                                  <div className="flex-1">
-                                    <div className="text-sm">{s.name}</div>
-                                    <div className="text-xs text-gray-500">{g.category.name}</div>
-                                  </div>
-                                </button>
-                              );
-                            })}
+                                  key={s.id}
+                                  onMouseDown={(ev) => ev.preventDefault()}
+                                  onClick={() => { setShowSearchPopup(false); setLocation(`/subcategory/${s.slug}`); }}
+                                  className="text-xs px-2 py-1 bg-white border rounded text-gray-800"
+                                >{s.name}</button>
+                              ))}
+                            </div>
                           </div>
-                        );
-                      })
-                    )}
+                        ))}
+                      </div>
+                    </div>
+
+                   
                   </div>
                 )}
+                
               </div>
             </div>
 

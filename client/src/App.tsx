@@ -19,6 +19,7 @@ import SellerDashboard from "@/pages/seller-dashboard";
 import SubcategoryPage from "@/pages/subcategory";
 import CategoryPage from "@/pages/category";
 import NotFound from "@/pages/not-found";
+import SearchPage from "@/pages/search";
 import TuitionPrivateClasses from "@/pages/tuition-private-classes";
 import TuitionClassDetail from "@/pages/tuition-class-detail"; // Assuming this component exists or will be created
 import DanceKarateGymYoga from "@/pages/dance-karate-gym-yoga";
@@ -45,6 +46,7 @@ function Router() {
       <Route path="/seller-dashboard" component={SellerDashboard} />
       <Route path="/blog" component={Blog} />
       <Route path="/blog/:slug" component={BlogPost} />
+      <Route path="/search" component={SearchPage} />
       <Route path="/articles" component={Articles} />
       <Route path="/about" component={About} />
       <Route path="/tuition-private-classes" component={TuitionPrivateClasses} />

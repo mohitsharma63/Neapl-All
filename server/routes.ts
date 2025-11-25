@@ -88,6 +88,109 @@ export function registerRoutes(app: Express) {
     }
   });
 
+  // Simple global search across multiple tables.
+  // Note: This does a lightweight in-memory filter of recent rows.
+  // It's intentionally generic to avoid coupling to exact schema fields.
+  app.get('/api/search', async (req, res) => {
+    try {
+      const q = (req.query.q || '').toString().trim();
+      if (!q || q.length < 2) return res.json({ q, results: {} });
+
+      const limitPerSource = Math.min(50, Number(req.query.limit) || 10);
+      const qLower = q.toLowerCase();
+      const tokens = qLower.split(/\s+/).map(t => t.trim()).filter(Boolean);
+      const modeAll = (req.query.mode || '').toString().toLowerCase() === 'all' || (req.query.mode || '').toString().toLowerCase() === 'and';
+
+      // Fetch candidates from several tables (recent first). Adjust as needed.
+      const limitFetch = 200;
+
+      const sourceFetchers: Record<string, () => Promise<any[]>> = {
+        properties: () => db.query.properties.findMany({ orderBy: [desc(properties.createdAt)], limit: limitFetch }),
+        cars: () => db.query.carsBikes.findMany({ orderBy: [desc(carsBikes.createdAt)], limit: limitFetch }),
+        rentals: () => db.query.rentalListings.findMany({ orderBy: [desc(rentalListings.createdAt)], limit: limitFetch }),
+        propertyDeals: () => db.query.propertyDeals.findMany({ orderBy: [desc(propertyDeals.createdAt)], limit: limitFetch }),
+        commercialProperties: () => db.query.commercialProperties.findMany({ orderBy: [desc(commercialProperties.createdAt)], limit: limitFetch }),
+        officeSpaces: () => db.query.officeSpaces.findMany({ orderBy: [desc(officeSpaces.createdAt)], limit: limitFetch }),
+        blogPosts: () => db.query.blogPosts.findMany({ orderBy: [desc(blogPosts.publishedAt)], limit: limitFetch }),
+        articles: () => db.query.articles.findMany({ orderBy: [desc(articles.createdAt)], limit: limitFetch }),
+        categories: () => db.query.adminCategories.findMany({ with: { subcategories: true }, orderBy: [adminCategories.sortOrder, adminCategories.name], limit: limitFetch }),
+        users: () => db.query.users.findMany({ orderBy: [desc(users.createdAt)], limit: limitFetch }),
+      };
+
+      // Parse optional sources CSV param. If none provided, search all sources.
+      const requestedSourcesRaw = (req.query.sources || '').toString();
+      const requestedSources = requestedSourcesRaw ? requestedSourcesRaw.split(',').map(s => s.trim()).filter(Boolean) : Object.keys(sourceFetchers);
+
+      const toFetch = requestedSources.filter(s => !!sourceFetchers[s]);
+      const fetchPromises = toFetch.map((k) => sourceFetchers[k]());
+      const fetched = await Promise.all(fetchPromises);
+
+      const makeMatches = (rows: any[]) => {
+        return rows
+          .map((r: any) => {
+            const title = r.title || r.name || r.showroomName || r.institutionName || r.username || r.slug || '';
+            const snippet = (r.description || r.summary || r.address || r.title || r.name || '') as string;
+            const raw = r;
+            const serialized = ("" + JSON.stringify({ id: r.id, title, snippet, raw })).toLowerCase();
+            const matchedWords = tokens.filter(t => serialized.includes(t));
+            return { id: r.id, title, snippet, raw, matchedWords };
+          })
+          .filter((item: any) => {
+            try {
+              if (tokens.length === 0) return false;
+              if (modeAll) {
+                return item.matchedWords.length === tokens.length;
+              }
+              return item.matchedWords.length > 0;
+            } catch (e) {
+              return false;
+            }
+          })
+          .slice(0, limitPerSource);
+      };
+
+      // Build results object from fetched sources in the same order as `toFetch`.
+      const results: Record<string, any[]> = {};
+      for (let i = 0; i < toFetch.length; i++) {
+        const key = toFetch[i];
+        const rows = fetched[i] || [];
+        if (key === 'categories') {
+          const mapped = (rows || []).map((c: any) => ({ id: c.id, title: c.name, raw: c }));
+          results[key] = mapped.filter((item: any) => JSON.stringify(item).toLowerCase().includes(qLower)).slice(0, limitPerSource);
+        } else {
+          results[key] = makeMatches(rows);
+        }
+      }
+
+      res.json({ q, results });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Return list of searchable sources the global search queries.
+  app.get('/api/search/sources', async (_req, res) => {
+    try {
+      // Keep this list in sync with what /api/search queries.
+      const sources = [
+        { key: 'properties', label: 'Properties' },
+        { key: 'cars', label: 'Vehicles' },
+        { key: 'rentals', label: 'Rental Listings' },
+        { key: 'propertyDeals', label: 'Property Deals' },
+        { key: 'commercialProperties', label: 'Commercial Properties' },
+        { key: 'officeSpaces', label: 'Office Spaces' },
+        { key: 'blogPosts', label: 'Blog Posts' },
+        { key: 'articles', label: 'Articles' },
+        { key: 'categories', label: 'Categories' },
+        { key: 'users', label: 'Users' },
+      ];
+
+      res.json({ sources });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
   // Articles public endpoints
   app.get("/api/articles", async (req, res) => {
     try {
