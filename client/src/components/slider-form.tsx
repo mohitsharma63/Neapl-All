@@ -1,11 +1,12 @@
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { X, ChevronUp, ChevronDown } from "lucide-react";
 
 interface SliderFormProps {
@@ -23,13 +24,38 @@ export function SliderForm({ slider, onSuccess, onCancel }: SliderFormProps) {
     buttonText: slider?.buttonText || "",
     sortOrder: slider?.sortOrder || 0,
     isActive: slider?.isActive ?? true,
+    categoryId: slider?.categoryId || "",
+    pageType: slider?.pageType || "", // For static pages: "Home", "About", "Contact", "Blog"
   });
+  const [categories, setCategories] = useState<any[]>([]);
   const [uploading, setUploading] = useState(false);
   const [images, setImages] = useState<string[]>(
     slider?.imageUrl ? [slider.imageUrl] : []
   );
   const [selectedIndex, setSelectedIndex] = useState(0);
   const thumbsRef = useRef<HTMLDivElement | null>(null);
+
+  const staticPages = [
+    { name: "Home" },
+    { name: "About" },
+    { name: "Contact" },
+    { name: "Blog" },
+  ];
+
+  useEffect(() => {
+    fetchCategories();
+  }, []);
+
+  const fetchCategories = async () => {
+    try {
+      const res = await fetch('/api/admin/categories');
+      const data = await res.json();
+      setCategories(Array.isArray(data) ? data : []);
+    } catch (err) {
+      console.error('Error fetching categories:', err);
+    }
+  };
+
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
@@ -84,16 +110,33 @@ export function SliderForm({ slider, onSuccess, onCancel }: SliderFormProps) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Validate selection is made
+    const isStaticPage = staticPages.some(p => p.name === formData.pageType);
+    const hasCategory = formData.categoryId && categories.some(c => c.id === formData.categoryId);
+    
+    if (!isStaticPage && !hasCategory) {
+      alert('Please select either a static page or a category');
+      return;
+    }
+    
     try {
       const url = slider
         ? `/api/admin/sliders/${slider.id}`
         : "/api/admin/sliders";
       const method = slider ? "PUT" : "POST";
 
+      // Only send categoryId if it's a database category, otherwise null
+      const submitData = {
+        ...formData,
+        pageType: isStaticPage ? formData.pageType : null,
+        categoryId: hasCategory ? formData.categoryId : null,
+      };
+
       const response = await fetch(url, {
         method,
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
+        body: JSON.stringify(submitData),
       });
 
       if (response.ok) {
@@ -120,7 +163,45 @@ export function SliderForm({ slider, onSuccess, onCancel }: SliderFormProps) {
               required
             />
           </div>
-
+          <div>
+            <Label htmlFor="category">Page Type or Category *</Label>
+            <Select 
+              value={formData.pageType || formData.categoryId} 
+              onValueChange={(value) => {
+                const isStatic = staticPages.some(p => p.name === value);
+                if (isStatic) {
+                  setFormData({ ...formData, pageType: value, categoryId: "" });
+                } else {
+                  setFormData({ ...formData, pageType: "", categoryId: value });
+                }
+              }}
+            >
+              <SelectTrigger id="category">
+                <SelectValue placeholder="Select a page type or category" />
+              </SelectTrigger>
+              <SelectContent>
+                {/* Static Pages */}
+                <div className="font-semibold px-2 py-1 text-sm text-muted-foreground">Static Pages</div>
+                {staticPages.map((page) => (
+                  <SelectItem key={page.name} value={page.name}>
+                    {page.name}
+                  </SelectItem>
+                ))}
+                
+                {/* Dynamic Categories */}
+                {categories.length > 0 && (
+                  <>
+                    <div className="font-semibold px-2 py-1 text-sm text-muted-foreground mt-2">Categories</div>
+                    {categories.map((cat) => (
+                      <SelectItem key={cat.id} value={cat.id}>
+                        {cat.name}
+                      </SelectItem>
+                    ))}
+                  </>
+                )}
+              </SelectContent>
+            </Select>
+          </div>
           <div>
             <Label htmlFor="description">Description</Label>
             <Textarea
@@ -162,9 +243,8 @@ export function SliderForm({ slider, onSuccess, onCancel }: SliderFormProps) {
                         key={idx}
                         type="button"
                         onClick={() => selectIndex(idx)}
-                        className={`flex-shrink-0 rounded-md overflow-hidden border ${
-                          idx === selectedIndex ? "ring-2 ring-offset-2 ring-indigo-400" : ""
-                        }`}
+                        className={`flex-shrink-0 rounded-md overflow-hidden border ${idx === selectedIndex ? "ring-2 ring-offset-2 ring-indigo-400" : ""
+                          }`}
                       >
                         <img src={src} className="w-28 h-16 object-cover" />
                       </button>
@@ -227,6 +307,8 @@ export function SliderForm({ slider, onSuccess, onCancel }: SliderFormProps) {
               onChange={(e) => setFormData({ ...formData, sortOrder: parseInt(e.target.value) || 0 })}
             />
           </div>
+
+
 
           <div className="flex items-center space-x-2">
             <Switch

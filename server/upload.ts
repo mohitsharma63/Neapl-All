@@ -87,3 +87,41 @@ export const handleMultipleImageUpload = (req: Request, res: Response) => {
     res.status(500).json({ message: error.message || 'Failed to upload images' });
   }
 };
+
+// Generic media storage (images & videos) under /uploads/media
+const mediaStorage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    const uploadDir = path.join(process.cwd(), 'uploads', 'media');
+    if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
+    cb(null, uploadDir);
+  },
+  filename: (req, file, cb) => {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
+    const ext = path.extname(file.originalname);
+    cb(null, `media-${uniqueSuffix}${ext}`);
+  }
+});
+
+const mediaFileFilter = (req: any, file: Express.Multer.File, cb: multer.FileFilterCallback) => {
+  const allowed = [
+    // images
+    'image/jpeg','image/jpg','image/png','image/webp','image/gif',
+    // videos
+    'video/mp4','video/webm','video/ogg','application/octet-stream'
+  ];
+  if (allowed.includes(file.mimetype)) cb(null, true);
+  else cb(new Error('Invalid file type for media upload'));
+};
+
+export const uploadMedia = multer({ storage: mediaStorage, fileFilter: mediaFileFilter, limits: { fileSize: 200 * 1024 * 1024 } });
+
+export const handleMediaUpload = (req: Request, res: Response) => {
+  try {
+    if (!req.file) return res.status(400).json({ message: 'No file uploaded' });
+    const fileUrl = `/uploads/media/${req.file.filename}`;
+    res.json({ success: true, url: fileUrl, filename: req.file.filename, originalName: req.file.originalname, size: req.file.size });
+  } catch (error: any) {
+    console.error('Media upload error:', error);
+    res.status(500).json({ message: error.message || 'Failed to upload media' });
+  }
+};

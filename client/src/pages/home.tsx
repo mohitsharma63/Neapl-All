@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import {
   Home as HomeIcon,
   Building,
@@ -56,6 +56,7 @@ import {
   CarouselNext,
   CarouselPrevious,
 } from "@/components/ui/carousel";
+import Autoplay from "embla-carousel-autoplay";
 import type { Property } from "@shared/schema";
 import type { SearchFilters as SearchFiltersType } from "@/lib/types";
 import { useQuery } from "@tanstack/react-query";
@@ -141,9 +142,9 @@ export default function Home() {
   });
 
   const { data: sliders = [], isLoading: slidersLoading } = useQuery({
-    queryKey: ["sliders"],
+    queryKey: ["sliders", "Home"],
     queryFn: async () => {
-      const res = await fetch("/api/sliders");
+      const res = await fetch("/api/sliders?pageType=Home");
       if (!res.ok) throw new Error("Failed to fetch sliders");
       return res.json();
     },
@@ -154,6 +155,328 @@ export default function Home() {
     queryFn: async () => {
       const res = await fetch("/api/blog/posts");
       if (!res.ok) throw new Error("Failed to fetch blog posts");
+      return res.json();
+    },
+  });
+
+  const { data: sliderCards = [], isLoading: sliderCardsLoading } = useQuery({
+    queryKey: ["slider-cards"],
+    queryFn: async () => {
+      const res = await fetch('/api/slider-cards');
+      if (!res.ok) throw new Error('Failed to fetch slider cards');
+      return res.json();
+    },
+  });
+
+  const { data: videos = [], isLoading: videosLoading } = useQuery({
+    queryKey: ["videos", "featured"],
+    queryFn: async () => {
+      const res = await fetch('/api/videos?featured=true');
+      if (!res.ok) throw new Error('Failed to fetch videos');
+      return res.json();
+    },
+  });
+
+  const { data: categoryProducts = {}, isLoading: categoryProductsLoading } = useQuery({
+    queryKey: ["category-products"],
+    queryFn: async () => {
+      try {
+        // Fetch all active categories
+        const categoriesRes = await fetch('/api/admin/categories');
+        if (!categoriesRes.ok) return {};
+        const allCategories = await categoriesRes.json();
+        
+        const grouped: Record<string, any[]> = {};
+        
+        // Map subcategory names/slugs to their API table endpoints
+        const subcategoryToTable: Record<string, string> = {
+          // Education
+          'tuition-private-classes': 'skill-training',
+          'dance-karate-gym-yoga': 'dance-karate-gym-yoga',
+          'language-classes': 'language-classes',
+          'computer-mobile-laptop-repair-services': 'computer-repair',
+          'academies-music-arts-sports': 'academies',
+          // Electronics
+          'electronics-gadgets': 'electronics-gadgets',
+          'new-phones-tablets-accessories': 'phones-tablets',
+          'cyber-cafe-internet-services': 'cyber-cafe',
+          // Fashion
+          'fashion-beauty-products': 'fashion-beauty',
+          'jewelry-accessories': 'jewelry-accessories',
+          'saree-clothing-shopping': 'saree-clothing',
+          // Furniture
+          'furniture-interior-decor': 'furniture-interior-decor',
+          // Real Estate
+          'residential-properties': 'properties',
+          'commercial-properties': 'commercial-properties',
+          'office-spaces': 'office-spaces',
+          'industrial-land': 'industrial-land',
+          'property-deals': 'property-deals',
+          'rental-listings': 'rental-listings',
+          'hostel-pg': 'hostel-listings',
+          // Vehicles
+          'cars-bikes': 'cars-bikes',
+          'second-hand-cars-bikes': 'second-hand-cars-bikes',
+          'car-bike-rentals': 'car-bike-rentals',
+          // Other
+          'construction-materials': 'construction-materials',
+          'household-services': 'household-services',
+          'health-wellness-services': 'health-wellness',
+          'pharmacy-medical-stores': 'pharmacy',
+          'event-decoration-services': 'event-decoration',
+          'service-centre-warranty': 'service-centre',
+          'showrooms': 'showrooms',
+          'ebooks-online-courses': 'ebooks-courses',
+          'educational-consultancy-study-abroad': 'educational-consultancy',
+          'skill-training-certification': 'skill-training',
+          'blog': 'blog',
+          'second-hand-phones-tablets-accessories': 'second-hand-phones',
+          'heavy-equipment': 'heavy-equipment',
+        };
+        
+        // For each category, try to fetch products
+        for (const category of allCategories) {
+          if (!category.subcategories || category.subcategories.length === 0) continue;
+          
+          for (const subcategory of category.subcategories) {
+            if (!subcategory.isActive) continue;
+            
+            const subSlug = subcategory.slug || '';
+            const tableName = subcategoryToTable[subSlug] || subSlug;
+            let products: any[] = [];
+            
+            try {
+              // Try to fetch from the mapped table endpoint
+              const res = await fetch(`/api/${tableName}?limit=10`);
+              if (res.ok) {
+                const data = await res.json();
+                // Handle various response formats
+                if (Array.isArray(data)) {
+                  products = data;
+                } else if (data.items && Array.isArray(data.items)) {
+                  products = data.items;
+                } else if (data.results && Array.isArray(data.results)) {
+                  products = data.results;
+                } else if (data.data && Array.isArray(data.data)) {
+                  products = data.data;
+                }
+              }
+            } catch (err) {
+              console.error(`Error fetching products from /api/${tableName}:`, err);
+            }
+            
+            if (products.length > 0) {
+              const key = `${category.id}__${subcategory.id}`;
+              grouped[key] = { 
+                category, 
+                subcategory, 
+                products: products.slice(0, 4) 
+              };
+            }
+          }
+        }
+        
+        return grouped;
+      } catch (err) {
+        console.error('Error fetching category products:', err);
+        return {};
+      }
+    },
+  });
+
+  const { data: fashionProducts = [], isLoading: fashionLoading } = useQuery({
+    queryKey: ["fashion-beauty-products"],
+    queryFn: async () => {
+      const res = await fetch('/api/fashion-beauty?limit=20');
+      if (!res.ok) return [];
+      return res.json();
+    },
+  });
+
+  const { data: carsBikes = [], isLoading: carsLoading } = useQuery({
+    queryKey: ["cars-bikes"],
+    queryFn: async () => {
+      const res = await fetch('/api/cars-bikes?limit=20');
+      if (!res.ok) return [];
+      return res.json();
+    },
+  });
+
+  const { data: constructionMaterials = [], isLoading: constructionLoading } = useQuery({
+    queryKey: ["construction-materials"],
+    queryFn: async () => {
+      const res = await fetch('/api/construction-materials?limit=20');
+      if (!res.ok) return [];
+      return res.json();
+    },
+  });
+
+  // Electronics & Gadgets
+  const { data: electronicsGadgets = [], isLoading: electronicsLoading } = useQuery({
+    queryKey: ["electronics-gadgets"],
+    queryFn: async () => {
+      const res = await fetch('/api/electronics-gadgets?limit=20');
+      if (!res.ok) return [];
+      return res.json();
+    },
+  });
+
+  // Phones, Tablets & Accessories
+  const { data: phonesTablets = [], isLoading: phonesLoading } = useQuery({
+    queryKey: ["phones-tablets"],
+    queryFn: async () => {
+      const res = await fetch('/api/phones-tablets-accessories?limit=20');
+      if (!res.ok) return [];
+      return res.json();
+    },
+  });
+
+  // Rental Listings
+  const { data: rentalData = [], isLoading: rentalLoading } = useQuery({
+    queryKey: ["rental-listings"],
+    queryFn: async () => {
+      const res = await fetch('/api/rental-listings?limit=20');
+      if (!res.ok) return [];
+      return res.json();
+    },
+  });
+
+  // Furniture & Decor
+  const { data: furnitureData = [], isLoading: furnitureLoading } = useQuery({
+    queryKey: ["furniture-decor"],
+    queryFn: async () => {
+      const res = await fetch('/api/furniture-decor?limit=20');
+      if (!res.ok) return [];
+      return res.json();
+    },
+  });
+
+  // Jewelry & Accessories
+  const { data: jewelryData = [], isLoading: jewelryLoading } = useQuery({
+    queryKey: ["jewelry-accessories"],
+    queryFn: async () => {
+      const res = await fetch('/api/jewelry-accessories?limit=20');
+      if (!res.ok) return [];
+      return res.json();
+    },
+  });
+
+  // Skill Training
+  const { data: skillTraining = [], isLoading: skillLoading } = useQuery({
+    queryKey: ["skill-training"],
+    queryFn: async () => {
+      const res = await fetch('/api/skill-training?limit=20');
+      if (!res.ok) return [];
+      return res.json();
+    },
+  });
+
+  // Tuition Classes
+  const { data: tuitionClasses = [], isLoading: tuitionLoading } = useQuery({
+    queryKey: ["tuition-classes"],
+    queryFn: async () => {
+      const res = await fetch('/api/tuition-classes?limit=20');
+      if (!res.ok) return [];
+      return res.json();
+    },
+  });
+
+  // Dance, Gym & Yoga
+  const { data: danceGymYoga = [], isLoading: danceLoading } = useQuery({
+    queryKey: ["dance-gym-yoga"],
+    queryFn: async () => {
+      const res = await fetch('/api/dance-gym-yoga?limit=20');
+      if (!res.ok) return [];
+      return res.json();
+    },
+  });
+
+  // Language Classes
+  const { data: languageClasses = [], isLoading: languageLoading } = useQuery({
+    queryKey: ["language-classes"],
+    queryFn: async () => {
+      const res = await fetch('/api/language-classes?limit=20');
+      if (!res.ok) return [];
+      return res.json();
+    },
+  });
+
+  // Health & Wellness
+  const { data: healthWellness = [], isLoading: healthLoading } = useQuery({
+    queryKey: ["health-wellness"],
+    queryFn: async () => {
+      const res = await fetch('/api/health-wellness?limit=20');
+      if (!res.ok) return [];
+      return res.json();
+    },
+  });
+
+  // Pharmacy & Medical
+  const { data: pharmacyMedical = [], isLoading: pharmacyLoading } = useQuery({
+    queryKey: ["pharmacy-medical"],
+    queryFn: async () => {
+      const res = await fetch('/api/pharmacy-medical?limit=20');
+      if (!res.ok) return [];
+      return res.json();
+    },
+  });
+
+  // Household Services
+  const { data: householdServices = [], isLoading: householdLoading } = useQuery({
+    queryKey: ["household-services"],
+    queryFn: async () => {
+      const res = await fetch('/api/household-services?limit=20');
+      if (!res.ok) return [];
+      return res.json();
+    },
+  });
+
+  // Event Decoration
+  const { data: eventDecoration = [], isLoading: eventLoading } = useQuery({
+    queryKey: ["event-decoration"],
+    queryFn: async () => {
+      const res = await fetch('/api/event-decoration?limit=20');
+      if (!res.ok) return [];
+      return res.json();
+    },
+  });
+
+  // Computer Repair Services
+  const { data: computerRepair = [], isLoading: computerLoading } = useQuery({
+    queryKey: ["computer-repair"],
+    queryFn: async () => {
+      const res = await fetch('/api/computer-repair?limit=20');
+      if (!res.ok) return [];
+      return res.json();
+    },
+  });
+
+  // Second Hand Phones
+  const { data: secondHandPhones = [], isLoading: secondHandLoading } = useQuery({
+    queryKey: ["second-hand-phones"],
+    queryFn: async () => {
+      const res = await fetch('/api/second-hand-phones?limit=20');
+      if (!res.ok) return [];
+      return res.json();
+    },
+  });
+
+  // Saree & Clothing
+  const { data: sareeClothing = [], isLoading: sareeLoading } = useQuery({
+    queryKey: ["saree-clothing"],
+    queryFn: async () => {
+      const res = await fetch('/api/saree-clothing?limit=20');
+      if (!res.ok) return [];
+      return res.json();
+    },
+  });
+
+  // E-Books & Courses
+  const { data: ebooksCourses = [], isLoading: ebooksLoading } = useQuery({
+    queryKey: ["ebooks-courses"],
+    queryFn: async () => {
+      const res = await fetch('/api/ebooks-courses?limit=20');
+      if (!res.ok) return [];
       return res.json();
     },
   });
@@ -288,8 +611,8 @@ export default function Home() {
             ) : sliders && sliders.length > 0 ? (
               sliders.map((s: any) => (
                 <CarouselItem key={s.id}>
-                  <div className="relative h-[500px] rounded-3xl overflow-hidden">
-                    <img src={s.imageUrl} alt={s.title || "slider"} className="w-full h-full object-cover" />
+                  <div className="relative h-[500px] rounded-3xl overflow-hidden bg-black/5">
+                    <img src={s.imageUrl} alt={s.title || "slider"} className="w-full h-full  object-center" />
                     {(s.title || s.description || s.buttonText) && (
                       <div className="absolute inset-0 flex items-end">
                         <div className="bg-gradient-to-t from-black/60 to-transparent w-full p-8">
@@ -312,31 +635,31 @@ export default function Home() {
               // Fallback static slides when no sliders configured
               <>
                 <CarouselItem>
-                  <div className="relative h-[500px] rounded-3xl overflow-hidden">
+                  <div className="relative h-[500px] rounded-3xl overflow-hidden bg-black/5">
                     <img
                       src="https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=1920&h=500&fit=crop"
                       alt="Nepal Real Estate"
-                      className="w-full h-full object-cover"
+                      className="w-full h-full  object-center bg-black/5"
                     />
                   </div>
                 </CarouselItem>
 
                 <CarouselItem>
-                  <div className="relative h-[500px] rounded-3xl overflow-hidden">
+                  <div className="relative h-[500px] rounded-3xl overflow-hidden bg-black/5">
                     <img
                       src="https://images.unsplash.com/photo-1582407947304-fd86f028f716?w=1920&h=500&fit=crop"
                       alt="Nepal Services"
-                      className="w-full h-full object-cover"
+                      className="w-full h-full  object-center bg-black/5"
                     />
                   </div>
                 </CarouselItem>
 
                 <CarouselItem>
-                  <div className="relative h-[500px] rounded-3xl overflow-hidden">
+                  <div className="relative h-[500px] rounded-3xl overflow-hidden bg-black/5">
                     <img
                       src="https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?w=1920&h=500&fit=crop"
                       alt="Nepal Business"
-                      className="w-full h-full object-cover"
+                      className="w-full h-full  object-center bg-black/5"
                     />
                   </div>
                 </CarouselItem>
@@ -348,124 +671,1194 @@ export default function Home() {
         </Carousel>
       </section>
 
-      {/* More Details Section - Why Choose Us */}
-      <section className="container mx-auto px-4 py-16 bg-gradient-to-b from-gray-50 to-white">
-        <div className="text-center mb-12">
-          <h2 className="text-4xl font-bold mb-4 bg-gradient-to-r from-[#0B8457] to-[#059669] bg-clip-text text-transparent">
-            Why Choose Jeevika Services?
-          </h2>
-          <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-            Nepal's most trusted platform connecting businesses and customers
-          </p>
-        </div>
+   
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-16">
-          <Card className="border-2 hover:border-[#0B8457] transition-all duration-300 hover:shadow-xl">
-            <CardContent className="p-6 text-center">
-              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Star className="w-8 h-8 text-[#0B8457]" />
+      {/* Slider Cards Carousel */}
+      <section className="container mx-auto px-4 pb-8">
+        {sliderCardsLoading ? (
+          <div className="text-center py-6 text-muted-foreground">Loading cards...</div>
+        ) : sliderCards && sliderCards.length > 0 ? (
+          <Carousel className="w-full" opts={{ loop: true }} plugins={[Autoplay({ delay: 5000 })]}>
+            <CarouselContent>
+              {sliderCards.map((card: any) => (
+                <CarouselItem key={card.id} className="md:basis-1/2 lg:basis-1/3">
+                  <div className="flex flex-col rounded-xl overflow-hidden shadow-md hover:shadow-lg transition-shadow h-full">
+                    <div className="flex-1 bg-gray-100">
+                      {card.imageUrl ? (
+                        <img src={card.imageUrl} alt={card.title || 'card image'} className="w-full h-48 object-cover" />
+                      ) : (
+                        <div className="w-full h-48 bg-gray-100 flex items-center justify-center">No image</div>
+                      )}
+                    </div>
+
+                    <div className="p-4 bg-white flex-1 flex flex-col justify-between">
+                      {card.title && <h3 className="font-semibold text-lg mb-2">{card.title}</h3>}
+                      {card.description && <p className="text-sm text-muted-foreground mb-4">{card.description}</p>}
+                      {card.linkUrl && (
+                        <div>
+                          <a href={card.linkUrl} className="inline-block bg-[#0B8457] text-white px-4 py-2 rounded-md hover:bg-[#059669] transition-colors">Learn more</a>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </CarouselItem>
+              ))}
+            </CarouselContent>
+            <CarouselPrevious className="left-4" />
+            <CarouselNext className="right-4" />
+          </Carousel>
+        ) : (
+          <div className="text-center py-6 text-muted-foreground">No slider cards available</div>
+        )}
+      </section>
+
+      {/* Skilled Labour - Coming Soon Section */}
+      <section className="w-full bg-white py-12">
+        <div className="container mx-auto px-4">
+          <div className="bg-gradient-to-r from-[#0B8457]/10 to-[#059669]/10 rounded-3xl p-12 border-2 border-[#0B8457]/20 relative overflow-hidden w-full">
+            <div className="absolute top-0 right-0 w-40 h-40 bg-[#0B8457]/5 rounded-full -mr-20 -mt-20"></div>
+            <div className="relative z-10 flex flex-col items-center text-center">
+              <div className="w-20 h-20 rounded-full bg-[#0B8457]/20 flex items-center justify-center mb-6">
+                <Briefcase className="w-10 h-10 text-[#0B8457]" />
               </div>
-              <h3 className="text-xl font-bold mb-2">Verified Listings</h3>
-              <p className="text-muted-foreground">
-                All services and products are verified for authenticity and quality
+              <h3 className="text-3xl md:text-4xl font-bold mb-3 text-gray-900">Skilled Labour</h3>
+              <p className="text-lg text-muted-foreground mb-6 max-w-2xl">
+                Connect with professional tradespeople, contractors, and skilled workers for all your project needs
               </p>
-            </CardContent>
-          </Card>
-
-          <Card className="border-2 hover:border-[#0B8457] transition-all duration-300 hover:shadow-xl">
-            <CardContent className="p-6 text-center">
-              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <TrendingUp className="w-8 h-8 text-[#0B8457]" />
+              <div className="inline-flex items-center gap-3 px-6 py-3 bg-[#0B8457] text-white rounded-full font-semibold">
+                <Sparkles className="w-5 h-5" />
+                Coming Soon
               </div>
-              <h3 className="text-xl font-bold mb-2">Wide Reach</h3>
-              <p className="text-muted-foreground">
-                Connect with thousands of potential customers across Nepal
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card className="border-2 hover:border-[#0B8457] transition-all duration-300 hover:shadow-xl">
-            <CardContent className="p-6 text-center">
-              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Shield className="w-8 h-8 text-[#0B8457]" />
-              </div>
-              <h3 className="text-xl font-bold mb-2">Secure Platform</h3>
-              <p className="text-muted-foreground">
-                Your data and transactions are protected with advanced security
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card className="border-2 hover:border-[#0B8457] transition-all duration-300 hover:shadow-xl">
-            <CardContent className="p-6 text-center">
-              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Clock className="w-8 h-8 text-[#0B8457]" />
-              </div>
-              <h3 className="text-xl font-bold mb-2">24/7 Support</h3>
-              <p className="text-muted-foreground">
-                Our team is always ready to help you with any queries
-              </p>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Features Section */}
-        <div className="bg-white rounded-3xl shadow-lg p-8 md:p-12">
-          <div className="grid md:grid-cols-2 gap-12 items-center">
-            <div>
-              <h3 className="text-3xl font-bold mb-6">Everything You Need in One Place</h3>
-              <ul className="space-y-4">
-                <li className="flex items-start gap-3">
-                  <div className="w-6 h-6 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0 mt-1">
-                    <span className="text-[#0B8457] text-sm">✓</span>
-                  </div>
-                  <div>
-                    <h4 className="font-semibold mb-1">Easy Listing Process</h4>
-                    <p className="text-muted-foreground">Post your ad in minutes with our simple interface</p>
-                  </div>
-                </li>
-                <li className="flex items-start gap-3">
-                  <div className="w-6 h-6 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0 mt-1">
-                    <span className="text-[#0B8457] text-sm">✓</span>
-                  </div>
-                  <div>
-                    <h4 className="font-semibold mb-1">Smart Search & Filters</h4>
-                    <p className="text-muted-foreground">Find exactly what you need with advanced filters</p>
-                  </div>
-                </li>
-                <li className="flex items-start gap-3">
-                  <div className="w-6 h-6 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0 mt-1">
-                    <span className="text-[#0B8457] text-sm">✓</span>
-                  </div>
-                  <div>
-                    <h4 className="font-semibold mb-1">Direct Communication</h4>
-                    <p className="text-muted-foreground">Connect directly with sellers and service providers</p>
-                  </div>
-                </li>
-                <li className="flex items-start gap-3">
-                  <div className="w-6 h-6 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0 mt-1">
-                    <span className="text-[#0B8457] text-sm">✓</span>
-                  </div>
-                  <div>
-                    <h4 className="font-semibold mb-1">Mobile Friendly</h4>
-                    <p className="text-muted-foreground">Access from anywhere on any device</p>
-                  </div>
-                </li>
-              </ul>
-            </div>
-            <div className="bg-gradient-to-br from-green-100 to-green-50 rounded-2xl p-8 text-center">
-              <div className="text-6xl font-bold text-[#0B8457] mb-2">10,000+</div>
-              <div className="text-xl font-semibold mb-4">Active Listings</div>
-              <div className="text-muted-foreground mb-6">
-                Join our growing community of businesses and customers
-              </div>
-              <Button size="lg" className="bg-[#0B8457] hover:bg-[#059669] text-white">
-                Start Now
-              </Button>
             </div>
           </div>
         </div>
       </section>
+
+      {/* Services Carousel Section */}
+      <section className="w-full bg-gradient-to-b from-slate-50 via-white to-slate-50 py-20">
+        <div className="container mx-auto px-4">
+          {/* Premium Section Header */}
+          <div className="text-center mb-16 space-y-4">
+            <div className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-[#0B8457]/10 to-[#059669]/10 rounded-full border border-[#0B8457]/20">
+              <span className="w-2 h-2 rounded-full bg-[#0B8457]"></span>
+              <span className="text-sm font-semibold text-[#0B8457]">Marketplace Showcase</span>
+            </div>
+            <h2 className="text-5xl font-bold bg-gradient-to-r from-[#0B8457] via-[#059669] to-[#0B8457] bg-clip-text text-transparent">
+              Explore Our Collections
+            </h2>
+            <p className="text-xl text-slate-600 max-w-2xl mx-auto leading-relaxed">
+              Discover premium products and services from our verified partners. Browse through carefully curated collections tailored to your needs.
+            </p>
+            <div className="flex items-center justify-center gap-1 mt-6">
+              <div className="h-1 w-8 bg-gradient-to-r from-[#0B8457] to-[#059669] rounded"></div>
+              <div className="h-1 w-2 bg-[#0B8457] rounded"></div>
+              <div className="h-1 w-8 bg-gradient-to-r from-[#059669] to-[#0B8457] rounded"></div>
+            </div>
+          </div>
+
+          <div className="space-y-16">
+            {/* Fashion & Beauty */}
+            {fashionProducts && fashionProducts.length > 0 && (
+              <div className="group">
+                <div className="flex items-center gap-3 mb-8">
+                  <div className="w-1.5 h-8 bg-gradient-to-b from-[#0B8457] to-[#059669] rounded-full"></div>
+                  <h3 className="text-3xl font-bold text-gray-900">Fashion & Beauty</h3>
+                  <span className="ml-auto text-sm font-semibold text-[#0B8457] bg-[#0B8457]/10 px-4 py-1.5 rounded-full">
+                    {fashionProducts.length} items
+                  </span>
+                </div>
+                <Carousel className="w-full" opts={{ loop: true }} plugins={[Autoplay({ delay: 5000 })]}>
+                  <CarouselContent className="gap-4">
+                    {fashionProducts.map((product: any) => (
+                      <CarouselItem key={product.id} className="md:basis-1/2 lg:basis-1/4">
+                        <div className="group/card overflow-hidden rounded-xl border border-gray-200/50 bg-white shadow-sm hover:shadow-xl transition-all duration-300 h-full flex flex-col">
+                          <Link to={`/fashion/${product.id}`} className="flex-1 flex flex-col">
+                            <div className="relative h-48 bg-gradient-to-br from-gray-100 to-gray-200 overflow-hidden">
+                              {product.images && product.images[0] ? (
+                                <img src={product.images[0]} alt={product.title} className="w-full h-full object-cover group-hover/card:scale-125 transition-transform duration-500" />
+                              ) : (
+                                <div className="flex items-center justify-center h-full">
+                                  <Shirt className="w-12 h-12 text-gray-300" />
+                                </div>
+                              )}
+                              <div className="absolute inset-0 bg-black/0 group-hover/card:bg-black/20 transition-all duration-300"></div>
+                              {product.isFeatured && (
+                                <div className="absolute top-3 right-3 bg-gradient-to-r from-yellow-400 to-orange-400 text-white text-xs font-bold px-3 py-1 rounded-full">
+                                  Featured
+                                </div>
+                              )}
+                            </div>
+                            <div className="p-4 bg-white flex-1 flex flex-col">
+                              <h4 className="font-semibold text-sm mb-1.5 line-clamp-2 text-gray-900">{product.title}</h4>
+                              <p className="text-xs text-gray-500 mb-3 line-clamp-1 flex-1">{product.category || 'Fashion'}</p>
+                              <div className="flex items-center justify-between">
+                                <span className="text-lg font-bold text-[#0B8457]">₹{product.price?.toLocaleString('en-IN') || 'N/A'}</span>
+                                <div className="flex items-center gap-1 text-yellow-400 text-xs">
+                                  <Star className="w-3 h-3 fill-current" />
+                                  <span>4.5</span>
+                                </div>
+                              </div>
+                            </div>
+                          </Link>
+                          <div className="px-4 pb-4">
+                            <Link to={`/service-details/${product.id}`} className="w-full block">
+                              <button className="w-full bg-gradient-to-r from-[#0B8457] to-[#059669] hover:from-[#059669] hover:to-[#0B8457] text-white font-semibold py-2.5 px-4 rounded-lg transition-all duration-300 flex items-center justify-center gap-2 group/btn">
+                                <Eye className="w-4 h-4 group-hover/btn:scale-110 transition-transform" />
+                                View Details
+                              </button>
+                            </Link>
+                          </div>
+                        </div>
+                      </CarouselItem>
+                    ))}
+                  </CarouselContent>
+                  <CarouselPrevious className="left-0 bg-white hover:bg-gray-50 border border-gray-200" />
+                  <CarouselNext className="right-0 bg-white hover:bg-gray-50 border border-gray-200" />
+                </Carousel>
+              </div>
+            )}
+
+            {/* Vehicles */}
+            {carsBikes && carsBikes.length > 0 && (
+              <div className="group">
+                <div className="flex items-center gap-3 mb-8">
+                  <div className="w-1.5 h-8 bg-gradient-to-b from-blue-500 to-blue-600 rounded-full"></div>
+                  <h3 className="text-3xl font-bold text-gray-900">Vehicles</h3>
+                  <span className="ml-auto text-sm font-semibold text-blue-600 bg-blue-50 px-4 py-1.5 rounded-full">
+                    {carsBikes.length} listings
+                  </span>
+                </div>
+                <Carousel className="w-full" opts={{ loop: true }} plugins={[Autoplay({ delay: 6000 })]}>
+                  <CarouselContent className="gap-4">
+                    {carsBikes.map((vehicle: any) => (
+                      <CarouselItem key={vehicle.id} className="md:basis-1/2 lg:basis-1/4">
+                        <div className="group/card overflow-hidden rounded-xl border border-gray-200/50 bg-white shadow-sm hover:shadow-xl transition-all duration-300 h-full flex flex-col">
+                          <Link to={`/vehicles/${vehicle.id}`} className="flex-1 flex flex-col">
+                            <div className="relative h-48 bg-gradient-to-br from-gray-100 to-gray-200 overflow-hidden">
+                              {vehicle.images && vehicle.images[0] ? (
+                                <img src={vehicle.images[0]} alt={vehicle.title} className="w-full h-full object-cover group-hover/card:scale-125 transition-transform duration-500" />
+                              ) : (
+                                <div className="flex items-center justify-center h-full">
+                                  <Car className="w-12 h-12 text-gray-300" />
+                                </div>
+                              )}
+                              <div className="absolute inset-0 bg-black/0 group-hover/card:bg-black/20 transition-all duration-300"></div>
+                            </div>
+                            <div className="p-4 bg-white flex-1 flex flex-col">
+                              <h4 className="font-semibold text-sm mb-1.5 line-clamp-2 text-gray-900">{vehicle.brand} {vehicle.model}</h4>
+                              <p className="text-xs text-gray-500 mb-3 line-clamp-1 flex-1">{vehicle.year} • {vehicle.vehicleType}</p>
+                              <div className="flex items-center justify-between">
+                                <span className="text-lg font-bold text-blue-600">₹{vehicle.price?.toLocaleString('en-IN') || 'N/A'}</span>
+                                <div className="text-xs font-medium text-gray-500 bg-gray-100 px-2 py-1 rounded">
+                                  {vehicle.condition}
+                                </div>
+                              </div>
+                            </div>
+                          </Link>
+                          <div className="px-4 pb-4">
+                            <Link to={`/service-details/${vehicle.id}`} className="w-full block">
+                              <button className="w-full bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white font-semibold py-2.5 px-4 rounded-lg transition-all duration-300 flex items-center justify-center gap-2 group/btn">
+                                <Eye className="w-4 h-4 group-hover/btn:scale-110 transition-transform" />
+                                View Details
+                              </button>
+                            </Link>
+                          </div>
+                        </div>
+                      </CarouselItem>
+                    ))}
+                  </CarouselContent>
+                  <CarouselPrevious className="left-0 bg-white hover:bg-gray-50 border border-gray-200" />
+                  <CarouselNext className="right-0 bg-white hover:bg-gray-50 border border-gray-200" />
+                </Carousel>
+              </div>
+            )}
+
+            {/* Construction Materials */}
+            {constructionMaterials && constructionMaterials.length > 0 && (
+              <div>
+                <h3 className="text-2xl font-bold text-gray-900 mb-6">Construction Materials</h3>
+                <Carousel className="w-full" opts={{ loop: true }} plugins={[Autoplay({ delay: 7000 })]}>
+                  <CarouselContent>
+                    {constructionMaterials.map((material: any) => (
+                      <CarouselItem key={material.id} className="md:basis-1/2 lg:basis-1/4">
+                        <div className="flex flex-col h-full">
+                          <Link to={`/construction/${material.id}`} className="flex-1">
+                            <Card className="overflow-hidden hover:shadow-lg transition-all duration-300 h-full cursor-pointer">
+                              <div className="relative h-40 bg-gray-100 flex items-center justify-center overflow-hidden group">
+                                {material.images && material.images[0] ? (
+                                  <img src={material.images[0]} alt={material.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300" />
+                                ) : (
+                                  <Building className="w-8 h-8 text-gray-400" />
+                                )}
+                              </div>
+                              <CardContent className="p-4">
+                                <h4 className="font-semibold text-sm mb-1 line-clamp-2">{material.name}</h4>
+                                <p className="text-xs text-muted-foreground mb-2">{material.category}</p>
+                                <span className="text-lg font-bold text-[#0B8457]">₹{material.price?.toLocaleString('en-IN') || 'N/A'}/{material.unit}</span>
+                              </CardContent>
+                            </Card>
+                          </Link>
+                          <div className="mt-3 px-0">
+                            <Link to={`/service-details/${material.id}`} className="block w-full">
+                              <button className="w-full bg-gradient-to-r from-[#0B8457] to-[#059669] hover:from-[#059669] hover:to-[#0B8457] text-white font-semibold py-2.5 px-4 rounded-lg transition-all duration-300 flex items-center justify-center gap-2 group/btn">
+                                <Eye className="w-4 h-4 group-hover/btn:scale-110 transition-transform" />
+                                View Details
+                              </button>
+                            </Link>
+                          </div>
+                        </div>
+                      </CarouselItem>
+                    ))}
+                  </CarouselContent>
+                  <CarouselPrevious className="left-2" />
+                  <CarouselNext className="right-2" />
+                </Carousel>
+              </div>
+            )}
+
+            {/* Electronics & Gadgets */}
+            {electronicsGadgets && electronicsGadgets.length > 0 && (
+              <div className="group">
+                <div className="flex items-center gap-3 mb-8">
+                  <div className="w-1.5 h-8 bg-gradient-to-b from-purple-500 to-purple-600 rounded-full"></div>
+                  <h3 className="text-3xl font-bold text-gray-900">Electronics & Gadgets</h3>
+                  <span className="ml-auto text-sm font-semibold text-purple-600 bg-purple-50 px-4 py-1.5 rounded-full">
+                    {electronicsGadgets.length} items
+                  </span>
+                </div>
+                <Carousel className="w-full" opts={{ loop: true }} plugins={[Autoplay({ delay: 5500 })]}>
+                  <CarouselContent className="gap-4">
+                    {electronicsGadgets.map((product: any) => (
+                      <CarouselItem key={product.id} className="md:basis-1/2 lg:basis-1/4">
+                        <div className="group/card overflow-hidden rounded-xl border border-gray-200/50 bg-white shadow-sm hover:shadow-xl transition-all duration-300 h-full flex flex-col">
+                          <Link to={`/electronics/${product.id}`} className="flex-1 flex flex-col">
+                            <div className="relative h-48 bg-gradient-to-br from-gray-100 to-gray-200 overflow-hidden">
+                              {product.images && product.images[0] ? (
+                                <img src={product.images[0]} alt={product.title} className="w-full h-full object-cover group-hover/card:scale-125 transition-transform duration-500" />
+                              ) : (
+                                <div className="flex items-center justify-center h-full">
+                                  <Monitor className="w-12 h-12 text-gray-300" />
+                                </div>
+                              )}
+                              <div className="absolute inset-0 bg-black/0 group-hover/card:bg-black/20 transition-all duration-300"></div>
+                            </div>
+                            <div className="p-4 bg-white flex-1 flex flex-col">
+                              <h4 className="font-semibold text-sm mb-1.5 line-clamp-2 text-gray-900">{product.title}</h4>
+                              <p className="text-xs text-gray-500 mb-3 line-clamp-1 flex-1">{product.category}</p>
+                              <div className="flex items-center justify-between">
+                                <span className="text-lg font-bold text-purple-600">₹{product.price?.toLocaleString('en-IN') || 'N/A'}</span>
+                                <div className="text-xs font-medium text-gray-500 bg-gray-100 px-2 py-1 rounded">
+                                  {product.rating ? `${product.rating}★` : 'New'}
+                                </div>
+                              </div>
+                            </div>
+                          </Link>
+                          <div className="px-4 pb-4">
+                            <Link to={`/service-details/${product.id}`} className="w-full block">
+                              <button className="w-full bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white font-semibold py-2.5 px-4 rounded-lg transition-all duration-300 flex items-center justify-center gap-2 group/btn">
+                                <Eye className="w-4 h-4 group-hover/btn:scale-110 transition-transform" />
+                                View Details
+                              </button>
+                            </Link>
+                          </div>
+                        </div>
+                      </CarouselItem>
+                    ))}
+                  </CarouselContent>
+                  <CarouselPrevious className="left-0 bg-white hover:bg-gray-50 border border-gray-200" />
+                  <CarouselNext className="right-0 bg-white hover:bg-gray-50 border border-gray-200" />
+                </Carousel>
+              </div>
+            )}
+
+            {/* Phones, Tablets & Accessories */}
+            {phonesTablets && phonesTablets.length > 0 && (
+              <div className="group">
+                <div className="flex items-center gap-3 mb-8">
+                  <div className="w-1.5 h-8 bg-gradient-to-b from-pink-500 to-pink-600 rounded-full"></div>
+                  <h3 className="text-3xl font-bold text-gray-900">Phones, Tablets & Accessories</h3>
+                  <span className="ml-auto text-sm font-semibold text-pink-600 bg-pink-50 px-4 py-1.5 rounded-full">
+                    {phonesTablets.length} items
+                  </span>
+                </div>
+                <Carousel className="w-full" opts={{ loop: true }} plugins={[Autoplay({ delay: 5800 })]}>
+                  <CarouselContent className="gap-4">
+                    {phonesTablets.map((product: any) => (
+                      <CarouselItem key={product.id} className="md:basis-1/2 lg:basis-1/4">
+                        <div className="group/card overflow-hidden rounded-xl border border-gray-200/50 bg-white shadow-sm hover:shadow-xl transition-all duration-300 h-full flex flex-col">
+                          <Link to={`/phones/${product.id}`} className="flex-1 flex flex-col">
+                            <div className="relative h-48 bg-gradient-to-br from-gray-100 to-gray-200 overflow-hidden">
+                              {product.images && product.images[0] ? (
+                                <img src={product.images[0]} alt={product.title} className="w-full h-full object-cover group-hover/card:scale-125 transition-transform duration-500" />
+                              ) : (
+                                <div className="flex items-center justify-center h-full">
+                                  <Smartphone className="w-12 h-12 text-gray-300" />
+                                </div>
+                              )}
+                              <div className="absolute inset-0 bg-black/0 group-hover/card:bg-black/20 transition-all duration-300"></div>
+                            </div>
+                            <div className="p-4 bg-white flex-1 flex flex-col">
+                              <h4 className="font-semibold text-sm mb-1.5 line-clamp-2 text-gray-900">{product.title}</h4>
+                              <p className="text-xs text-gray-500 mb-3 line-clamp-1 flex-1">{product.brand}</p>
+                              <div className="flex items-center justify-between">
+                                <span className="text-lg font-bold text-pink-600">₹{product.price?.toLocaleString('en-IN') || 'N/A'}</span>
+                                <div className="text-xs font-medium text-gray-500 bg-gray-100 px-2 py-1 rounded">
+                                  {product.rating ? `${product.rating}★` : 'New'}
+                                </div>
+                              </div>
+                            </div>
+                          </Link>
+                          <div className="px-4 pb-4">
+                            <Link to={`/service-details/${product.id}`} className="w-full block">
+                              <button className="w-full bg-gradient-to-r from-pink-500 to-pink-600 hover:from-pink-600 hover:to-pink-700 text-white font-semibold py-2.5 px-4 rounded-lg transition-all duration-300 flex items-center justify-center gap-2 group/btn">
+                                <Eye className="w-4 h-4 group-hover/btn:scale-110 transition-transform" />
+                                View Details
+                              </button>
+                            </Link>
+                          </div>
+                        </div>
+                      </CarouselItem>
+                    ))}
+                  </CarouselContent>
+                  <CarouselPrevious className="left-0 bg-white hover:bg-gray-50 border border-gray-200" />
+                  <CarouselNext className="right-0 bg-white hover:bg-gray-50 border border-gray-200" />
+                </Carousel>
+              </div>
+            )}
+
+            {/* Rental Listings */}
+            {rentalData && rentalData.length > 0 && (
+              <div className="group">
+                <div className="flex items-center gap-3 mb-8">
+                  <div className="w-1.5 h-8 bg-gradient-to-b from-amber-500 to-amber-600 rounded-full"></div>
+                  <h3 className="text-3xl font-bold text-gray-900">Rental Properties</h3>
+                  <span className="ml-auto text-sm font-semibold text-amber-600 bg-amber-50 px-4 py-1.5 rounded-full">
+                    {rentalData.length} listings
+                  </span>
+                </div>
+                <Carousel className="w-full" opts={{ loop: true }} plugins={[Autoplay({ delay: 6000 })]}>
+                  <CarouselContent className="gap-4">
+                    {rentalData.map((property: any) => (
+                      <CarouselItem key={property.id} className="md:basis-1/2 lg:basis-1/4">
+                        <div className="group/card overflow-hidden rounded-xl border border-gray-200/50 bg-white shadow-sm hover:shadow-xl transition-all duration-300 h-full flex flex-col">
+                          <Link to={`/rental/${property.id}`} className="flex-1 flex flex-col">
+                            <div className="relative h-48 bg-gradient-to-br from-gray-100 to-gray-200 overflow-hidden">
+                              {property.images && property.images[0] ? (
+                                <img src={property.images[0]} alt={property.title} className="w-full h-full object-cover group-hover/card:scale-125 transition-transform duration-500" />
+                              ) : (
+                                <div className="flex items-center justify-center h-full">
+                                  <Building2 className="w-12 h-12 text-gray-300" />
+                                </div>
+                              )}
+                              <div className="absolute inset-0 bg-black/0 group-hover/card:bg-black/20 transition-all duration-300"></div>
+                            </div>
+                            <div className="p-4 bg-white flex-1 flex flex-col">
+                              <h4 className="font-semibold text-sm mb-1.5 line-clamp-2 text-gray-900">{property.title}</h4>
+                              <p className="text-xs text-gray-500 mb-3 line-clamp-1 flex-1">{property.city}</p>
+                              <div className="flex items-center justify-between">
+                                <span className="text-lg font-bold text-amber-600">₹{property.price?.toLocaleString('en-IN') || 'N/A'}</span>
+                                <div className="text-xs font-medium text-gray-500 bg-gray-100 px-2 py-1 rounded">
+                                  {property.bedrooms ? `${property.bedrooms}BHK` : 'Apt'}
+                                </div>
+                              </div>
+                            </div>
+                          </Link>
+                          <div className="px-4 pb-4">
+                            <Link to={`/service-details/${property.id}`} className="w-full block">
+                              <button className="w-full bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white font-semibold py-2.5 px-4 rounded-lg transition-all duration-300 flex items-center justify-center gap-2 group/btn">
+                                <Eye className="w-4 h-4 group-hover/btn:scale-110 transition-transform" />
+                                View Details
+                              </button>
+                            </Link>
+                          </div>
+                        </div>
+                      </CarouselItem>
+                    ))}
+                  </CarouselContent>
+                  <CarouselPrevious className="left-0 bg-white hover:bg-gray-50 border border-gray-200" />
+                  <CarouselNext className="right-0 bg-white hover:bg-gray-50 border border-gray-200" />
+                </Carousel>
+              </div>
+            )}
+
+            {/* Furniture & Interior Decor */}
+            {furnitureData && furnitureData.length > 0 && (
+              <div className="group">
+                <div className="flex items-center gap-3 mb-8">
+                  <div className="w-1.5 h-8 bg-gradient-to-b from-orange-500 to-orange-600 rounded-full"></div>
+                  <h3 className="text-3xl font-bold text-gray-900">Furniture & Interior Decor</h3>
+                  <span className="ml-auto text-sm font-semibold text-orange-600 bg-orange-50 px-4 py-1.5 rounded-full">
+                    {furnitureData.length} items
+                  </span>
+                </div>
+                <Carousel className="w-full" opts={{ loop: true }} plugins={[Autoplay({ delay: 6200 })]}>
+                  <CarouselContent className="gap-4">
+                    {furnitureData.map((product: any) => (
+                      <CarouselItem key={product.id} className="md:basis-1/2 lg:basis-1/4">
+                        <div className="group/card overflow-hidden rounded-xl border border-gray-200/50 bg-white shadow-sm hover:shadow-xl transition-all duration-300 h-full flex flex-col">
+                          <Link to={`/furniture/${product.id}`} className="flex-1 flex flex-col">
+                            <div className="relative h-48 bg-gradient-to-br from-gray-100 to-gray-200 overflow-hidden">
+                              {product.images && product.images[0] ? (
+                                <img src={product.images[0]} alt={product.title} className="w-full h-full object-cover group-hover/card:scale-125 transition-transform duration-500" />
+                              ) : (
+                                <div className="flex items-center justify-center h-full">
+                                  <Sofa className="w-12 h-12 text-gray-300" />
+                                </div>
+                              )}
+                              <div className="absolute inset-0 bg-black/0 group-hover/card:bg-black/20 transition-all duration-300"></div>
+                            </div>
+                            <div className="p-4 bg-white flex-1 flex flex-col">
+                              <h4 className="font-semibold text-sm mb-1.5 line-clamp-2 text-gray-900">{product.title}</h4>
+                              <p className="text-xs text-gray-500 mb-3 line-clamp-1 flex-1">{product.category}</p>
+                              <div className="flex items-center justify-between">
+                                <span className="text-lg font-bold text-orange-600">₹{product.price?.toLocaleString('en-IN') || 'N/A'}</span>
+                                <div className="text-xs font-medium text-gray-500 bg-gray-100 px-2 py-1 rounded">
+                                  {product.rating ? `${product.rating}★` : 'New'}
+                                </div>
+                              </div>
+                            </div>
+                          </Link>
+                          <div className="px-4 pb-4">
+                            <Link to={`/service-details/${product.id}`} className="w-full block">
+                              <button className="w-full bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white font-semibold py-2.5 px-4 rounded-lg transition-all duration-300 flex items-center justify-center gap-2 group/btn">
+                                <Eye className="w-4 h-4 group-hover/btn:scale-110 transition-transform" />
+                                View Details
+                              </button>
+                            </Link>
+                          </div>
+                        </div>
+                      </CarouselItem>
+                    ))}
+                  </CarouselContent>
+                  <CarouselPrevious className="left-0 bg-white hover:bg-gray-50 border border-gray-200" />
+                  <CarouselNext className="right-0 bg-white hover:bg-gray-50 border border-gray-200" />
+                </Carousel>
+              </div>
+            )}
+
+            {/* Jewelry & Accessories */}
+            {jewelryData && jewelryData.length > 0 && (
+              <div className="group">
+                <div className="flex items-center gap-3 mb-8">
+                  <div className="w-1.5 h-8 bg-gradient-to-b from-rose-500 to-rose-600 rounded-full"></div>
+                  <h3 className="text-3xl font-bold text-gray-900">Jewelry & Accessories</h3>
+                  <span className="ml-auto text-sm font-semibold text-rose-600 bg-rose-50 px-4 py-1.5 rounded-full">
+                    {jewelryData.length} items
+                  </span>
+                </div>
+                <Carousel className="w-full" opts={{ loop: true }} plugins={[Autoplay({ delay: 5900 })]}>
+                  <CarouselContent className="gap-4">
+                    {jewelryData.map((product: any) => (
+                      <CarouselItem key={product.id} className="md:basis-1/2 lg:basis-1/4">
+                        <div className="group/card overflow-hidden rounded-xl border border-gray-200/50 bg-white shadow-sm hover:shadow-xl transition-all duration-300 h-full flex flex-col">
+                          <Link to={`/jewelry/${product.id}`} className="flex-1 flex flex-col">
+                            <div className="relative h-48 bg-gradient-to-br from-gray-100 to-gray-200 overflow-hidden">
+                              {product.images && product.images[0] ? (
+                                <img src={product.images[0]} alt={product.title} className="w-full h-full object-cover group-hover/card:scale-125 transition-transform duration-500" />
+                              ) : (
+                                <div className="flex items-center justify-center h-full">
+                                  <Sparkles className="w-12 h-12 text-gray-300" />
+                                </div>
+                              )}
+                              <div className="absolute inset-0 bg-black/0 group-hover/card:bg-black/20 transition-all duration-300"></div>
+                            </div>
+                            <div className="p-4 bg-white flex-1 flex flex-col">
+                              <h4 className="font-semibold text-sm mb-1.5 line-clamp-2 text-gray-900">{product.title}</h4>
+                              <p className="text-xs text-gray-500 mb-3 line-clamp-1 flex-1">{product.category}</p>
+                              <div className="flex items-center justify-between">
+                                <span className="text-lg font-bold text-rose-600">₹{product.price?.toLocaleString('en-IN') || 'N/A'}</span>
+                                <div className="text-xs font-medium text-gray-500 bg-gray-100 px-2 py-1 rounded">
+                                  {product.rating ? `${product.rating}★` : 'New'}
+                                </div>
+                              </div>
+                            </div>
+                          </Link>
+                          <div className="px-4 pb-4">
+                            <Link to={`/service-details/${product.id}`} className="w-full block">
+                              <button className="w-full bg-gradient-to-r from-rose-500 to-rose-600 hover:from-rose-600 hover:to-rose-700 text-white font-semibold py-2.5 px-4 rounded-lg transition-all duration-300 flex items-center justify-center gap-2 group/btn">
+                                <Eye className="w-4 h-4 group-hover/btn:scale-110 transition-transform" />
+                                View Details
+                              </button>
+                            </Link>
+                          </div>
+                        </div>
+                      </CarouselItem>
+                    ))}
+                  </CarouselContent>
+                  <CarouselPrevious className="left-0 bg-white hover:bg-gray-50 border border-gray-200" />
+                  <CarouselNext className="right-0 bg-white hover:bg-gray-50 border border-gray-200" />
+                </Carousel>
+              </div>
+            )}
+
+            {/* Skill Training & Certification */}
+            {skillTraining && skillTraining.length > 0 && (
+              <div className="group">
+                <div className="flex items-center gap-3 mb-8">
+                  <div className="w-1.5 h-8 bg-gradient-to-b from-indigo-500 to-indigo-600 rounded-full"></div>
+                  <h3 className="text-3xl font-bold text-gray-900">Skill Training & Certification</h3>
+                  <span className="ml-auto text-sm font-semibold text-indigo-600 bg-indigo-50 px-4 py-1.5 rounded-full">
+                    {skillTraining.length} courses
+                  </span>
+                </div>
+                <Carousel className="w-full" opts={{ loop: true }} plugins={[Autoplay({ delay: 6300 })]}>
+                  <CarouselContent className="gap-4">
+                    {skillTraining.map((course: any) => (
+                      <CarouselItem key={course.id} className="md:basis-1/2 lg:basis-1/4">
+                        <div className="group/card overflow-hidden rounded-xl border border-gray-200/50 bg-white shadow-sm hover:shadow-xl transition-all duration-300 h-full flex flex-col">
+                          <Link to={`/skill-training/${course.id}`} className="flex-1 flex flex-col">
+                            <div className="relative h-48 bg-gradient-to-br from-gray-100 to-gray-200 overflow-hidden">
+                              {course.images && course.images[0] ? (
+                                <img src={course.images[0]} alt={course.title} className="w-full h-full object-cover group-hover/card:scale-125 transition-transform duration-500" />
+                              ) : (
+                                <div className="flex items-center justify-center h-full">
+                                  <Award className="w-12 h-12 text-gray-300" />
+                                </div>
+                              )}
+                              <div className="absolute inset-0 bg-black/0 group-hover/card:bg-black/20 transition-all duration-300"></div>
+                            </div>
+                            <div className="p-4 bg-white flex-1 flex flex-col">
+                              <h4 className="font-semibold text-sm mb-1.5 line-clamp-2 text-gray-900">{course.title}</h4>
+                              <p className="text-xs text-gray-500 mb-3 line-clamp-1 flex-1">{course.category}</p>
+                              <div className="flex items-center justify-between">
+                                <span className="text-lg font-bold text-indigo-600">₹{course.fee?.toLocaleString('en-IN') || 'Contact'}</span>
+                                <div className="text-xs font-medium text-gray-500 bg-gray-100 px-2 py-1 rounded">
+                                  {course.duration ? course.duration : 'Online'}
+                                </div>
+                              </div>
+                            </div>
+                          </Link>
+                          <div className="px-4 pb-4">
+                            <Link to={`/service-details/${course.id}`} className="w-full block">
+                              <button className="w-full bg-gradient-to-r from-indigo-500 to-indigo-600 hover:from-indigo-600 hover:to-indigo-700 text-white font-semibold py-2.5 px-4 rounded-lg transition-all duration-300 flex items-center justify-center gap-2 group/btn">
+                                <Eye className="w-4 h-4 group-hover/btn:scale-110 transition-transform" />
+                                View Details
+                              </button>
+                            </Link>
+                          </div>
+                        </div>
+                      </CarouselItem>
+                    ))}
+                  </CarouselContent>
+                  <CarouselPrevious className="left-0 bg-white hover:bg-gray-50 border border-gray-200" />
+                  <CarouselNext className="right-0 bg-white hover:bg-gray-50 border border-gray-200" />
+                </Carousel>
+              </div>
+            )}
+
+            {/* Tuition Classes */}
+            {tuitionClasses && tuitionClasses.length > 0 && (
+              <div className="group">
+                <div className="flex items-center gap-3 mb-8">
+                  <div className="w-1.5 h-8 bg-gradient-to-b from-cyan-500 to-cyan-600 rounded-full"></div>
+                  <h3 className="text-3xl font-bold text-gray-900">Tuition & Private Classes</h3>
+                  <span className="ml-auto text-sm font-semibold text-cyan-600 bg-cyan-50 px-4 py-1.5 rounded-full">
+                    {tuitionClasses.length} courses
+                  </span>
+                </div>
+                <Carousel className="w-full" opts={{ loop: true }} plugins={[Autoplay({ delay: 5700 })]}>
+                  <CarouselContent className="gap-4">
+                    {tuitionClasses.map((course: any) => (
+                      <CarouselItem key={course.id} className="md:basis-1/2 lg:basis-1/4">
+                        <div className="group/card overflow-hidden rounded-xl border border-gray-200/50 bg-white shadow-sm hover:shadow-xl transition-all duration-300 h-full flex flex-col">
+                          <Link to={`/tuition/${course.id}`} className="flex-1 flex flex-col">
+                            <div className="relative h-48 bg-gradient-to-br from-gray-100 to-gray-200 overflow-hidden">
+                              {course.images && course.images[0] ? (
+                                <img src={course.images[0]} alt={course.title} className="w-full h-full object-cover group-hover/card:scale-125 transition-transform duration-500" />
+                              ) : (
+                                <div className="flex items-center justify-center h-full">
+                                  <GraduationCap className="w-12 h-12 text-gray-300" />
+                                </div>
+                              )}
+                              <div className="absolute inset-0 bg-black/0 group-hover/card:bg-black/20 transition-all duration-300"></div>
+                            </div>
+                            <div className="p-4 bg-white flex-1 flex flex-col">
+                              <h4 className="font-semibold text-sm mb-1.5 line-clamp-2 text-gray-900">{course.title}</h4>
+                              <p className="text-xs text-gray-500 mb-3 line-clamp-1 flex-1">{course.subject}</p>
+                              <div className="flex items-center justify-between">
+                                <span className="text-lg font-bold text-cyan-600">₹{course.fee?.toLocaleString('en-IN') || 'Contact'}</span>
+                                <div className="text-xs font-medium text-gray-500 bg-gray-100 px-2 py-1 rounded">
+                                  {course.duration ? course.duration : 'Online'}
+                                </div>
+                              </div>
+                            </div>
+                          </Link>
+                          <div className="px-4 pb-4">
+                            <Link to={`/service-details/${course.id}`} className="w-full block">
+                              <button className="w-full bg-gradient-to-r from-cyan-500 to-cyan-600 hover:from-cyan-600 hover:to-cyan-700 text-white font-semibold py-2.5 px-4 rounded-lg transition-all duration-300 flex items-center justify-center gap-2 group/btn">
+                                <Eye className="w-4 h-4 group-hover/btn:scale-110 transition-transform" />
+                                View Details
+                              </button>
+                            </Link>
+                          </div>
+                        </div>
+                      </CarouselItem>
+                    ))}
+                  </CarouselContent>
+                  <CarouselPrevious className="left-0 bg-white hover:bg-gray-50 border border-gray-200" />
+                  <CarouselNext className="right-0 bg-white hover:bg-gray-50 border border-gray-200" />
+                </Carousel>
+              </div>
+            )}
+
+            {/* Dance, Gym & Yoga */}
+            {danceGymYoga && danceGymYoga.length > 0 && (
+              <div className="group">
+                <div className="flex items-center gap-3 mb-8">
+                  <div className="w-1.5 h-8 bg-gradient-to-b from-red-500 to-red-600 rounded-full"></div>
+                  <h3 className="text-3xl font-bold text-gray-900">Dance, Gym & Yoga</h3>
+                  <span className="ml-auto text-sm font-semibold text-red-600 bg-red-50 px-4 py-1.5 rounded-full">
+                    {danceGymYoga.length} centers
+                  </span>
+                </div>
+                <Carousel className="w-full" opts={{ loop: true }} plugins={[Autoplay({ delay: 6100 })]}>
+                  <CarouselContent className="gap-4">
+                    {danceGymYoga.map((service: any) => (
+                      <CarouselItem key={service.id} className="md:basis-1/2 lg:basis-1/4">
+                        <div className="group/card overflow-hidden rounded-xl border border-gray-200/50 bg-white shadow-sm hover:shadow-xl transition-all duration-300 h-full flex flex-col">
+                          <Link to={`/dance-gym-yoga/${service.id}`} className="flex-1 flex flex-col">
+                            <div className="relative h-48 bg-gradient-to-br from-gray-100 to-gray-200 overflow-hidden">
+                              {service.images && service.images[0] ? (
+                                <img src={service.images[0]} alt={service.title} className="w-full h-full object-cover group-hover/card:scale-125 transition-transform duration-500" />
+                              ) : (
+                                <div className="flex items-center justify-center h-full">
+                                  <Dumbbell className="w-12 h-12 text-gray-300" />
+                                </div>
+                              )}
+                              <div className="absolute inset-0 bg-black/0 group-hover/card:bg-black/20 transition-all duration-300"></div>
+                            </div>
+                            <div className="p-4 bg-white flex-1 flex flex-col">
+                              <h4 className="font-semibold text-sm mb-1.5 line-clamp-2 text-gray-900">{service.title}</h4>
+                              <p className="text-xs text-gray-500 mb-3 line-clamp-1 flex-1">{service.type}</p>
+                              <div className="flex items-center justify-between">
+                                <span className="text-lg font-bold text-red-600">₹{service.fee?.toLocaleString('en-IN') || 'Contact'}</span>
+                                <div className="text-xs font-medium text-gray-500 bg-gray-100 px-2 py-1 rounded">
+                                  {service.duration ? service.duration : 'Flex'}
+                                </div>
+                              </div>
+                            </div>
+                          </Link>
+                          <div className="px-4 pb-4">
+                            <Link to={`/service-details/${service.id}`} className="w-full block">
+                              <button className="w-full bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white font-semibold py-2.5 px-4 rounded-lg transition-all duration-300 flex items-center justify-center gap-2 group/btn">
+                                <Eye className="w-4 h-4 group-hover/btn:scale-110 transition-transform" />
+                                View Details
+                              </button>
+                            </Link>
+                          </div>
+                        </div>
+                      </CarouselItem>
+                    ))}
+                  </CarouselContent>
+                  <CarouselPrevious className="left-0 bg-white hover:bg-gray-50 border border-gray-200" />
+                  <CarouselNext className="right-0 bg-white hover:bg-gray-50 border border-gray-200" />
+                </Carousel>
+              </div>
+            )}
+
+            {/* Language Classes */}
+            {languageClasses && languageClasses.length > 0 && (
+              <div className="group">
+                <div className="flex items-center gap-3 mb-8">
+                  <div className="w-1.5 h-8 bg-gradient-to-b from-teal-500 to-teal-600 rounded-full"></div>
+                  <h3 className="text-3xl font-bold text-gray-900">Language Classes</h3>
+                  <span className="ml-auto text-sm font-semibold text-teal-600 bg-teal-50 px-4 py-1.5 rounded-full">
+                    {languageClasses.length} courses
+                  </span>
+                </div>
+                <Carousel className="w-full" opts={{ loop: true }} plugins={[Autoplay({ delay: 5600 })]}>
+                  <CarouselContent className="gap-4">
+                    {languageClasses.map((course: any) => (
+                      <CarouselItem key={course.id} className="md:basis-1/2 lg:basis-1/4">
+                        <div className="group/card overflow-hidden rounded-xl border border-gray-200/50 bg-white shadow-sm hover:shadow-xl transition-all duration-300 h-full flex flex-col">
+                          <Link to={`/language/${course.id}`} className="flex-1 flex flex-col">
+                            <div className="relative h-48 bg-gradient-to-br from-gray-100 to-gray-200 overflow-hidden">
+                              {course.images && course.images[0] ? (
+                                <img src={course.images[0]} alt={course.title} className="w-full h-full object-cover group-hover/card:scale-125 transition-transform duration-500" />
+                              ) : (
+                                <div className="flex items-center justify-center h-full">
+                                  <Languages className="w-12 h-12 text-gray-300" />
+                                </div>
+                              )}
+                              <div className="absolute inset-0 bg-black/0 group-hover/card:bg-black/20 transition-all duration-300"></div>
+                            </div>
+                            <div className="p-4 bg-white flex-1 flex flex-col">
+                              <h4 className="font-semibold text-sm mb-1.5 line-clamp-2 text-gray-900">{course.title}</h4>
+                              <p className="text-xs text-gray-500 mb-3 line-clamp-1 flex-1">{course.language}</p>
+                              <div className="flex items-center justify-between">
+                                <span className="text-lg font-bold text-teal-600">₹{course.fee?.toLocaleString('en-IN') || 'Contact'}</span>
+                                <div className="text-xs font-medium text-gray-500 bg-gray-100 px-2 py-1 rounded">
+                                  {course.duration ? course.duration : 'Online'}
+                                </div>
+                              </div>
+                            </div>
+                          </Link>
+                          <div className="px-4 pb-4">
+                            <Link to={`/service-details/${course.id}`} className="w-full block">
+                              <button className="w-full bg-gradient-to-r from-teal-500 to-teal-600 hover:from-teal-600 hover:to-teal-700 text-white font-semibold py-2.5 px-4 rounded-lg transition-all duration-300 flex items-center justify-center gap-2 group/btn">
+                                <Eye className="w-4 h-4 group-hover/btn:scale-110 transition-transform" />
+                                View Details
+                              </button>
+                            </Link>
+                          </div>
+                        </div>
+                      </CarouselItem>
+                    ))}
+                  </CarouselContent>
+                  <CarouselPrevious className="left-0 bg-white hover:bg-gray-50 border border-gray-200" />
+                  <CarouselNext className="right-0 bg-white hover:bg-gray-50 border border-gray-200" />
+                </Carousel>
+              </div>
+            )}
+
+            {/* Health & Wellness */}
+            {healthWellness && healthWellness.length > 0 && (
+              <div className="group">
+                <div className="flex items-center gap-3 mb-8">
+                  <div className="w-1.5 h-8 bg-gradient-to-b from-green-500 to-green-600 rounded-full"></div>
+                  <h3 className="text-3xl font-bold text-gray-900">Health & Wellness Services</h3>
+                  <span className="ml-auto text-sm font-semibold text-green-600 bg-green-50 px-4 py-1.5 rounded-full">
+                    {healthWellness.length} services
+                  </span>
+                </div>
+                <Carousel className="w-full" opts={{ loop: true }} plugins={[Autoplay({ delay: 6400 })]}>
+                  <CarouselContent className="gap-4">
+                    {healthWellness.map((service: any) => (
+                      <CarouselItem key={service.id} className="md:basis-1/2 lg:basis-1/4">
+                        <div className="group/card overflow-hidden rounded-xl border border-gray-200/50 bg-white shadow-sm hover:shadow-xl transition-all duration-300 h-full flex flex-col">
+                          <Link to={`/health-wellness/${service.id}`} className="flex-1 flex flex-col">
+                            <div className="relative h-48 bg-gradient-to-br from-gray-100 to-gray-200 overflow-hidden">
+                              {service.images && service.images[0] ? (
+                                <img src={service.images[0]} alt={service.title} className="w-full h-full object-cover group-hover/card:scale-125 transition-transform duration-500" />
+                              ) : (
+                                <div className="flex items-center justify-center h-full">
+                                  <Shield className="w-12 h-12 text-gray-300" />
+                                </div>
+                              )}
+                              <div className="absolute inset-0 bg-black/0 group-hover/card:bg-black/20 transition-all duration-300"></div>
+                            </div>
+                            <div className="p-4 bg-white flex-1 flex flex-col">
+                              <h4 className="font-semibold text-sm mb-1.5 line-clamp-2 text-gray-900">{service.title}</h4>
+                              <p className="text-xs text-gray-500 mb-3 line-clamp-1 flex-1">{service.serviceType}</p>
+                              <div className="flex items-center justify-between">
+                                <span className="text-lg font-bold text-green-600">₹{service.price?.toLocaleString('en-IN') || 'Contact'}</span>
+                                <div className="text-xs font-medium text-gray-500 bg-gray-100 px-2 py-1 rounded">
+                                  {service.rating ? `${service.rating}★` : 'New'}
+                                </div>
+                              </div>
+                            </div>
+                          </Link>
+                          <div className="px-4 pb-4">
+                            <Link to={`/service-details/${service.id}`} className="w-full block">
+                              <button className="w-full bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white font-semibold py-2.5 px-4 rounded-lg transition-all duration-300 flex items-center justify-center gap-2 group/btn">
+                                <Eye className="w-4 h-4 group-hover/btn:scale-110 transition-transform" />
+                                View Details
+                              </button>
+                            </Link>
+                          </div>
+                        </div>
+                      </CarouselItem>
+                    ))}
+                  </CarouselContent>
+                  <CarouselPrevious className="left-0 bg-white hover:bg-gray-50 border border-gray-200" />
+                  <CarouselNext className="right-0 bg-white hover:bg-gray-50 border border-gray-200" />
+                </Carousel>
+              </div>
+            )}
+
+            {/* Household Services */}
+            {householdServices && householdServices.length > 0 && (
+              <div className="group">
+                <div className="flex items-center gap-3 mb-8">
+                  <div className="w-1.5 h-8 bg-gradient-to-b from-yellow-500 to-yellow-600 rounded-full"></div>
+                  <h3 className="text-3xl font-bold text-gray-900">Household Services</h3>
+                  <span className="ml-auto text-sm font-semibold text-yellow-600 bg-yellow-50 px-4 py-1.5 rounded-full">
+                    {householdServices.length} services
+                  </span>
+                </div>
+                <Carousel className="w-full" opts={{ loop: true }} plugins={[Autoplay({ delay: 5900 })]}>
+                  <CarouselContent className="gap-4">
+                    {householdServices.map((service: any) => (
+                      <CarouselItem key={service.id} className="md:basis-1/2 lg:basis-1/4">
+                        <div className="group/card overflow-hidden rounded-xl border border-gray-200/50 bg-white shadow-sm hover:shadow-xl transition-all duration-300 h-full flex flex-col">
+                          <Link to={`/household-services/${service.id}`} className="flex-1 flex flex-col">
+                            <div className="relative h-48 bg-gradient-to-br from-gray-100 to-gray-200 overflow-hidden">
+                              {service.images && service.images[0] ? (
+                                <img src={service.images[0]} alt={service.title} className="w-full h-full object-cover group-hover/card:scale-125 transition-transform duration-500" />
+                              ) : (
+                                <div className="flex items-center justify-center h-full">
+                                  <HomeIcon className="w-12 h-12 text-gray-300" />
+                                </div>
+                              )}
+                              <div className="absolute inset-0 bg-black/0 group-hover/card:bg-black/20 transition-all duration-300"></div>
+                            </div>
+                            <div className="p-4 bg-white flex-1 flex flex-col">
+                              <h4 className="font-semibold text-sm mb-1.5 line-clamp-2 text-gray-900">{service.title}</h4>
+                              <p className="text-xs text-gray-500 mb-3 line-clamp-1 flex-1">{service.category}</p>
+                              <div className="flex items-center justify-between">
+                                <span className="text-lg font-bold text-yellow-600">₹{service.price?.toLocaleString('en-IN') || 'Contact'}</span>
+                                <div className="text-xs font-medium text-gray-500 bg-gray-100 px-2 py-1 rounded">
+                                  {service.rating ? `${service.rating}★` : 'New'}
+                                </div>
+                              </div>
+                            </div>
+                          </Link>
+                          <div className="px-4 pb-4">
+                            <Link to={`/service-details/${service.id}`} className="w-full block">
+                              <button className="w-full bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 text-white font-semibold py-2.5 px-4 rounded-lg transition-all duration-300 flex items-center justify-center gap-2 group/btn">
+                                <Eye className="w-4 h-4 group-hover/btn:scale-110 transition-transform" />
+                                View Details
+                              </button>
+                            </Link>
+                          </div>
+                        </div>
+                      </CarouselItem>
+                    ))}
+                  </CarouselContent>
+                  <CarouselPrevious className="left-0 bg-white hover:bg-gray-50 border border-gray-200" />
+                  <CarouselNext className="right-0 bg-white hover:bg-gray-50 border border-gray-200" />
+                </Carousel>
+              </div>
+            )}
+
+            {/* Event Decoration Services */}
+            {eventDecoration && eventDecoration.length > 0 && (
+              <div className="group">
+                <div className="flex items-center gap-3 mb-8">
+                  <div className="w-1.5 h-8 bg-gradient-to-b from-fuchsia-500 to-fuchsia-600 rounded-full"></div>
+                  <h3 className="text-3xl font-bold text-gray-900">Event Decoration Services</h3>
+                  <span className="ml-auto text-sm font-semibold text-fuchsia-600 bg-fuchsia-50 px-4 py-1.5 rounded-full">
+                    {eventDecoration.length} services
+                  </span>
+                </div>
+                <Carousel className="w-full" opts={{ loop: true }} plugins={[Autoplay({ delay: 6200 })]}>
+                  <CarouselContent className="gap-4">
+                    {eventDecoration.map((service: any) => (
+                      <CarouselItem key={service.id} className="md:basis-1/2 lg:basis-1/4">
+                        <div className="group/card overflow-hidden rounded-xl border border-gray-200/50 bg-white shadow-sm hover:shadow-xl transition-all duration-300 h-full flex flex-col">
+                          <Link to={`/event-decoration/${service.id}`} className="flex-1 flex flex-col">
+                            <div className="relative h-48 bg-gradient-to-br from-gray-100 to-gray-200 overflow-hidden">
+                              {service.images && service.images[0] ? (
+                                <img src={service.images[0]} alt={service.title} className="w-full h-full object-cover group-hover/card:scale-125 transition-transform duration-500" />
+                              ) : (
+                                <div className="flex items-center justify-center h-full">
+                                  <Sparkles className="w-12 h-12 text-gray-300" />
+                                </div>
+                              )}
+                              <div className="absolute inset-0 bg-black/0 group-hover/card:bg-black/20 transition-all duration-300"></div>
+                            </div>
+                            <div className="p-4 bg-white flex-1 flex flex-col">
+                              <h4 className="font-semibold text-sm mb-1.5 line-clamp-2 text-gray-900">{service.title}</h4>
+                              <p className="text-xs text-gray-500 mb-3 line-clamp-1 flex-1">{service.serviceType}</p>
+                              <div className="flex items-center justify-between">
+                                <span className="text-lg font-bold text-fuchsia-600">₹{service.price?.toLocaleString('en-IN') || 'Contact'}</span>
+                                <div className="text-xs font-medium text-gray-500 bg-gray-100 px-2 py-1 rounded">
+                                  {service.rating ? `${service.rating}★` : 'New'}
+                                </div>
+                              </div>
+                            </div>
+                          </Link>
+                          <div className="px-4 pb-4">
+                            <Link to={`/service-details/${service.id}`} className="w-full block">
+                              <button className="w-full bg-gradient-to-r from-fuchsia-500 to-fuchsia-600 hover:from-fuchsia-600 hover:to-fuchsia-700 text-white font-semibold py-2.5 px-4 rounded-lg transition-all duration-300 flex items-center justify-center gap-2 group/btn">
+                                <Eye className="w-4 h-4 group-hover/btn:scale-110 transition-transform" />
+                                View Details
+                              </button>
+                            </Link>
+                          </div>
+                        </div>
+                      </CarouselItem>
+                    ))}
+                  </CarouselContent>
+                  <CarouselPrevious className="left-0 bg-white hover:bg-gray-50 border border-gray-200" />
+                  <CarouselNext className="right-0 bg-white hover:bg-gray-50 border border-gray-200" />
+                </Carousel>
+              </div>
+            )}
+
+            {/* Computer & Repair Services */}
+            {computerRepair && computerRepair.length > 0 && (
+              <div className="group">
+                <div className="flex items-center gap-3 mb-8">
+                  <div className="w-1.5 h-8 bg-gradient-to-b from-slate-500 to-slate-600 rounded-full"></div>
+                  <h3 className="text-3xl font-bold text-gray-900">Computer & Repair Services</h3>
+                  <span className="ml-auto text-sm font-semibold text-slate-600 bg-slate-50 px-4 py-1.5 rounded-full">
+                    {computerRepair.length} services
+                  </span>
+                </div>
+                <Carousel className="w-full" opts={{ loop: true }} plugins={[Autoplay({ delay: 6000 })]}>
+                  <CarouselContent className="gap-4">
+                    {computerRepair.map((service: any) => (
+                      <CarouselItem key={service.id} className="md:basis-1/2 lg:basis-1/4">
+                        <div className="group/card overflow-hidden rounded-xl border border-gray-200/50 bg-white shadow-sm hover:shadow-xl transition-all duration-300 h-full flex flex-col">
+                          <Link to={`/computer-repair/${service.id}`} className="flex-1 flex flex-col">
+                            <div className="relative h-48 bg-gradient-to-br from-gray-100 to-gray-200 overflow-hidden">
+                              {service.images && service.images[0] ? (
+                                <img src={service.images[0]} alt={service.title} className="w-full h-full object-cover group-hover/card:scale-125 transition-transform duration-500" />
+                              ) : (
+                                <div className="flex items-center justify-center h-full">
+                                  <Laptop className="w-12 h-12 text-gray-300" />
+                                </div>
+                              )}
+                              <div className="absolute inset-0 bg-black/0 group-hover/card:bg-black/20 transition-all duration-300"></div>
+                            </div>
+                            <div className="p-4 bg-white flex-1 flex flex-col">
+                              <h4 className="font-semibold text-sm mb-1.5 line-clamp-2 text-gray-900">{service.title}</h4>
+                              <p className="text-xs text-gray-500 mb-3 line-clamp-1 flex-1">{service.category}</p>
+                              <div className="flex items-center justify-between">
+                                <span className="text-lg font-bold text-slate-600">₹{service.price?.toLocaleString('en-IN') || 'Contact'}</span>
+                                <div className="text-xs font-medium text-gray-500 bg-gray-100 px-2 py-1 rounded">
+                                  {service.rating ? `${service.rating}★` : 'New'}
+                                </div>
+                              </div>
+                            </div>
+                          </Link>
+                          <div className="px-4 pb-4">
+                            <Link to={`/service-details/${service.id}`} className="w-full block">
+                              <button className="w-full bg-gradient-to-r from-slate-500 to-slate-600 hover:from-slate-600 hover:to-slate-700 text-white font-semibold py-2.5 px-4 rounded-lg transition-all duration-300 flex items-center justify-center gap-2 group/btn">
+                                <Eye className="w-4 h-4 group-hover/btn:scale-110 transition-transform" />
+                                View Details
+                              </button>
+                            </Link>
+                          </div>
+                        </div>
+                      </CarouselItem>
+                    ))}
+                  </CarouselContent>
+                  <CarouselPrevious className="left-0 bg-white hover:bg-gray-50 border border-gray-200" />
+                  <CarouselNext className="right-0 bg-white hover:bg-gray-50 border border-gray-200" />
+                </Carousel>
+              </div>
+            )}
+
+            {/* Second Hand Phones & Tablets */}
+            {secondHandPhones && secondHandPhones.length > 0 && (
+              <div className="group">
+                <div className="flex items-center gap-3 mb-8">
+                  <div className="w-1.5 h-8 bg-gradient-to-b from-lime-500 to-lime-600 rounded-full"></div>
+                  <h3 className="text-3xl font-bold text-gray-900">Second Hand Phones & Tablets</h3>
+                  <span className="ml-auto text-sm font-semibold text-lime-600 bg-lime-50 px-4 py-1.5 rounded-full">
+                    {secondHandPhones.length} items
+                  </span>
+                </div>
+                <Carousel className="w-full" opts={{ loop: true }} plugins={[Autoplay({ delay: 5800 })]}>
+                  <CarouselContent className="gap-4">
+                    {secondHandPhones.map((product: any) => (
+                      <CarouselItem key={product.id} className="md:basis-1/2 lg:basis-1/4">
+                        <div className="group/card overflow-hidden rounded-xl border border-gray-200/50 bg-white shadow-sm hover:shadow-xl transition-all duration-300 h-full flex flex-col">
+                          <Link to={`/second-hand-phones/${product.id}`} className="flex-1 flex flex-col">
+                            <div className="relative h-48 bg-gradient-to-br from-gray-100 to-gray-200 overflow-hidden">
+                              {product.images && product.images[0] ? (
+                                <img src={product.images[0]} alt={product.title} className="w-full h-full object-cover group-hover/card:scale-125 transition-transform duration-500" />
+                              ) : (
+                                <div className="flex items-center justify-center h-full">
+                                  <Smartphone className="w-12 h-12 text-gray-300" />
+                                </div>
+                              )}
+                              <div className="absolute inset-0 bg-black/0 group-hover/card:bg-black/20 transition-all duration-300"></div>
+                            </div>
+                            <div className="p-4 bg-white flex-1 flex flex-col">
+                              <h4 className="font-semibold text-sm mb-1.5 line-clamp-2 text-gray-900">{product.title}</h4>
+                              <p className="text-xs text-gray-500 mb-3 line-clamp-1 flex-1">{product.condition}</p>
+                              <div className="flex items-center justify-between">
+                                <span className="text-lg font-bold text-lime-600">₹{product.price?.toLocaleString('en-IN') || 'N/A'}</span>
+                                <div className="text-xs font-medium text-gray-500 bg-gray-100 px-2 py-1 rounded">
+                                  {product.rating ? `${product.rating}★` : 'Used'}
+                                </div>
+                              </div>
+                            </div>
+                          </Link>
+                          <div className="px-4 pb-4">
+                            <Link to={`/service-details/${product.id}`} className="w-full block">
+                              <button className="w-full bg-gradient-to-r from-lime-500 to-lime-600 hover:from-lime-600 hover:to-lime-700 text-white font-semibold py-2.5 px-4 rounded-lg transition-all duration-300 flex items-center justify-center gap-2 group/btn">
+                                <Eye className="w-4 h-4 group-hover/btn:scale-110 transition-transform" />
+                                View Details
+                              </button>
+                            </Link>
+                          </div>
+                        </div>
+                      </CarouselItem>
+                    ))}
+                  </CarouselContent>
+                  <CarouselPrevious className="left-0 bg-white hover:bg-gray-50 border border-gray-200" />
+                  <CarouselNext className="right-0 bg-white hover:bg-gray-50 border border-gray-200" />
+                </Carousel>
+              </div>
+            )}
+
+            {/* Saree & Clothing Shopping */}
+            {sareeClothing && sareeClothing.length > 0 && (
+              <div className="group">
+                <div className="flex items-center gap-3 mb-8">
+                  <div className="w-1.5 h-8 bg-gradient-to-b from-violet-500 to-violet-600 rounded-full"></div>
+                  <h3 className="text-3xl font-bold text-gray-900">Saree & Clothing Shopping</h3>
+                  <span className="ml-auto text-sm font-semibold text-violet-600 bg-violet-50 px-4 py-1.5 rounded-full">
+                    {sareeClothing.length} items
+                  </span>
+                </div>
+                <Carousel className="w-full" opts={{ loop: true }} plugins={[Autoplay({ delay: 6100 })]}>
+                  <CarouselContent className="gap-4">
+                    {sareeClothing.map((product: any) => (
+                      <CarouselItem key={product.id} className="md:basis-1/2 lg:basis-1/4">
+                        <div className="group/card overflow-hidden rounded-xl border border-gray-200/50 bg-white shadow-sm hover:shadow-xl transition-all duration-300 h-full flex flex-col">
+                          <Link to={`/saree-clothing/${product.id}`} className="flex-1 flex flex-col">
+                            <div className="relative h-48 bg-gradient-to-br from-gray-100 to-gray-200 overflow-hidden">
+                              {product.images && product.images[0] ? (
+                                <img src={product.images[0]} alt={product.title} className="w-full h-full object-cover group-hover/card:scale-125 transition-transform duration-500" />
+                              ) : (
+                                <div className="flex items-center justify-center h-full">
+                                  <Shirt className="w-12 h-12 text-gray-300" />
+                                </div>
+                              )}
+                              <div className="absolute inset-0 bg-black/0 group-hover/card:bg-black/20 transition-all duration-300"></div>
+                            </div>
+                            <div className="p-4 bg-white flex-1 flex flex-col">
+                              <h4 className="font-semibold text-sm mb-1.5 line-clamp-2 text-gray-900">{product.title}</h4>
+                              <p className="text-xs text-gray-500 mb-3 line-clamp-1 flex-1">{product.category}</p>
+                              <div className="flex items-center justify-between">
+                                <span className="text-lg font-bold text-violet-600">₹{product.price?.toLocaleString('en-IN') || 'N/A'}</span>
+                                <div className="text-xs font-medium text-gray-500 bg-gray-100 px-2 py-1 rounded">
+                                  {product.rating ? `${product.rating}★` : 'New'}
+                                </div>
+                              </div>
+                            </div>
+                          </Link>
+                          <div className="px-4 pb-4">
+                            <Link to={`/service-details/${product.id}`} className="w-full block">
+                              <button className="w-full bg-gradient-to-r from-violet-500 to-violet-600 hover:from-violet-600 hover:to-violet-700 text-white font-semibold py-2.5 px-4 rounded-lg transition-all duration-300 flex items-center justify-center gap-2 group/btn">
+                                <Eye className="w-4 h-4 group-hover/btn:scale-110 transition-transform" />
+                                View Details
+                              </button>
+                            </Link>
+                          </div>
+                        </div>
+                      </CarouselItem>
+                    ))}
+                  </CarouselContent>
+                  <CarouselPrevious className="left-0 bg-white hover:bg-gray-50 border border-gray-200" />
+                  <CarouselNext className="right-0 bg-white hover:bg-gray-50 border border-gray-200" />
+                </Carousel>
+              </div>
+            )}
+
+            {/* E-Books & Online Courses */}
+            {ebooksCourses && ebooksCourses.length > 0 && (
+              <div className="group">
+                <div className="flex items-center gap-3 mb-8">
+                  <div className="w-1.5 h-8 bg-gradient-to-b from-sky-500 to-sky-600 rounded-full"></div>
+                  <h3 className="text-3xl font-bold text-gray-900">E-Books & Online Courses</h3>
+                  <span className="ml-auto text-sm font-semibold text-sky-600 bg-sky-50 px-4 py-1.5 rounded-full">
+                    {ebooksCourses.length} items
+                  </span>
+                </div>
+                <Carousel className="w-full" opts={{ loop: true }} plugins={[Autoplay({ delay: 5900 })]}>
+                  <CarouselContent className="gap-4">
+                    {ebooksCourses.map((course: any) => (
+                      <CarouselItem key={course.id} className="md:basis-1/2 lg:basis-1/4">
+                        <div className="group/card overflow-hidden rounded-xl border border-gray-200/50 bg-white shadow-sm hover:shadow-xl transition-all duration-300 h-full flex flex-col">
+                          <Link to={`/ebooks/${course.id}`} className="flex-1 flex flex-col">
+                            <div className="relative h-48 bg-gradient-to-br from-gray-100 to-gray-200 overflow-hidden">
+                              {course.images && course.images[0] ? (
+                                <img src={course.images[0]} alt={course.title} className="w-full h-full object-cover group-hover/card:scale-125 transition-transform duration-500" />
+                              ) : (
+                                <div className="flex items-center justify-center h-full">
+                                  <BookOpen className="w-12 h-12 text-gray-300" />
+                                </div>
+                              )}
+                              <div className="absolute inset-0 bg-black/0 group-hover/card:bg-black/20 transition-all duration-300"></div>
+                            </div>
+                            <div className="p-4 bg-white flex-1 flex flex-col">
+                              <h4 className="font-semibold text-sm mb-1.5 line-clamp-2 text-gray-900">{course.title}</h4>
+                              <p className="text-xs text-gray-500 mb-3 line-clamp-1 flex-1">{course.category}</p>
+                              <div className="flex items-center justify-between">
+                                <span className="text-lg font-bold text-sky-600">₹{course.price?.toLocaleString('en-IN') || 'Free'}</span>
+                                <div className="text-xs font-medium text-gray-500 bg-gray-100 px-2 py-1 rounded">
+                                  {course.rating ? `${course.rating}★` : 'New'}
+                                </div>
+                              </div>
+                            </div>
+                          </Link>
+                          <div className="px-4 pb-4">
+                            <Link to={`/service-details/${course.id}`} className="w-full block">
+                              <button className="w-full bg-gradient-to-r from-sky-500 to-sky-600 hover:from-sky-600 hover:to-sky-700 text-white font-semibold py-2.5 px-4 rounded-lg transition-all duration-300 flex items-center justify-center gap-2 group/btn">
+                                <Eye className="w-4 h-4 group-hover/btn:scale-110 transition-transform" />
+                                View Details
+                              </button>
+                            </Link>
+                          </div>
+                        </div>
+                      </CarouselItem>
+                    ))}
+                  </CarouselContent>
+                  <CarouselPrevious className="left-0 bg-white hover:bg-gray-50 border border-gray-200" />
+                  <CarouselNext className="right-0 bg-white hover:bg-gray-50 border border-gray-200" />
+                </Carousel>
+              </div>
+            )}
+          </div>
+        </div>
+      </section>
+
+      {/* Videos Section */}
+      <section className="container mx-auto px-4 py-16 bg-white">
+        <div className="text-center mb-12">
+          <h2 className="text-4xl font-bold mb-4 bg-gradient-to-r from-[#0B8457] to-[#059669] bg-clip-text text-transparent">
+            Featured Videos
+          </h2>
+          <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
+            Watch inspiring content from our community
+          </p>
+        </div>
+
+        <Carousel className="w-full" opts={{ loop: true }} plugins={[Autoplay({ delay: 6000 })]}>
+          <CarouselContent>
+            {videosLoading ? (
+              <CarouselItem>
+                <div className="relative h-[220px] rounded-3xl overflow-hidden bg-gray-100 flex items-center">
+                  <div className="text-muted-foreground">Loading videos...</div>
+                </div>
+              </CarouselItem>
+            ) : videos && videos.length > 0 ? (
+              videos.map((v: any) => (
+                <CarouselItem key={v.id} className="w-full flex  px-2">
+                  <div className="max-w-[420px] w-full flex flex-col rounded-2xl overflow-hidden shadow-lg hover:shadow-2xl transition-shadow bg-white">
+                    <div className="relative w-full h-72 md:h-64 lg:h-72 bg-black flex items-center justify-center group overflow-hidden">
+                      <video
+                        className="w-full h-full object-cover rounded-t-2xl"
+                        preload="metadata"
+                        controls
+                        playsInline
+                        muted
+                        autoPlay
+                      >
+                        <source src={v.videoUrl || v.video_url} type="video/mp4" />
+                        Your browser does not support the video tag.
+                      </video>
+                    </div>
+
+                    <div className="p-4 bg-white flex-1 flex flex-col justify-between">
+                      <div>
+                        <h3 className="font-semibold text-lg mb-2 line-clamp-2">{v.title || 'Untitled Video'}</h3>
+                        <p className="text-sm text-muted-foreground line-clamp-2">{v.description || ''}</p>
+                      </div>
+                      <div className="mt-3 text-xs text-muted-foreground">
+                        {v.durationMinutes ? `${v.durationMinutes} min` : ''}
+                      </div>
+                    </div>
+                  </div>
+                </CarouselItem>
+              ))
+            ) : (
+              <div className="text-center py-6 text-muted-foreground">No featured videos available</div>
+            )}
+          </CarouselContent>
+          <CarouselPrevious className="left-4" />
+          <CarouselNext className="right-4" />
+        </Carousel>
+      </section>
+
+     
+
 
       {/* Blog Section */}
       <section className="container mx-auto px-4 py-16 bg-gradient-to-b from-white to-gray-50">
@@ -700,7 +2093,124 @@ export default function Home() {
           </Card>
         </div>
       </section>
+ {/* More Details Section - Why Choose Us */}
+      <section className="container mx-auto px-4 py-16 bg-gradient-to-b from-gray-50 to-white">
+        <div className="text-center mb-12">
+          <h2 className="text-4xl font-bold mb-4 bg-gradient-to-r from-[#0B8457] to-[#059669] bg-clip-text text-transparent">
+            Why Choose Jeevika Services?
+          </h2>
+          <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
+            Nepal's most trusted platform connecting businesses and customers
+          </p>
+        </div>
 
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-16">
+          <Card className="border-2 hover:border-[#0B8457] transition-all duration-300 hover:shadow-xl">
+            <CardContent className="p-6 text-center">
+              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Star className="w-8 h-8 text-[#0B8457]" />
+              </div>
+              <h3 className="text-xl font-bold mb-2">Verified Listings</h3>
+              <p className="text-muted-foreground">
+                All services and products are verified for authenticity and quality
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card className="border-2 hover:border-[#0B8457] transition-all duration-300 hover:shadow-xl">
+            <CardContent className="p-6 text-center">
+              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <TrendingUp className="w-8 h-8 text-[#0B8457]" />
+              </div>
+              <h3 className="text-xl font-bold mb-2">Wide Reach</h3>
+              <p className="text-muted-foreground">
+                Connect with thousands of potential customers across Nepal
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card className="border-2 hover:border-[#0B8457] transition-all duration-300 hover:shadow-xl">
+            <CardContent className="p-6 text-center">
+              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Shield className="w-8 h-8 text-[#0B8457]" />
+              </div>
+              <h3 className="text-xl font-bold mb-2">Secure Platform</h3>
+              <p className="text-muted-foreground">
+                Your data and transactions are protected with advanced security
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card className="border-2 hover:border-[#0B8457] transition-all duration-300 hover:shadow-xl">
+            <CardContent className="p-6 text-center">
+              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Clock className="w-8 h-8 text-[#0B8457]" />
+              </div>
+              <h3 className="text-xl font-bold mb-2">24/7 Support</h3>
+              <p className="text-muted-foreground">
+                Our team is always ready to help you with any queries
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Features Section */}
+        <div className="bg-white rounded-3xl shadow-lg p-8 md:p-12">
+          <div className="grid md:grid-cols-2 gap-12 items-center">
+            <div>
+              <h3 className="text-3xl font-bold mb-6">Everything You Need in One Place</h3>
+              <ul className="space-y-4">
+                <li className="flex items-start gap-3">
+                  <div className="w-6 h-6 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0 mt-1">
+                    <span className="text-[#0B8457] text-sm">✓</span>
+                  </div>
+                  <div>
+                    <h4 className="font-semibold mb-1">Easy Listing Process</h4>
+                    <p className="text-muted-foreground">Post your ad in minutes with our simple interface</p>
+                  </div>
+                </li>
+                <li className="flex items-start gap-3">
+                  <div className="w-6 h-6 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0 mt-1">
+                    <span className="text-[#0B8457] text-sm">✓</span>
+                  </div>
+                  <div>
+                    <h4 className="font-semibold mb-1">Smart Search & Filters</h4>
+                    <p className="text-muted-foreground">Find exactly what you need with advanced filters</p>
+                  </div>
+                </li>
+                <li className="flex items-start gap-3">
+                  <div className="w-6 h-6 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0 mt-1">
+                    <span className="text-[#0B8457] text-sm">✓</span>
+                  </div>
+                  <div>
+                    <h4 className="font-semibold mb-1">Direct Communication</h4>
+                    <p className="text-muted-foreground">Connect directly with sellers and service providers</p>
+                  </div>
+                </li>
+                <li className="flex items-start gap-3">
+                  <div className="w-6 h-6 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0 mt-1">
+                    <span className="text-[#0B8457] text-sm">✓</span>
+                  </div>
+                  <div>
+                    <h4 className="font-semibold mb-1">Mobile Friendly</h4>
+                    <p className="text-muted-foreground">Access from anywhere on any device</p>
+                  </div>
+                </li>
+              </ul>
+            </div>
+            <div className="bg-gradient-to-br from-green-100 to-green-50 rounded-2xl p-8 text-center">
+              <div className="text-6xl font-bold text-[#0B8457] mb-2">10,000+</div>
+              <div className="text-xl font-semibold mb-4">Active Listings</div>
+              <div className="text-muted-foreground mb-6">
+                Join our growing community of businesses and customers
+              </div>
+              <Button size="lg" className="bg-[#0B8457] hover:bg-[#059669] text-white">
+                Start Now
+              </Button>
+            </div>
+          </div>
+        </div>
+      </section>
       <Footer />
 
       {/* Back to Top Button */}

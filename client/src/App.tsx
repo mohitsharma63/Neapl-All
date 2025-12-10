@@ -14,6 +14,9 @@ import Signup from "@/pages/signup";
 import Profile from "@/pages/profile";
 import Settings from "@/pages/settings";
 import AdminDashboard from "@/pages/admin-dashboard";
+import AdminSliders from "@/pages/admin-sliders";
+import SliderCardPage from "@/pages/slider-card";
+import SliderCardOnlyPage from "@/pages/slider-card-only";
 import BuyerDashboard from "@/pages/buyer-dashboard";
 import SellerDashboard from "@/pages/seller-dashboard";
 import SubcategoryPage from "@/pages/subcategory";
@@ -24,6 +27,7 @@ import TuitionPrivateClasses from "@/pages/tuition-private-classes";
 import TuitionClassDetail from "@/pages/tuition-class-detail"; // Assuming this component exists or will be created
 import DanceKarateGymYoga from "@/pages/dance-karate-gym-yoga";
 import LanguageClasses from "@/pages/language-classes";
+import ServiceDetails from "@/pages/service-details";
 
 import TuitionPrivateClassesPage from "./pages/tuition-private-classes-page";
 
@@ -31,6 +35,7 @@ function Router() {
   return (
     <Switch>
       <Route path="/" component={Home} />
+      <Route path="/service-details/:id" component={ServiceDetails} />
       <Route path="/category/:slug" component={CategoryPage} />
       <Route path="/category/:categorySlug/subcategory/:subcategorySlug" component={SubcategoryPage} />
       <Route path="/subcategory/:name" component={SubcategoryPage} />
@@ -41,6 +46,9 @@ function Router() {
       <Route path="/signup" component={Signup} />
       <Route path="/profile" component={Profile} />
       <Route path="/settings" component={Settings} />
+      <Route path="/admin/sliders" component={AdminSliders} />
+      <Route path="/slider-card" component={SliderCardPage} />
+      <Route path="/slider-card-only" component={SliderCardOnlyPage} />
       <Route path="/admin" component={AdminDashboard} />
       <Route path="/buyer-dashboard" component={BuyerDashboard} />
       <Route path="/seller-dashboard" component={SellerDashboard} />

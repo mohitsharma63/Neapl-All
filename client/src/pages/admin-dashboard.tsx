@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -30,8 +30,11 @@ import {
   Mail,
   Phone,
   ChevronDown,
+  ChevronUp,
+  X,
   Pencil,
-  Trash
+  Trash,
+  Video
 } from 'lucide-react';
 import {
   Sidebar,
@@ -94,6 +97,7 @@ import ServiceCentreWarrantyForm from "@/components/service-centre-warranty-form
 import CyberCafeInternetServicesForm from "@/components/cyber-cafe-internet-services-form";
 import { SliderForm } from "@/components/slider-form";
 import BlogForm from "@/components/blog-form";
+import { VideosForm } from '@/components/videos-form';
 
 
 // Educational Consultancy - Study Abroad Section Component
@@ -101,6 +105,8 @@ function EducationalConsultancyStudyAbroadSection() {
   const [consultancies, setConsultancies] = useState<any[]>([]);
   const [showForm, setShowForm] = useState(false);
   const [editingConsultancy, setEditingConsultancy] = useState(null);
+  const [showViewDialog, setShowViewDialog] = useState(false);
+  const [viewingArticle, setViewingArticle] = useState<any>(null);
 
   useEffect(() => {
     fetchConsultancies();
@@ -3004,8 +3010,11 @@ function AppSidebar({ activeSection, setActiveSection }: { activeSection: string
     { title: "Dashboard", icon: Home, key: "dashboard" },
     { title: "Categories", icon: FileText, key: "categories" },
     { title: "Sliders", icon: Image, key: "sliders" },
+    { title: "Slider Card", icon: Image, key: "slider-card" },
     { title: "Blogs", icon: FileText, key: "blogs" },
     { title: "Articles", icon: FileText, key: "articles" },
+    { title: "Videos", icon: Video, key: "videos" },
+    { title: "Featured Videos", icon: Video, key: "featured-videos" },
   ];
 
   return (
@@ -3041,7 +3050,14 @@ function AppSidebar({ activeSection, setActiveSection }: { activeSection: string
                         : 'hover:bg-muted/80'
                       }
                     `}
-                    onClick={() => setActiveSection(item.key)}
+                    onClick={() => {
+                      // Open Slider Card section inside admin (no navigation away)
+                      if (item.key === 'slider-card') {
+                        setActiveSection('slider-card');
+                      } else {
+                        setActiveSection(item.key);
+                      }
+                    }}
                   >
                     <item.icon className="w-5 h-5" />
                     <span className="font-medium">{item.title}</span>
@@ -5610,6 +5626,219 @@ function RentalListingsSection() {
   );
 }
 
+// Videos Section - manage all videos (create/edit/delete, toggle active/featured)
+function VideosSection() {
+  const [videos, setVideos] = useState<any[]>([]);
+  const [showForm, setShowForm] = useState(false);
+  const [editingVideo, setEditingVideo] = useState<any>(null);
+
+  useEffect(() => {
+    fetchVideos();
+  }, []);
+
+  const fetchVideos = async () => {
+    try {
+      const res = await fetch('/api/admin/videos');
+      const data = await res.json();
+      setVideos(Array.isArray(data) ? data : []);
+    } catch (err) {
+      console.error('Error fetching videos:', err);
+      setVideos([]);
+    }
+  };
+
+  const handleSuccess = () => {
+    setShowForm(false);
+    setEditingVideo(null);
+    fetchVideos();
+  };
+
+  const handleEdit = (video: any) => {
+    setEditingVideo(video);
+    setShowForm(true);
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!confirm('Are you sure you want to delete this video?')) return;
+    try {
+      const response = await fetch(`/api/admin/videos/${id}`, { method: 'DELETE' });
+      if (response.ok) fetchVideos();
+    } catch (error) {
+      console.error('Error deleting video:', error);
+    }
+  };
+
+  const toggleActive = async (id: string) => {
+    try {
+      const response = await fetch(`/api/admin/videos/${id}/toggle-active`, { method: 'PATCH' });
+      if (response.ok) fetchVideos();
+    } catch (error) {
+      console.error('Error toggling active status:', error);
+    }
+  };
+
+  const toggleFeatured = async (id: string) => {
+    try {
+      const response = await fetch(`/api/admin/videos/${id}/toggle-featured`, { method: 'PATCH' });
+      if (response.ok) fetchVideos();
+    } catch (error) {
+      console.error('Error toggling featured status:', error);
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-2xl font-bold">Videos</h2>
+          <p className="text-muted-foreground">Manage platform videos</p>
+        </div>
+        <Button onClick={() => { setEditingVideo(null); setShowForm(true); }}>
+          <Plus className="w-4 h-4 mr-2" />
+          Add Video
+        </Button>
+      </div>
+
+      <Dialog open={showForm} onOpenChange={(open) => { setShowForm(open); if (!open) setEditingVideo(null); }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{editingVideo ? 'Edit Video' : 'Add Video'}</DialogTitle>
+          </DialogHeader>
+          <div className="mb-4">
+            <VideosForm onSuccess={handleSuccess} video={editingVideo} />
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+        {Array.isArray(videos) && videos.map((video) => (
+          <Card key={video.id} className="group hover:shadow-lg transition-shadow">
+            {video.thumbnailUrl && (
+              <div className="relative h-40 bg-black">
+                <img src={video.thumbnailUrl} alt={video.title} className="w-full h-full object-cover" />
+              </div>
+            )}
+            <CardHeader className="pb-3">
+              <div className="flex items-start justify-between gap-2">
+                <div className="flex-1">
+                  <CardTitle className="text-lg line-clamp-2">{video.title}</CardTitle>
+                  {video.duration && <p className="text-sm text-muted-foreground mt-1">{video.duration} min</p>}
+                </div>
+                <Badge variant={video.isActive ? 'default' : 'secondary'}>{video.isActive ? 'Active' : 'Inactive'}</Badge>
+              </div>
+            </CardHeader>
+            <CardContent className="pb-3">
+              {video.description && <p className="text-sm text-muted-foreground line-clamp-2">{video.description}</p>}
+            </CardContent>
+            <CardFooter className="flex gap-2">
+              <Button variant="outline" size="sm" className="flex-1" onClick={() => handleEdit(video)}>
+                <Edit className="w-4 h-4 mr-1" />Edit
+              </Button>
+              <Button variant={video.isFeatured ? 'secondary' : 'outline'} size="sm" className="flex-1" onClick={() => toggleFeatured(video.id)}>
+                {video.isFeatured ? 'Unfeature' : 'Feature'}
+              </Button>
+              <Button variant="outline" size="sm" className="flex-1" onClick={() => toggleActive(video.id)}>
+                {video.isActive ? 'Deactivate' : 'Activate'}
+              </Button>
+              <Button variant="destructive" size="sm" onClick={() => handleDelete(video.id)}>
+                <Trash className="w-4 h-4" />
+              </Button>
+            </CardFooter>
+          </Card>
+        ))}
+      </div>
+
+      {(!videos || videos.length === 0) && (
+        <Card>
+          <CardContent className="py-12 text-center">
+            <Video className="w-12 h-12 text-muted-foreground mx-auto mb-3" />
+            <h3 className="text-lg font-semibold mb-2">No Videos Found</h3>
+            <p className="text-muted-foreground mb-4">Start by adding your first video</p>
+          </CardContent>
+        </Card>
+      )}
+    </div>
+  );
+}
+
+// Featured Videos Section - list and manage featured videos
+function FeaturedVideosSection() {
+  const [videos, setVideos] = useState<any[]>([]);
+
+  useEffect(() => {
+    fetchVideos();
+  }, []);
+
+  const fetchVideos = async () => {
+    try {
+      const res = await fetch('/api/admin/videos');
+      const data = await res.json();
+      const list = Array.isArray(data) ? data : [];
+      setVideos(list.filter((v: any) => !!v.isFeatured));
+    } catch (err) {
+      console.error('Error fetching featured videos:', err);
+      setVideos([]);
+    }
+  };
+
+  const toggleFeatured = async (id: string) => {
+    try {
+      const response = await fetch(`/api/admin/videos/${id}/toggle-featured`, { method: 'PATCH' });
+      if (response.ok) fetchVideos();
+    } catch (error) {
+      console.error('Error toggling featured status:', error);
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-2xl font-bold">Featured Videos</h2>
+          <p className="text-muted-foreground">Manage videos shown as featured on the site</p>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+        {Array.isArray(videos) && videos.map((video) => (
+          <Card key={video.id} className="group hover:shadow-lg transition-shadow">
+            {video.thumbnailUrl && (
+              <div className="relative h-40 bg-black">
+                <img src={video.thumbnailUrl} alt={video.title} className="w-full h-full object-cover" />
+              </div>
+            )}
+            <CardHeader className="pb-3">
+              <div className="flex items-start justify-between gap-2">
+                <div className="flex-1">
+                  <CardTitle className="text-lg line-clamp-2">{video.title}</CardTitle>
+                </div>
+                <Badge variant={video.isActive ? 'default' : 'secondary'}>{video.isActive ? 'Active' : 'Inactive'}</Badge>
+              </div>
+            </CardHeader>
+            <CardContent className="pb-3">
+              {video.description && <p className="text-sm text-muted-foreground line-clamp-2">{video.description}</p>}
+            </CardContent>
+            <CardFooter className="flex gap-2">
+              <Button variant={video.isFeatured ? 'secondary' : 'outline'} size="sm" className="flex-1" onClick={() => toggleFeatured(video.id)}>
+                {video.isFeatured ? 'Unfeature' : 'Feature'}
+              </Button>
+            </CardFooter>
+          </Card>
+        ))}
+      </div>
+
+      {(!videos || videos.length === 0) && (
+        <Card>
+          <CardContent className="py-12 text-center">
+            <Video className="w-12 h-12 text-muted-foreground mx-auto mb-3" />
+            <p className="text-muted-foreground">No featured videos. Mark videos as featured from the Videos section.</p>
+          </CardContent>
+        </Card>
+      )}
+    </div>
+  );
+}
+
 export default function AdminDashboard() {
   const [activeSection, setActiveSection] = useState(() => {
     const saved = localStorage.getItem('activeSection');
@@ -5708,6 +5937,12 @@ export default function AdminDashboard() {
         return <EbooksOnlineCoursesSection />;
       case "sliders":
         return <SlidersSection />;
+      case "slider-card":
+        return <SliderCardSection />;
+      case "videos":
+        return <VideosSection />;
+      case "featured-videos":
+        return <FeaturedVideosSection />;
       case "articles":
         return <ArticlesSection />;
       case "cricket-sports-training":
@@ -8156,21 +8391,38 @@ function FurnitureInteriorDecorSection() {
 // Sliders Section Component
 function SlidersSection() {
   const [sliders, setSliders] = useState<any[]>([]);
+  const [categories, setCategories] = useState<any[]>([]);
   const [showForm, setShowForm] = useState(false);
   const [editingSlider, setEditingSlider] = useState<any>(null);
 
   useEffect(() => {
     fetchSliders();
+    fetchCategories();
   }, []);
 
   const fetchSliders = async () => {
     try {
       const res = await fetch('/api/admin/sliders');
       const data = await res.json();
-      setSliders(Array.isArray(data) ? data : []);
+      const slidersWithCategoryNames = (Array.isArray(data) ? data : []).map((s: any) => {
+        const category = categories.find((c: any) => c.id === s.categoryId);
+        return { ...s, categoryName: category?.name };
+      });
+      setSliders(slidersWithCategoryNames);
     } catch (err) {
       console.error('Error fetching sliders:', err);
       setSliders([]);
+    }
+  };
+
+  const fetchCategories = async () => {
+    try {
+      const res = await fetch('/api/admin/categories');
+      const data = await res.json();
+      setCategories(Array.isArray(data) ? data : []);
+    } catch (err) {
+      console.error('Error fetching categories:', err);
+      setCategories([]);
     }
   };
 
@@ -8232,6 +8484,8 @@ function SlidersSection() {
         </DialogContent>
       </Dialog>
 
+      
+
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
         {Array.isArray(sliders) && sliders.map((s) => (
           <Card key={s.id} className="group hover:shadow-lg transition-shadow">
@@ -8253,9 +8507,12 @@ function SlidersSection() {
             <CardContent>
               {s.imageUrl && <img src={s.imageUrl} alt={s.title || 'slider'} className="w-full h-40 object-cover rounded-md" />}
               {s.description && <p className="text-sm text-muted-foreground mt-2 line-clamp-3">{s.description}</p>}
-              <div className="mt-3 flex items-center justify-between">
-                <span className="text-sm text-muted-foreground">Order: {s.sortOrder ?? 0}</span>
-                <Badge variant={s.isActive ? 'default' : 'secondary'}>{s.isActive ? 'Active' : 'Inactive'}</Badge>
+              <div className="mt-3 space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-muted-foreground">Order: {s.sortOrder ?? 0}</span>
+                  <Badge variant={s.isActive ? 'default' : 'secondary'}>{s.isActive ? 'Active' : 'Inactive'}</Badge>
+                </div>
+                {s.categoryId && <div className="text-xs text-muted-foreground">Category: {s.categoryName || 'N/A'}</div>}
               </div>
             </CardContent>
             <CardFooter className="pt-0 flex gap-2">
@@ -8828,6 +9085,314 @@ function ArticlesSection() {
             <CardContent>
               <p className="text-sm text-muted-foreground line-clamp-3">{a.excerpt}</p>
             </CardContent>
+          </Card>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// Slider Card Section Component (CRUD for `slider_card` table)
+function SliderCardSection() {
+  const [cards, setCards] = useState<any[]>([]);
+  const [showForm, setShowForm] = useState(false);
+  const [editingCard, setEditingCard] = useState<any>(null);
+  const [form, setForm] = useState({ title: '', imageUrl: '', status: 'Active' });
+  const [uploading, setUploading] = useState(false);
+  const [images, setImages] = useState<string[]>([]);
+  const [selectedIndex, setSelectedIndex] = useState(0);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const thumbsRef = useRef<HTMLDivElement | null>(null);
+
+  // Prevent body scrolling when the dialog is open so only modal scrolls
+  useEffect(() => {
+    const prev = typeof document !== 'undefined' ? document.body.style.overflow : '';
+    if (showForm) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = prev || '';
+    }
+    return () => {
+      if (typeof document !== 'undefined') document.body.style.overflow = prev || '';
+    };
+  }, [showForm]);
+
+  useEffect(() => {
+    fetchCards();
+  }, []);
+
+  const fetchCards = async () => {
+    try {
+      const res = await fetch('/api/admin/slider-card');
+      const data = await res.json();
+      setCards(Array.isArray(data) ? data : []);
+    } catch (err) {
+      console.error('Error fetching slider cards:', err);
+      setCards([]);
+    }
+  };
+
+  const handleAdd = () => {
+    setEditingCard(null);
+    setForm({ title: '', imageUrl: '', status: 'Active' });
+    setImages([]);
+    setSelectedIndex(0);
+    setSubmitError(null);
+    setShowForm(true);
+  };
+
+  const handleEdit = (c: any) => {
+    setEditingCard(c);
+    setForm({ title: c.title || '', imageUrl: c.image_url || c.imageUrl || '', status: c.status || 'Active' });
+    setImages((c.image_url || c.imageUrl) ? [c.image_url || c.imageUrl] : []);
+    setSelectedIndex(0);
+    setSubmitError(null);
+    setShowForm(true);
+  };
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
+
+    setUploading(true);
+    try {
+      const readFile = (file: File) =>
+        new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onloadend = () => resolve(reader.result as string);
+          reader.onerror = reject;
+          reader.readAsDataURL(file);
+        });
+
+      const results = await Promise.all(files.map(readFile));
+      const newImages = [...images, ...results];
+      setImages(newImages);
+      setForm(prev => ({ ...prev, imageUrl: newImages[0] || '' }));
+      setSelectedIndex(newImages.length - results.length);
+    } catch (error) {
+      console.error('Error uploading image:', error);
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const removeImageAt = (idx: number) => {
+    const next = images.filter((_, i) => i !== idx);
+    setImages(next);
+    const nextIndex = Math.max(0, Math.min(selectedIndex, next.length - 1));
+    setSelectedIndex(nextIndex);
+    setForm(prev => ({ ...prev, imageUrl: next[0] || '' }));
+  };
+
+  const selectIndex = (idx: number) => {
+    setSelectedIndex(idx);
+    const thumb = thumbsRef.current?.children[idx] as HTMLElement | undefined;
+    thumb?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  };
+
+  const prevImage = () => {
+    if (images.length === 0) return;
+    selectIndex((selectedIndex - 1 + images.length) % images.length);
+  };
+
+  const nextImage = () => {
+    if (images.length === 0) return;
+    selectIndex((selectedIndex + 1) % images.length);
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!confirm('Are you sure you want to delete this slider card?')) return;
+    try {
+      const res = await fetch(`/api/admin/slider-card/${id}`, { method: 'DELETE' });
+      if (res.ok) fetchCards();
+    } catch (err) {
+      console.error('Error deleting slider card:', err);
+    }
+  };
+
+  const handleToggle = async (id: string) => {
+    try {
+      const res = await fetch(`/api/admin/slider-card/${id}/toggle-active`, { method: 'PATCH' });
+      if (res.ok) fetchCards();
+    } catch (err) {
+      console.error('Error toggling slider card status:', err);
+    }
+  };
+
+  const handleSubmit = async (e: any) => {
+    e.preventDefault();
+    setSubmitError(null);
+
+    // Validation: title is required
+    if (!form.title || !form.title.trim()) {
+      setSubmitError('Title is required');
+      return;
+    }
+
+    // Validation: image is required (from newly uploaded images or existing)
+    const finalImageUrl = images.length > 0 ? images[0] : form.imageUrl;
+    if (!finalImageUrl) {
+      setSubmitError('Image is required');
+      return;
+    }
+
+    try {
+      const payload = { title: form.title, imageUrl: finalImageUrl, status: form.status };
+      let res;
+      if (editingCard) {
+        res = await fetch(`/api/admin/slider-card/${editingCard.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+      } else {
+        res = await fetch('/api/admin/slider-card', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+      }
+      if (res.ok) {
+        setShowForm(false);
+        setEditingCard(null);
+        setSubmitError(null);
+        fetchCards();
+      } else {
+        const errMsg = await res.text();
+        setSubmitError(`Save failed: ${errMsg}`);
+        console.error('Save failed', errMsg);
+      }
+    } catch (err: any) {
+      const msg = err.message || String(err);
+      setSubmitError(`Error: ${msg}`);
+      console.error('Error saving slider card:', err);
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-2xl font-bold">Slider Cards</h2>
+          <p className="text-muted-foreground">Manage slider cards (CRUD)</p>
+        </div>
+        <Button onClick={handleAdd}>
+          <Plus className="w-4 h-4 mr-2" />
+          Add Card
+        </Button>
+      </div>
+
+      <Dialog open={showForm} onOpenChange={(open) => { setShowForm(open); if (!open) { setEditingCard(null); setSubmitError(null); } }}>
+          <DialogContent className="max-w-lg max-h-[80vh]">
+            <DialogHeader>
+              <DialogTitle>{editingCard ? 'Edit Slider Card' : 'Add Slider Card'}</DialogTitle>
+              <DialogDescription>Provide title, image and status</DialogDescription>
+            </DialogHeader>
+            {submitError && <div className="bg-red-50 text-red-700 p-3 rounded-md text-sm">{submitError}</div>}
+            <form onSubmit={handleSubmit} className="space-y-4 py-2 max-h-[72vh] overflow-y-auto">
+              <div>
+                <Label htmlFor="title">Title *</Label>
+                <Input id="title" value={form.title} onChange={(e: any) => setForm(prev => ({ ...prev, title: e.target.value }))} required />
+              </div>
+
+              <div>
+                <Label htmlFor="imageFile">Slider Image *</Label>
+                <Input id="imageFile" type="file" accept="image/*" multiple onChange={handleImageUpload} disabled={uploading} />
+                {images.length > 0 && (
+                  <div className="mt-2 flex gap-4 items-start">
+                    <div className="flex flex-col items-center">
+                      <Button type="button" variant="ghost" size="icon" onClick={prevImage}>
+                        <ChevronUp className="w-4 h-4" />
+                      </Button>
+
+                      <div
+                        ref={thumbsRef}
+                        tabIndex={0}
+                        onKeyDown={(e) => {
+                          if (e.key === 'ArrowUp') prevImage();
+                          if (e.key === 'ArrowDown') nextImage();
+                        }}
+                        className="mt-2 flex flex-col gap-2 overflow-y-auto h-48 w-28 p-1"
+                      >
+                        {images.map((src, idx) => (
+                          <button
+                            key={idx}
+                            type="button"
+                            onClick={() => selectIndex(idx)}
+                            className={`flex-shrink-0 rounded-md overflow-hidden border ${idx === selectedIndex ? 'ring-2 ring-offset-2 ring-indigo-400' : ''}`}
+                          >
+                            <img src={src} className="w-28 h-16 object-cover" />
+                          </button>
+                        ))}
+                      </div>
+
+                      <Button type="button" variant="ghost" size="icon" onClick={nextImage} className="mt-2">
+                        <ChevronDown className="w-4 h-4" />
+                      </Button>
+                    </div>
+
+                    <div className="flex-1 relative">
+                      <img src={images[selectedIndex]} alt="Preview" className="w-full h-48 object-cover rounded-lg" />
+
+                      <Button
+                        type="button"
+                        variant="destructive"
+                        size="icon"
+                        className="absolute top-2 right-2"
+                        onClick={() => removeImageAt(selectedIndex)}
+                      >
+                        <X className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <div>
+                <Label>Status</Label>
+                <Select onValueChange={(v) => setForm(prev => ({ ...prev, status: v }))}>
+                  <SelectTrigger>
+                    <SelectValue>{form.status}</SelectValue>
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Active">Active</SelectItem>
+                    <SelectItem value="Inactive">Inactive</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="flex justify-end gap-2">
+                <Button type="button" variant="ghost" onClick={() => { setShowForm(false); setEditingCard(null); setSubmitError(null); }}>Cancel</Button>
+                <Button type="submit" disabled={uploading}>{editingCard ? 'Update' : 'Create'}</Button>
+              </div>
+            </form>
+          </DialogContent>
+      </Dialog>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        {Array.isArray(cards) && cards.map((c) => (
+          <Card key={c.id} className="group hover:shadow-lg transition-shadow">
+            <CardHeader>
+              <div className="flex items-start justify-between">
+                <div className="flex-1">
+                  <CardTitle className="text-lg mb-2">{c.title || 'Untitled'}</CardTitle>
+                </div>
+                <div className="flex gap-1">
+                  <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleEdit(c)}>
+                    <Edit className="w-4 h-4" />
+                  </Button>
+                  <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => handleDelete(c.id)}>
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {(c.image_url || c.imageUrl || c.image) && (
+                <img src={c.image_url || c.imageUrl || c.image} alt={c.title || 'card'} className="w-full h-40 object-cover rounded-md" />
+              )}
+              <div className="mt-3 flex items-center justify-between">
+                <span className="text-sm text-muted-foreground">Status: {c.status}</span>
+                <Badge variant={c.status === 'Active' ? 'default' : 'secondary'}>{c.status}</Badge>
+              </div>
+            </CardContent>
+            <CardFooter className="pt-0 flex gap-2">
+              <Button variant={c.status === 'Active' ? 'outline' : 'default'} size="sm" className="flex-1" onClick={() => handleToggle(c.id)}>
+                {c.status === 'Active' ? 'Deactivate' : 'Activate'}
+              </Button>
+            </CardFooter>
           </Card>
         ))}
       </div>

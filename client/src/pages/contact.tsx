@@ -8,6 +8,14 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
+import { useQuery } from "@tanstack/react-query";
+import {
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+  CarouselNext,
+  CarouselPrevious,
+} from "@/components/ui/carousel";
 
 export default function Contact() {
   const [formData, setFormData] = useState({
@@ -19,6 +27,15 @@ export default function Contact() {
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
+
+  const { data: sliders = [], isLoading: slidersLoading } = useQuery({
+    queryKey: ["sliders", "Contact"],
+    queryFn: async () => {
+      const res = await fetch("/api/sliders?pageType=Contact");
+      if (!res.ok) throw new Error("Failed to fetch sliders");
+      return res.json();
+    },
+  });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -64,17 +81,40 @@ export default function Contact() {
     <div className="min-h-screen bg-background" data-testid="page-contact">
       <Header />
 
-      {/* Hero Section */}
-      <section className="bg-primary text-primary-foreground py-16" data-testid="contact-hero">
-        <div className="container mx-auto px-4 text-center">
-          <h1 className="text-4xl font-bold mb-4" data-testid="text-contact-title">
-            हामीसँग सम्पर्क गर्नुहोस् | Contact Us
-          </h1>
-          <p className="text-xl opacity-90 max-w-2xl mx-auto" data-testid="text-contact-subtitle">
-            नेपालको अग्रणी रियल एस्टेट सेवामा तपाईंलाई स्वागत छ। हामी तपाईंको सेवामा सधैं तत्पर छौं।
-          </p>
-        </div>
-      </section>
+    
+      {/* Sliders */}
+      {!slidersLoading && sliders.length > 0 && (
+        <section className="container mx-auto px-0 py-0">
+          <Carousel className="w-full" opts={{ loop: true }}>
+            <CarouselContent>
+              {sliders.map((s: any) => (
+                <CarouselItem key={s.id}>
+                  <div className="relative h-[400px] rounded-3xl overflow-hidden bg-black/5">
+                    <img src={s.imageUrl} alt={s.title || "slider"} className="w-full h-full " />
+                    {(s.title || s.description || s.buttonText) && (
+                      <div className="absolute inset-0 flex items-end">
+                        <div className="bg-gradient-to-t from-black/60 to-transparent w-full p-8">
+                          <h3 className="text-3xl font-bold text-white">{s.title}</h3>
+                          {s.description && <p className="text-white/90 mt-2">{s.description}</p>}
+                          {s.linkUrl && s.buttonText && (
+                            <div className="mt-4">
+                              <a href={s.linkUrl} className="inline-block bg-white text-black px-4 py-2 rounded-md">
+                                {s.buttonText}
+                              </a>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </CarouselItem>
+              ))}
+            </CarouselContent>
+            <CarouselPrevious className="left-4" />
+            <CarouselNext className="right-4" />
+          </Carousel>
+        </section>
+      )}
 
       <div className="container mx-auto px-4 py-12">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -93,8 +133,8 @@ export default function Contact() {
                   <div>
                     <h4 className="font-semibold text-foreground">Jeevika Services Pvt. Ltd.</h4>
                     <p className="text-muted-foreground">
-                      New Baneshwor, Kathmandu<br />
-                      नयाँ बानेश्वर, काठमाडौं<br />
+                      Janakpur, Madhesh Province<br />
+                      जनकपुर, मधेश प्रदेश<br />
                       Nepal
                     </p>
                   </div>
@@ -102,54 +142,46 @@ export default function Contact() {
                   <div className="flex items-center space-x-3 text-muted-foreground">
                     <Phone className="w-4 h-4" />
                     <div>
-                      <p>+977-1-4123456</p>
-                      <p>+977-9812345678</p>
+                      <a href="tel:+9779705132820" className="hover:text-primary">+977 9705132820</a><br />
+                      <a href="tel:+9779709142561" className="hover:text-primary">+977 9709142561</a><br />
+                      <a href="tel:+9779810274988" className="hover:text-primary">+977 9810274988</a>
                     </div>
                   </div>
                   
                   <div className="flex items-center space-x-3 text-muted-foreground">
                     <Mail className="w-4 h-4" />
                     <div>
-                      <p>info@jeevikaservices.com</p>
-                      <p>support@jeevikaservices.com</p>
+                      <a href="mailto:jeevika7076@gmail.com" className="hover:text-primary">jeevika7076@gmail.com</a><br />
+                      <a href="mailto:support@jeevika.live" className="hover:text-primary">support@jeevika.live</a>
                     </div>
                   </div>
                   
                   <div className="flex items-center space-x-3 text-muted-foreground">
                     <Clock className="w-4 h-4" />
                     <div>
-                      <p>Sunday - Friday: 9:00 AM - 6:00 PM</p>
-                      <p>Saturday: 10:00 AM - 4:00 PM</p>
+                      <p>Monday - Friday: 6:20 PM onwards</p>
+                      <p>Available for queries and support</p>
                     </div>
                   </div>
                 </CardContent>
               </Card>
 
-              {/* Branch Offices */}
+              {/* Get in Touch */}
               <Card data-testid="branch-offices">
                 <CardHeader>
-                  <CardTitle>शाखा कार्यालयहरू | Branch Offices</CardTitle>
+                  <CardTitle>सम्पर्क विधि | Connect With Us</CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-4">
+                <CardContent className="space-y-3">
                   <div>
-                    <h4 className="font-semibold">Pokhara Branch</h4>
+                    <h4 className="font-semibold text-sm">सहयोग र साझेदारी</h4>
                     <p className="text-muted-foreground text-sm">
-                      Lakeside, Pokhara<br />
-                      +977-61-123456
+                      किसिम का सहयोग, साझेदारी वा व्यावसायिक प्रस्तावक को लागि सम्पर्क गर्नुहोस्।
                     </p>
                   </div>
                   <div>
-                    <h4 className="font-semibold">Chitwan Branch</h4>
+                    <h4 className="font-semibold text-sm">ग्राहक सेवा</h4>
                     <p className="text-muted-foreground text-sm">
-                      Bharatpur, Chitwan<br />
-                      +977-56-123456
-                    </p>
-                  </div>
-                  <div>
-                    <h4 className="font-semibold">Butwal Branch</h4>
-                    <p className="text-muted-foreground text-sm">
-                      Traffic Chowk, Butwal<br />
-                      +977-71-123456
+                      कुनै पनि समस्या वा प्रश्नक को लागि हाम्रो ग्राहक सेवा टिम सधैं तत्पर छ।
                     </p>
                   </div>
                 </CardContent>
@@ -161,18 +193,24 @@ export default function Contact() {
                   <CardTitle>तुरुन्त सम्पर्क | Quick Contact</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3">
-                  <Button className="w-full justify-start" variant="outline" data-testid="button-whatsapp">
-                    <Phone className="w-4 h-4 mr-2" />
-                    WhatsApp: +977-9812345678
-                  </Button>
-                  <Button className="w-full justify-start" variant="outline" data-testid="button-viber">
-                    <Phone className="w-4 h-4 mr-2" />
-                    Viber: +977-9812345678
-                  </Button>
-                  <Button className="w-full justify-start" variant="outline" data-testid="button-emergency">
-                    <Phone className="w-4 h-4 mr-2" />
-                    Emergency: +977-9898989898
-                  </Button>
+                  <a href="tel:+9779705132820" className="block">
+                    <Button className="w-full justify-start" variant="outline" data-testid="button-call-1">
+                      <Phone className="w-4 h-4 mr-2" />
+                      Call: +977 9705132820
+                    </Button>
+                  </a>
+                  <a href="tel:+9779709142561" className="block">
+                    <Button className="w-full justify-start" variant="outline" data-testid="button-call-2">
+                      <Phone className="w-4 h-4 mr-2" />
+                      Call: +977 9709142561
+                    </Button>
+                  </a>
+                  <a href="tel:+9779810274988" className="block">
+                    <Button className="w-full justify-start" variant="outline" data-testid="button-call-3">
+                      <Phone className="w-4 h-4 mr-2" />
+                      Call: +977 9810274988
+                    </Button>
+                  </a>
                 </CardContent>
               </Card>
             </div>
@@ -293,7 +331,7 @@ export default function Contact() {
                   </p>
                 </div>
                 <p className="text-sm text-muted-foreground mt-2">
-                  New Baneshwor, Kathmandu, Nepal | GPS: 27.6944° N, 85.3206° E
+                  Janakpur, Madhesh Province, Nepal
                 </p>
               </CardContent>
             </Card>

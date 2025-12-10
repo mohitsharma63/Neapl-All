@@ -10,11 +10,27 @@ import { Badge } from "@/components/ui/badge";
 import { Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import {
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+  CarouselNext,
+  CarouselPrevious,
+} from "@/components/ui/carousel";
 
 export default function Blog() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [openPost, setOpenPost] = useState<any | null>(null);
+
+  const { data: sliders = [], isLoading: slidersLoading } = useQuery({
+    queryKey: ["sliders", "Blog"],
+    queryFn: async () => {
+      const res = await fetch("/api/sliders?pageType=Blog");
+      if (!res.ok) throw new Error("Failed to fetch sliders");
+      return res.json();
+    },
+  });
 
   const { data: categories = [], isLoading: categoriesLoading } = useQuery({
     queryKey: ["blog-categories"],
@@ -65,32 +81,40 @@ export default function Blog() {
     <div className="min-h-screen bg-background" data-testid="page-blog">
       <Header />
 
-      {/* Hero Section */}
-      <section className="bg-gradient-to-br from-blue-600 via-blue-700 to-blue-800 text-white py-20" data-testid="blog-hero">
-        <div className="container mx-auto px-4">
-          <div className="max-w-3xl mx-auto text-center">
-            <h1 className="text-5xl font-bold mb-6" data-testid="text-blog-title">
-              ब्लग | Our Blog
-            </h1>
-            <p className="text-xl opacity-90 mb-8" data-testid="text-blog-subtitle">
-              Insights, tips, and stories from Nepal's real estate experts
-            </p>
-            
-            {/* Search Bar */}
-            <div className="relative max-w-2xl mx-auto">
-              <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-              <Input
-                type="text"
-                placeholder="Search articles..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-12 pr-4 py-6 text-lg bg-white text-gray-900 rounded-full"
-                data-testid="input-search"
-              />
-            </div>
-          </div>
-        </div>
-      </section>
+    
+      {/* Sliders */}
+      {!slidersLoading && sliders.length > 0 && (
+        <section className="container mx-auto px-0 py-0">
+          <Carousel className="w-full" opts={{ loop: true }}>
+            <CarouselContent>
+              {sliders.map((s: any) => (
+                <CarouselItem key={s.id}>
+                  <div className="relative h-[400px] rounded-3xl overflow-hidden bg-black/5">
+                    <img src={s.imageUrl} alt={s.title || "slider"} className="w-full h-full" />
+                    {(s.title || s.description || s.buttonText) && (
+                      <div className="absolute inset-0 flex items-end">
+                        <div className="bg-gradient-to-t from-black/60 to-transparent w-full p-8">
+                          <h3 className="text-3xl font-bold text-white">{s.title}</h3>
+                          {s.description && <p className="text-white/90 mt-2">{s.description}</p>}
+                          {s.linkUrl && s.buttonText && (
+                            <div className="mt-4">
+                              <a href={s.linkUrl} className="inline-block bg-white text-black px-4 py-2 rounded-md">
+                                {s.buttonText}
+                              </a>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </CarouselItem>
+              ))}
+            </CarouselContent>
+            <CarouselPrevious className="left-4" />
+            <CarouselNext className="right-4" />
+          </Carousel>
+        </section>
+      )}
 
       <div className="container mx-auto px-4 py-12">
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">

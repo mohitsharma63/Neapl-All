@@ -1,8 +1,9 @@
-import { Heart, User, Plus, Menu, X, Home, Building2, MapPin, Briefcase, Users as UsersIcon, GraduationCap, Settings, ChevronDown, Search } from "lucide-react";
+import { Heart, User, Plus, Menu, X, Home, Building2, MapPin, Briefcase, Users as UsersIcon, GraduationCap, Settings, ChevronDown, Search, Facebook, Instagram, Linkedin, Twitter, MessageCircle, Youtube } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { useRef, useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import Logo from '../../../attached_assets/Company Logo.png';
 import { useQuery } from "@tanstack/react-query";
 
 const iconMap: Record<string, any> = {
@@ -213,20 +214,45 @@ export default function Header() {
       {/* Top simple nav - static links */}
       <div className="bg-white border-b">
         <div className="container mx-auto px-4">
-          <nav className="flex items-center justify-end space-x-4 text-sm py-2">
-            {topNav.map((item) => (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={`px-2 py-1 rounded-md hover:bg-gray-100 transition-colors ${
-                  item.isActive ? "font-semibold text-gray-900" : "text-gray-700"
-                }`}
-                aria-label={item.label}
-              >
-                {item.label}
-              </Link>
-            ))}
-          </nav>
+          <div className="flex items-center justify-between py-2">
+            {/* Social Media Links - Left Side */}
+            <div className="flex items-center space-x-3">
+              <a href="https://www.facebook.com/jeevika" target="_blank" rel="noopener noreferrer" className="text-gray-600 hover:text-primary transition-colors" aria-label="Facebook">
+                <Facebook className="w-4 h-4" />
+              </a>
+              <a href="https://www.instagram.com/jeevika" target="_blank" rel="noopener noreferrer" className="text-gray-600 hover:text-primary transition-colors" aria-label="Instagram">
+                <Instagram className="w-4 h-4" />
+              </a>
+              <a href="https://www.linkedin.com/company/jeevika" target="_blank" rel="noopener noreferrer" className="text-gray-600 hover:text-primary transition-colors" aria-label="LinkedIn">
+                <Linkedin className="w-4 h-4" />
+              </a>
+              <a href="https://twitter.com/jeevika" target="_blank" rel="noopener noreferrer" className="text-gray-600 hover:text-primary transition-colors" aria-label="Twitter">
+                <Twitter className="w-4 h-4" />
+              </a>
+              <a href="https://wa.me/9779841234567" target="_blank" rel="noopener noreferrer" className="text-gray-600 hover:text-primary transition-colors" aria-label="WhatsApp">
+                <MessageCircle className="w-4 h-4" />
+              </a>
+              <a href="https://www.youtube.com/c/jeevika" target="_blank" rel="noopener noreferrer" className="text-gray-600 hover:text-primary transition-colors" aria-label="YouTube">
+                <Youtube className="w-4 h-4" />
+              </a>
+            </div>
+
+            {/* Navigation Links - Right Side */}
+            <nav className="flex items-center space-x-4 text-sm">
+              {topNav.map((item) => (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={`px-2 py-1 rounded-md hover:bg-gray-100 transition-colors ${
+                    item.isActive ? "font-semibold text-gray-900" : "text-gray-700"
+                  }`}
+                  aria-label={item.label}
+                >
+                  {item.label}
+                </Link>
+              ))}
+            </nav>
+          </div>
         </div>
       </div>
 
@@ -235,12 +261,10 @@ export default function Header() {
           <div className="flex items-center justify-between h-16">
             {/* Logo */}
             <Link href="/" className="flex items-center space-x-2 md:space-x-3" data-testid="link-home">
-              <div className="text-xl md:text-2xl font-bold flex items-center space-x-2 md:space-x-3">
-                <div className="w-8 h-8 md:w-10 md:h-10 bg-accent rounded-lg flex items-center justify-center text-white font-black text-lg md:text-xl">
-                  j
-                </div>
+              <div className="flex items-center space-x-2 md:space-x-3 text-white">
+                <img src={Logo} alt="Jeevika logo" className="w-8 h-8 md:w-10 md:h-10 rounded-lg object-contain" />
                 <div className="hidden sm:block">
-                  <span className="text-white text-lg md:text-xl tracking-wide">JEEVIKA</span>
+                  <span className="text-white text-lg md:text-xl tracking-wide font-bold">JEEVIKA</span>
                   <div className="text-xs text-accent/90 -mt-1 font-medium hidden md:block">सेवा प्रा. लि. | Services Pvt. Ltd.</div>
                 </div>
               </div>

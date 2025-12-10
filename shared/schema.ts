@@ -164,6 +164,20 @@ export const adminSubcategories = pgTable("admin_subcategories", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+export const videos = pgTable("videos", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  title: text("title").notNull(),
+  description: text("description"),
+  videoUrl: text("video_url").notNull(),
+  thumbnailUrl: text("thumbnail_url"),
+  durationMinutes: integer("duration_minutes"),
+  isActive: boolean("is_active").default(true),
+  isFeatured: boolean("is_featured").default(false),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+  userId: varchar("user_id").references(() => users.id),
+});
+
 // Relations
 export const agenciesRelations = relations(agencies, ({ many }) => ({
   properties: many(properties),
@@ -3284,12 +3298,27 @@ export const sliders = pgTable("sliders", {
   buttonText: text("button_text"),
   sortOrder: integer("sort_order").default(0),
   isActive: boolean("is_active").default(true),
+  pageType: text("page_type"), // For static pages: "Home", "About", "Contact", "Blog"
+  categoryId: varchar("category_id").references(() => adminCategories.id, { onDelete: "set null" }),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
 export type Slider = typeof sliders.$inferSelect;
 export type NewSlider = typeof sliders.$inferInsert;
+
+// Slider Card table for smaller slider cards (separate from main sliders)
+export const sliderCard = pgTable("slider_card", {
+  id: integer("id").primaryKey(),
+  title: text("title").notNull(),
+  imageUrl: text("image_url").notNull(),
+  status: text("status").default("Active"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export type SliderCard = typeof sliderCard.$inferSelect;
+export type NewSliderCard = typeof sliderCard.$inferInsert;
 
 // Article categories
 export const articleCategories = pgTable("article_categories", {

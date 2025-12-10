@@ -60,12 +60,16 @@ import {
   contactMessages,
   insertContactMessageSchema,
   sliders,
+  sliderCard,
   articles,
   insertArticleSchema,
   articleCategories,
   insertArticleCategorySchema,
   blogPosts,
+  videos,
+  cyberCafeInternetServices, // Added
 } from "../shared/schema";
+import { uploadMedia, handleMediaUpload } from './upload';
 import { eq, sql, desc, or } from "drizzle-orm";
 
 export function registerRoutes(app: Express) {
@@ -383,6 +387,144 @@ export function registerRoutes(app: Express) {
       res.status(201).json(created);
     } catch (error: any) {
       res.status(400).json({ message: error.message });
+    }
+  });
+
+  // Public: list videos (optionally filter featured)
+  app.get('/api/videos', async (req, res) => {
+    try {
+      const featured = req.query.featured;
+      let rows = await db.query.videos.findMany({ orderBy: [desc(videos.createdAt)] });
+      if (featured !== undefined) {
+        rows = rows.filter(r => !!r.isFeatured === (featured === 'true' || featured === true));
+      }
+      res.json(rows);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Admin: Videos CRUD
+  app.get('/api/admin/videos', async (_req, res) => {
+    try {
+      const list = await db.query.videos.findMany({ orderBy: [desc(videos.createdAt)] });
+      res.json(list);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.get('/api/admin/videos/:id', async (req, res) => {
+    try {
+      const item = await db.query.videos.findFirst({ where: eq(videos.id, req.params.id) });
+      if (!item) return res.status(404).json({ message: 'Video not found' });
+      res.json(item);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.post('/api/admin/videos', async (req, res) => {
+    try {
+      const payload: any = { ...(req.body || {}) };
+      // Normalize keys from frontend to DB column names
+      const insertData: any = {
+        title: payload.title,
+        description: payload.description,
+        videoUrl: payload.videoUrl || payload.video_url || payload.video_url,
+        thumbnailUrl: payload.thumbnailUrl || payload.thumbnail_url || payload.thumbnailUrl,
+        durationMinutes: payload.durationMinutes ?? payload.duration ?? undefined,
+        isActive: payload.isActive !== undefined ? !!payload.isActive : true,
+        isFeatured: payload.isFeatured !== undefined ? !!payload.isFeatured : false,
+        userId: payload.userId || null,
+      };
+      if (insertData.durationMinutes !== undefined) {
+        const d = Number(insertData.durationMinutes);
+        if (Number.isFinite(d) && !isNaN(d)) insertData.durationMinutes = Math.floor(d);
+        else delete insertData.durationMinutes;
+      }
+
+      console.log('[videos] creating video', insertData);
+      const [created] = await db.insert(videos).values(insertData).returning();
+      console.log('[videos] created', created);
+      res.status(201).json(created);
+    } catch (error: any) {
+      console.error('[videos] create error', error);
+      res.status(400).json({ message: error.message });
+    }
+  });
+
+  app.put('/api/admin/videos/:id', async (req, res) => {
+    try {
+      const id = req.params.id;
+      const payload: any = { ...(req.body || {}) };
+      const updateData: any = {
+        updatedAt: new Date(),
+      };
+      if (payload.title !== undefined) updateData.title = payload.title;
+      if (payload.description !== undefined) updateData.description = payload.description;
+      if (payload.videoUrl !== undefined || payload.video_url !== undefined) updateData.videoUrl = payload.videoUrl ?? payload.video_url;
+      if (payload.thumbnailUrl !== undefined || payload.thumbnail_url !== undefined) updateData.thumbnailUrl = payload.thumbnailUrl ?? payload.thumbnail_url;
+      if (payload.durationMinutes !== undefined || payload.duration !== undefined) updateData.durationMinutes = payload.durationMinutes ?? payload.duration;
+      if (payload.isActive !== undefined) updateData.isActive = !!payload.isActive;
+      if (payload.isFeatured !== undefined) updateData.isFeatured = !!payload.isFeatured;
+
+      if (updateData.durationMinutes !== undefined) {
+        const d = Number(updateData.durationMinutes);
+        if (Number.isFinite(d) && !isNaN(d)) updateData.durationMinutes = Math.floor(d);
+        else delete updateData.durationMinutes;
+      }
+
+      console.log('[videos] update', id, updateData);
+      const [updated] = await db.update(videos).set(updateData).where(eq(videos.id, id)).returning();
+      if (!updated) return res.status(404).json({ message: 'Video not found' });
+      console.log('[videos] updated', updated);
+      res.json(updated);
+    } catch (error: any) {
+      console.error('[videos] update error', error);
+      res.status(400).json({ message: error.message });
+    }
+  });
+
+  app.delete('/api/admin/videos/:id', async (req, res) => {
+    try {
+      const deleted = await db.delete(videos).where(eq(videos.id, req.params.id)).returning();
+      if (deleted.length === 0) return res.status(404).json({ message: 'Video not found' });
+      res.json({ message: 'Video deleted', id: req.params.id });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.patch('/api/admin/videos/:id/toggle-active', async (req, res) => {
+    try {
+      const item = await db.query.videos.findFirst({ where: eq(videos.id, req.params.id) });
+      if (!item) return res.status(404).json({ message: 'Video not found' });
+      const [updated] = await db.update(videos).set({ isActive: !item.isActive, updatedAt: new Date() }).where(eq(videos.id, req.params.id)).returning();
+      res.json(updated);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.patch('/api/admin/videos/:id/toggle-featured', async (req, res) => {
+    try {
+      const item = await db.query.videos.findFirst({ where: eq(videos.id, req.params.id) });
+      if (!item) return res.status(404).json({ message: 'Video not found' });
+      const [updated] = await db.update(videos).set({ isFeatured: !item.isFeatured, updatedAt: new Date() }).where(eq(videos.id, req.params.id)).returning();
+      res.json(updated);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Media upload endpoint for admin (thumbnails / videos)
+  app.post('/api/admin/upload', uploadMedia.single('file'), (req, res) => {
+    try {
+      // handleMediaUpload will send JSON response
+      return handleMediaUpload(req as any, res as any);
+    } catch (err: any) {
+      res.status(500).json({ message: err?.message || 'Upload failed' });
     }
   });
 
@@ -1514,12 +1656,37 @@ export function registerRoutes(app: Express) {
   });
 
   // Sliders - Admin CRUD + Public list
-  // Public: get active sliders for homepage (ordered)
-  app.get("/api/sliders", async (_req, res) => {
+  // Public: get active sliders, optionally filtered by pageType
+  app.get("/api/sliders", async (req, res) => {
     try {
+      const { pageType } = req.query;
+      
+      let whereCondition: any = eq(sliders.isActive, true);
+      
+      // If pageType is provided, filter by it
+      if (pageType && typeof pageType === "string") {
+        whereCondition = (sliders, { and, eq }) => and(
+          eq(sliders.isActive, true),
+          eq(sliders.pageType, pageType)
+        );
+      }
+      
       const allActive = await db.query.sliders.findMany({
-        where: eq(sliders.isActive, true),
+        where: whereCondition,
         orderBy: [sliders.sortOrder, desc(sliders.createdAt)],
+      });
+      res.json(allActive);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Public: get active slider cards for homepage
+  app.get("/api/slider-cards", async (_req, res) => {
+    try {
+      const allActive = await db.query.sliderCard.findMany({
+        where: eq(sliderCard.status, "Active"),
+        orderBy: [desc(sliderCard.createdAt)],
       });
       res.json(allActive);
     } catch (error: any) {
@@ -1534,6 +1701,87 @@ export function registerRoutes(app: Express) {
         orderBy: [sliders.sortOrder, desc(sliders.createdAt)],
       });
       res.json(list);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Admin: list all slider cards
+  app.get("/api/admin/slider-card", async (_req, res) => {
+    try {
+      const list = await db.query.sliderCard.findMany({ orderBy: [sliderCard.createdAt] });
+      res.json(list);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Admin: get single slider card
+  app.get('/api/admin/slider-card/:id', async (req, res) => {
+    try {
+      const id = Number(req.params.id);
+      if (!Number.isFinite(id)) return res.status(400).json({ message: 'Invalid id' });
+      const item = await db.query.sliderCard.findFirst({ where: eq(sliderCard.id, id) });
+      if (!item) return res.status(404).json({ message: 'Slider card not found' });
+      res.json(item);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Admin: create slider card
+  app.post('/api/admin/slider-card', async (req, res) => {
+    try {
+      const payload = req.body || {};
+      // Normalize
+      if (payload.status !== undefined) payload.status = String(payload.status || 'Active');
+
+      const [created] = await db.insert(sliderCard).values({ ...payload }).returning();
+      res.status(201).json(created);
+    } catch (error: any) {
+      res.status(400).json({ message: error.message });
+    }
+  });
+
+  // Admin: update slider card
+  app.put('/api/admin/slider-card/:id', async (req, res) => {
+    try {
+      const id = Number(req.params.id);
+      if (!Number.isFinite(id)) return res.status(400).json({ message: 'Invalid id' });
+      const payload = { ...(req.body || {}), updatedAt: new Date() };
+      if (payload.status !== undefined) payload.status = String(payload.status);
+
+      const [updated] = await db.update(sliderCard).set(payload).where(eq(sliderCard.id, id)).returning();
+      if (!updated) return res.status(404).json({ message: 'Slider card not found' });
+      res.json(updated);
+    } catch (error: any) {
+      res.status(400).json({ message: error.message });
+    }
+  });
+
+  // Admin: delete slider card
+  app.delete('/api/admin/slider-card/:id', async (req, res) => {
+    try {
+      const id = Number(req.params.id);
+      if (!Number.isFinite(id)) return res.status(400).json({ message: 'Invalid id' });
+      const deleted = await db.delete(sliderCard).where(eq(sliderCard.id, id)).returning();
+      if (deleted.length === 0) return res.status(404).json({ message: 'Slider card not found' });
+      res.json({ message: 'Slider card deleted successfully', id });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Admin: toggle active status
+  app.patch('/api/admin/slider-card/:id/toggle-active', async (req, res) => {
+    try {
+      const id = Number(req.params.id);
+      if (!Number.isFinite(id)) return res.status(400).json({ message: 'Invalid id' });
+      const item = await db.query.sliderCard.findFirst({ where: eq(sliderCard.id, id) });
+      if (!item) return res.status(404).json({ message: 'Slider card not found' });
+      const nextStatus = (item.status || 'Active') === 'Active' ? 'Inactive' : 'Active';
+      const [updated] = await db.update(sliderCard).set({ status: nextStatus, updatedAt: new Date() }).where(eq(sliderCard.id, id)).returning();
+      res.json(updated);
     } catch (error: any) {
       res.status(500).json({ message: error.message });
     }
@@ -7774,6 +8022,685 @@ app.patch("/api/admin/skill-training-certification/:id/toggle-featured", async (
         .where(eq(healthWellnessServices.id, req.params.id))
         .returning();
       res.json(updated);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // ========== PUBLIC ENDPOINTS FOR HOME PAGE ==========
+  // These endpoints return data for various product/service categories displayed on the home page
+
+  // Fashion & Beauty Products
+  app.get("/api/fashion-beauty", async (req, res) => {
+    try {
+      const limit = Math.min(parseInt(req.query.limit as string) || 20, 100);
+      const items = await db.query.fashionBeautyProducts.findMany({
+        limit,
+        orderBy: desc(fashionBeautyProducts.createdAt),
+      });
+      res.json(items);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Get single fashion beauty product by ID
+  app.get("/api/fashion-beauty/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const item = await db.query.fashionBeautyProducts.findFirst({
+        where: eq(fashionBeautyProducts.id, id),
+      });
+      if (!item) {
+        return res.status(404).json({ message: "Product not found" });
+      }
+      res.json(item);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Electronics & Gadgets
+  app.get("/api/electronics-gadgets", async (req, res) => {
+    try {
+      const limit = Math.min(parseInt(req.query.limit as string) || 20, 100);
+      const items = await db.query.electronicsGadgets.findMany({
+        limit,
+        orderBy: desc(electronicsGadgets.createdAt),
+      });
+      res.json(items);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Get single electronics gadget by ID
+  app.get("/api/electronics-gadgets/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const item = await db.query.electronicsGadgets.findFirst({
+        where: eq(electronicsGadgets.id, id),
+      });
+      if (!item) {
+        return res.status(404).json({ message: "Product not found" });
+      }
+      res.json(item);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Phones, Tablets & Accessories
+  app.get("/api/phones-tablets-accessories", async (req, res) => {
+    try {
+      const limit = Math.min(parseInt(req.query.limit as string) || 20, 100);
+      const items = await db.query.phonesTabletsAccessories.findMany({
+        limit,
+        orderBy: desc(phonesTabletsAccessories.createdAt),
+      });
+      res.json(items);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Cars & Bikes
+  app.get("/api/cars-bikes", async (req, res) => {
+    try {
+      const limit = Math.min(parseInt(req.query.limit as string) || 20, 100);
+      const items = await db.query.carsBikes.findMany({
+        limit,
+        orderBy: desc(carsBikes.createdAt),
+      });
+      res.json(items);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Get single car/bike by ID
+  app.get("/api/cars-bikes/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const item = await db.query.carsBikes.findFirst({
+        where: eq(carsBikes.id, id),
+      });
+      if (!item) {
+        return res.status(404).json({ message: "Vehicle not found" });
+      }
+      res.json(item);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Skill Training & Certification
+  app.get("/api/skill-training", async (req, res) => {
+    try {
+      const limit = Math.min(parseInt(req.query.limit as string) || 20, 100);
+      const items = await db.query.skillTrainingCertification.findMany({
+        limit,
+        orderBy: desc(skillTrainingCertification.createdAt),
+      });
+      res.json(items);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Get single skill training by ID
+  app.get("/api/skill-training/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const item = await db.query.skillTrainingCertification.findFirst({
+        where: eq(skillTrainingCertification.id, id),
+      });
+      if (!item) {
+        return res.status(404).json({ message: "Training not found" });
+      }
+      res.json(item);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Construction Materials
+  app.get("/api/construction-materials", async (req, res) => {
+    try {
+      const limit = Math.min(parseInt(req.query.limit as string) || 20, 100);
+      const items = await db.query.constructionMaterials.findMany({
+        limit,
+        orderBy: desc(constructionMaterials.createdAt),
+      });
+      res.json(items);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Rental Listings
+  app.get("/api/rental-listings", async (req, res) => {
+    try {
+      const limit = Math.min(parseInt(req.query.limit as string) || 20, 100);
+      const items = await db.query.rentalListings.findMany({
+        limit,
+        orderBy: desc(rentalListings.createdAt),
+      });
+      res.json(items);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Hostel & PG Listings
+  app.get("/api/hostel-listings", async (req, res) => {
+    try {
+      const limit = Math.min(parseInt(req.query.limit as string) || 20, 100);
+      const items = await db.query.hostelPgListings.findMany({
+        limit,
+        orderBy: desc(hostelPgListings.createdAt),
+      });
+      res.json(items);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Furniture & Interior Decor
+  app.get("/api/furniture-decor", async (req, res) => {
+    try {
+      const limit = Math.min(parseInt(req.query.limit as string) || 20, 100);
+      const items = await db.query.furnitureInteriorDecor.findMany({
+        limit,
+        orderBy: desc(furnitureInteriorDecor.createdAt),
+      });
+      res.json(items);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Jewelry & Accessories
+  app.get("/api/jewelry-accessories", async (req, res) => {
+    try {
+      const limit = Math.min(parseInt(req.query.limit as string) || 20, 100);
+      const items = await db.query.jewelryAccessories.findMany({
+        limit,
+        orderBy: desc(jewelryAccessories.createdAt),
+      });
+      res.json(items);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Health & Wellness Services
+  app.get("/api/health-wellness", async (req, res) => {
+    try {
+      const limit = Math.min(parseInt(req.query.limit as string) || 20, 100);
+      const items = await db.query.healthWellnessServices.findMany({
+        limit,
+        orderBy: desc(healthWellnessServices.createdAt),
+      });
+      res.json(items);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Get single health wellness service by ID
+  app.get("/api/health-wellness/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const item = await db.query.healthWellnessServices.findFirst({
+        where: eq(healthWellnessServices.id, id),
+      });
+      if (!item) {
+        return res.status(404).json({ message: "Health wellness service not found" });
+      }
+      res.json(item);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Tuition & Private Classes
+  app.get("/api/tuition-classes", async (req, res) => {
+    try {
+      const limit = Math.min(parseInt(req.query.limit as string) || 20, 100);
+      const items = await db.query.tuitionPrivateClasses.findMany({
+        limit,
+        orderBy: desc(tuitionPrivateClasses.createdAt),
+      });
+      res.json(items);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Get single tuition class by ID
+  app.get("/api/tuition-classes/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const item = await db.query.tuitionPrivateClasses.findFirst({
+        where: eq(tuitionPrivateClasses.id, id),
+      });
+      if (!item) {
+        return res.status(404).json({ message: "Tuition class not found" });
+      }
+      res.json(item);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Dance, Karate, Gym & Yoga
+  app.get("/api/dance-gym-yoga", async (req, res) => {
+    try {
+      const limit = Math.min(parseInt(req.query.limit as string) || 20, 100);
+      const items = await db.query.danceKarateGymYoga.findMany({
+        limit,
+        orderBy: desc(danceKarateGymYoga.createdAt),
+      });
+      res.json(items);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Get single dance/gym/yoga by ID
+  app.get("/api/dance-gym-yoga/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const item = await db.query.danceKarateGymYoga.findFirst({
+        where: eq(danceKarateGymYoga.id, id),
+      });
+      if (!item) {
+        return res.status(404).json({ message: "Class not found" });
+      }
+      res.json(item);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Language Classes
+  app.get("/api/language-classes", async (req, res) => {
+    try {
+      const limit = Math.min(parseInt(req.query.limit as string) || 20, 100);
+      const items = await db.query.languageClasses.findMany({
+        limit,
+        orderBy: desc(languageClasses.createdAt),
+      });
+      res.json(items);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Get single language class by ID
+  app.get("/api/language-classes/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const item = await db.query.languageClasses.findFirst({
+        where: eq(languageClasses.id, id),
+      });
+      if (!item) {
+        return res.status(404).json({ message: "Language class not found" });
+      }
+      res.json(item);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Academies, Music, Arts & Sports
+  app.get("/api/academy-music-arts", async (req, res) => {
+    try {
+      const limit = Math.min(parseInt(req.query.limit as string) || 20, 100);
+      const items = await db.query.academiesMusicArtsSports.findMany({
+        limit,
+        orderBy: desc(academiesMusicArtsSports.createdAt),
+      });
+      res.json(items);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Get single academy/music/arts by ID
+  app.get("/api/academy-music-arts/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const item = await db.query.academiesMusicArtsSports.findFirst({
+        where: eq(academiesMusicArtsSports.id, id),
+      });
+      if (!item) {
+        return res.status(404).json({ message: "Academy not found" });
+      }
+      res.json(item);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Schools, Colleges & Coaching
+  app.get("/api/schools-colleges-coaching", async (req, res) => {
+    try {
+      const limit = Math.min(parseInt(req.query.limit as string) || 20, 100);
+      const items = await db.query.schoolsCollegesCoaching.findMany({
+        limit,
+        orderBy: desc(schoolsCollegesCoaching.createdAt),
+      });
+      res.json(items);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Education Consultancy & Study Abroad
+  app.get("/api/education-consultancy", async (req, res) => {
+    try {
+      const limit = Math.min(parseInt(req.query.limit as string) || 20, 100);
+      const items = await db.query.educationalConsultancyStudyAbroad.findMany({
+        limit,
+        orderBy: desc(educationalConsultancyStudyAbroad.createdAt),
+      });
+      res.json(items);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Pharmacy & Medical Stores
+  app.get("/api/pharmacy-medical", async (req, res) => {
+    try {
+      const limit = Math.min(parseInt(req.query.limit as string) || 20, 100);
+      const items = await db.query.pharmacyMedicalStores.findMany({
+        limit,
+        orderBy: desc(pharmacyMedicalStores.createdAt),
+      });
+      res.json(items);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Second Hand Phones, Tablets & Accessories
+  app.get("/api/second-hand-phones", async (req, res) => {
+    try {
+      const limit = Math.min(parseInt(req.query.limit as string) || 20, 100);
+      const items = await db.query.secondHandPhonesTabletsAccessories.findMany({
+        limit,
+        orderBy: desc(secondHandPhonesTabletsAccessories.createdAt),
+      });
+      res.json(items);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Computer, Mobile & Laptop Repair Services
+  app.get("/api/computer-repair", async (req, res) => {
+    try {
+      const limit = Math.min(parseInt(req.query.limit as string) || 20, 100);
+      const items = await db.query.computerMobileLaptopRepairServices.findMany({
+        limit,
+        orderBy: desc(computerMobileLaptopRepairServices.createdAt),
+      });
+      res.json(items);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Event & Decoration Services
+  app.get("/api/event-decoration", async (req, res) => {
+    try {
+      const limit = Math.min(parseInt(req.query.limit as string) || 20, 100);
+      const items = await db.query.eventDecorationServices.findMany({
+        limit,
+        orderBy: desc(eventDecorationServices.createdAt),
+      });
+      res.json(items);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Household Services
+  app.get("/api/household-services", async (req, res) => {
+    try {
+      const limit = Math.min(parseInt(req.query.limit as string) || 20, 100);
+      const items = await db.query.householdServices.findMany({
+        limit,
+        orderBy: desc(householdServices.createdAt),
+      });
+      res.json(items);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Saree & Clothing Shopping
+  app.get("/api/saree-clothing", async (req, res) => {
+    try {
+      const limit = Math.min(parseInt(req.query.limit as string) || 20, 100);
+      const items = await db.query.sareeClothingShopping.findMany({
+        limit,
+        orderBy: desc(sareeClothingShopping.createdAt),
+      });
+      res.json(items);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // E-Books & Online Courses
+  app.get("/api/ebooks-courses", async (req, res) => {
+    try {
+      const limit = Math.min(parseInt(req.query.limit as string) || 20, 100);
+      const items = await db.query.ebooksOnlineCourses.findMany({
+        limit,
+        orderBy: desc(ebooksOnlineCourses.createdAt),
+      });
+      res.json(items);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Cricket & Sports Training
+  app.get("/api/cricket-sports", async (req, res) => {
+    try {
+      const limit = Math.min(parseInt(req.query.limit as string) || 20, 100);
+      const items = await db.query.cricketSportsTraining.findMany({
+        limit,
+        orderBy: desc(cricketSportsTraining.createdAt),
+      });
+      res.json(items);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Cyber Cafe & Internet Services
+  app.get("/api/cyber-cafe", async (req, res) => {
+    try {
+      const limit = Math.min(parseInt(req.query.limit as string) || 20, 100);
+      const items = await db.query.cyberCafeInternetServices.findMany({
+        limit,
+        orderBy: desc(cyberCafeInternetServices.createdAt),
+      });
+      res.json(items);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Telecommunication Services
+  app.get("/api/telecommunication", async (req, res) => {
+    try {
+      const limit = Math.min(parseInt(req.query.limit as string) || 20, 100);
+      const items = await db.query.telecommunicationServices.findMany({
+        limit,
+        orderBy: desc(telecommunicationServices.createdAt),
+      });
+      res.json(items);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Service Centre & Warranty
+  app.get("/api/service-centre", async (req, res) => {
+    try {
+      const limit = Math.min(parseInt(req.query.limit as string) || 20, 100);
+      const items = await db.query.serviceCentreWarranty.findMany({
+        limit,
+        orderBy: desc(serviceCentreWarranty.createdAt),
+      });
+      res.json(items);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Car & Bike Rentals (public endpoint)
+  app.get("/api/car-bike-rental-public", async (req, res) => {
+    try {
+      const limit = Math.min(parseInt(req.query.limit as string) || 20, 100);
+      const items = await db.query.carBikeRentals.findMany({
+        limit,
+        orderBy: desc(carBikeRentals.createdAt),
+      });
+      res.json(items);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Heavy Equipment (public endpoint)
+  app.get("/api/heavy-equipment-public", async (req, res) => {
+    try {
+      const limit = Math.min(parseInt(req.query.limit as string) || 20, 100);
+      const items = await db.query.heavyEquipment.findMany({
+        limit,
+        orderBy: desc(heavyEquipment.createdAt),
+      });
+      res.json(items);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Property Deals (public endpoint)
+  app.get("/api/property-deals-public", async (req, res) => {
+    try {
+      const limit = Math.min(parseInt(req.query.limit as string) || 20, 100);
+      const items = await db.query.propertyDeals.findMany({
+        limit,
+        orderBy: desc(propertyDeals.createdAt),
+      });
+      res.json(items);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Commercial Properties (public endpoint)
+  app.get("/api/commercial-properties-public", async (req, res) => {
+    try {
+      const limit = Math.min(parseInt(req.query.limit as string) || 20, 100);
+      const items = await db.query.commercialProperties.findMany({
+        limit,
+        orderBy: desc(commercialProperties.createdAt),
+      });
+      res.json(items);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Industrial Land (public endpoint)
+  app.get("/api/industrial-land-public", async (req, res) => {
+    try {
+      const limit = Math.min(parseInt(req.query.limit as string) || 20, 100);
+      const items = await db.query.industrialLand.findMany({
+        limit,
+        orderBy: desc(industrialLand.createdAt),
+      });
+      res.json(items);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Office Spaces (public endpoint)
+  app.get("/api/office-spaces-public", async (req, res) => {
+    try {
+      const limit = Math.min(parseInt(req.query.limit as string) || 20, 100);
+      const items = await db.query.officeSpaces.findMany({
+        limit,
+        orderBy: desc(officeSpaces.createdAt),
+      });
+      res.json(items);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Showrooms (public endpoint)
+  app.get("/api/showrooms-public", async (req, res) => {
+    try {
+      const limit = Math.min(parseInt(req.query.limit as string) || 20, 100);
+      const items = await db.query.showrooms.findMany({
+        limit,
+        orderBy: desc(showrooms.createdAt),
+      });
+      res.json(items);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Second Hand Cars & Bikes (public endpoint)
+  app.get("/api/second-hand-cars-bikes-public", async (req, res) => {
+    try {
+      const limit = Math.min(parseInt(req.query.limit as string) || 20, 100);
+      const items = await db.query.secondHandCarsBikes.findMany({
+        limit,
+        orderBy: desc(secondHandCarsBikes.createdAt),
+      });
+      res.json(items);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Vehicle License Classes (public endpoint)
+  app.get("/api/vehicle-license-classes", async (req, res) => {
+    try {
+      const limit = Math.min(parseInt(req.query.limit as string) || 20, 100);
+      const items = await db.query.vehicleLicenseClasses.findMany({
+        limit,
+        orderBy: desc(vehicleLicenseClasses.createdAt),
+      });
+      res.json(items);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Transportation & Moving Services (public endpoint)
+  app.get("/api/transportation-services", async (req, res) => {
+    try {
+      const limit = Math.min(parseInt(req.query.limit as string) || 20, 100);
+      const items = await db.query.transportationMovingServices.findMany({
+        limit,
+        orderBy: desc(transportationMovingServices.createdAt),
+      });
+      res.json(items);
     } catch (error: any) {
       res.status(500).json({ message: error.message });
     }

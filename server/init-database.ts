@@ -492,6 +492,23 @@ export async function initDatabase() {
     role TEXT
   )`);
 
+  // Create videos table
+  await db.execute(sql`
+    CREATE TABLE IF NOT EXISTS videos (
+      id VARCHAR PRIMARY KEY DEFAULT gen_random_uuid(),
+      title TEXT NOT NULL,
+      description TEXT,
+      video_url TEXT NOT NULL,
+      thumbnail_url TEXT,
+      duration_minutes INTEGER,
+      is_active BOOLEAN DEFAULT TRUE,
+      is_featured BOOLEAN DEFAULT FALSE,
+      created_at TIMESTAMP DEFAULT NOW(),
+      updated_at TIMESTAMP DEFAULT NOW(),
+      user_id VARCHAR REFERENCES users(id)
+    )
+  `);
+
 
     // Create indexes
     await db.execute(sql`CREATE INDEX IF NOT EXISTS idx_admin_categories_slug ON admin_categories(slug)`);
