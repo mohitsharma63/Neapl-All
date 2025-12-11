@@ -312,13 +312,7 @@ function AllServiceFields({ service }: { service: ServiceData }) {
         </div>
 
         <div className="flex items-center gap-3">
-          <button
-            onClick={() => setShowRaw((s) => !s)}
-            className="text-sm px-3 py-1 rounded bg-gray-100 hover:bg-gray-200 transition"
-          >
-            {showRaw ? "Hide JSON" : "Show raw JSON"}
-          </button>
-
+    
           <button
             onClick={() => setExpanded((e) => !e)}
             className="flex items-center gap-2 text-sm px-3 py-2 rounded bg-[#0B8457] text-white hover:opacity-95 transition"

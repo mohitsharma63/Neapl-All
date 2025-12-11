@@ -104,26 +104,148 @@ export function registerRoutes(app: Express) {
       const qLower = q.toLowerCase();
       const tokens = qLower.split(/\s+/).map(t => t.trim()).filter(Boolean);
       const modeAll = (req.query.mode || '').toString().toLowerCase() === 'all' || (req.query.mode || '').toString().toLowerCase() === 'and';
+      
+      // Category filter - if provided, only search within specific category sources
+      const categoryFilter = (req.query.category || '').toString().toLowerCase().trim();
+      // Subcategory filter - optional, restrict results to items that mention the subcategory slug/name
+      const subcategoryFilterRaw = (req.query.subcategory || '').toString().trim();
+      const subcategoryFilter = subcategoryFilterRaw ? subcategoryFilterRaw.toLowerCase() : '';
+
+      // Resolve subcategory ids/slugs/names from adminSubcategories to improve matching
+      let resolvedSubcategoryIds: string[] = [];
+      let resolvedSubcategorySlugs: string[] = [];
+      let resolvedSubcategoryNames: string[] = [];
+      if (subcategoryFilter) {
+        try {
+          const allSubs = await db.query.adminSubcategories.findMany();
+          const matches = allSubs.filter((s: any) => {
+            const slug = (s.slug || '').toString().toLowerCase();
+            const name = (s.name || '').toString().toLowerCase();
+            const id = (s.id || '').toString().toLowerCase();
+            return slug === subcategoryFilter || name === subcategoryFilter || id === subcategoryFilter;
+          });
+          resolvedSubcategoryIds = matches.map((m: any) => (m.id || '').toString().toLowerCase());
+          resolvedSubcategorySlugs = matches.map((m: any) => (m.slug || '').toString().toLowerCase());
+          resolvedSubcategoryNames = matches.map((m: any) => (m.name || '').toString().toLowerCase());
+        } catch (e) {
+          // ignore resolution errors; fall back to textual matching
+        }
+      }
 
       // Fetch candidates from several tables (recent first). Adjust as needed.
       const limitFetch = 200;
 
+      // Map of category names to their associated service sources
+      const categorySourcesMap: Record<string, string[]> = {
+        'education-learning': ['tuition', 'schools', 'languageClasses', 'skillTraining', 'educationalConsultancy', 'ebooks', 'dance', 'academies', 'cricketTraining'],
+        'electronics-technology': ['electronics', 'phones', 'secondHandPhones', 'computerRepair', 'cyberCafe', 'telecommunication', 'serviceCentre'],
+        'fashion-lifestyle': ['fashion', 'jewelry', 'healthWellness', 'pharmacy', 'sareeClothing', 'furniture'],
+        'real-estate-property': ['properties', 'rentals', 'hostelPg', 'propertyDeals', 'commercialProperties', 'officeSpaces', 'industrialLand', 'constructionMaterials'],
+        'vehicles-transportation': ['cars', 'secondHandCars', 'heavyEquipment', 'showrooms', 'carBikeRentals', 'vehicleLicense', 'transportation'],
+        'services': ['household', 'healthWellness', 'eventDecoration', 'transportation', 'serviceCentre', 'pharamacy'],
+        'furniture-home': ['furniture', 'household', 'eventDecoration'],
+      };
+
       const sourceFetchers: Record<string, () => Promise<any[]>> = {
+        // Properties & Real Estate
         properties: () => db.query.properties.findMany({ orderBy: [desc(properties.createdAt)], limit: limitFetch }),
-        cars: () => db.query.carsBikes.findMany({ orderBy: [desc(carsBikes.createdAt)], limit: limitFetch }),
         rentals: () => db.query.rentalListings.findMany({ orderBy: [desc(rentalListings.createdAt)], limit: limitFetch }),
+        hostelPg: () => db.query.hostelPgListings.findMany({ orderBy: [desc(hostelPgListings.createdAt)], limit: limitFetch }),
         propertyDeals: () => db.query.propertyDeals.findMany({ orderBy: [desc(propertyDeals.createdAt)], limit: limitFetch }),
         commercialProperties: () => db.query.commercialProperties.findMany({ orderBy: [desc(commercialProperties.createdAt)], limit: limitFetch }),
         officeSpaces: () => db.query.officeSpaces.findMany({ orderBy: [desc(officeSpaces.createdAt)], limit: limitFetch }),
+        industrialLand: () => db.query.industrialLand.findMany({ orderBy: [desc(industrialLand.createdAt)], limit: limitFetch }),
+        
+        // Vehicles
+        cars: () => db.query.carsBikes.findMany({ orderBy: [desc(carsBikes.createdAt)], limit: limitFetch }),
+        secondHandCars: () => db.query.secondHandCarsBikes.findMany({ orderBy: [desc(secondHandCarsBikes.createdAt)], limit: limitFetch }),
+        carBikeRentals: () => db.query.carBikeRentals.findMany({ orderBy: [desc(carBikeRentals.createdAt)], limit: limitFetch }),
+        // aliases with kebab-case used by some front-end paths
+        'cars-bikes': () => db.query.carsBikes.findMany({ orderBy: [desc(carsBikes.createdAt)], limit: limitFetch }),
+        'second-hand-cars-bikes': () => db.query.secondHandCarsBikes.findMany({ orderBy: [desc(secondHandCarsBikes.createdAt)], limit: limitFetch }),
+        'car-bike-rentals': () => db.query.carBikeRentals.findMany({ orderBy: [desc(carBikeRentals.createdAt)], limit: limitFetch }),
+        
+        // Equipment & Machinery
+        heavyEquipment: () => db.query.heavyEquipment.findMany({ orderBy: [desc(heavyEquipment.createdAt)], limit: limitFetch }),
+        constructionMaterials: () => db.query.constructionMaterials.findMany({ orderBy: [desc(constructionMaterials.createdAt)], limit: limitFetch }),
+        // kebab-case alias (frontend may request /api/construction-materials)
+        'construction-materials': () => db.query.constructionMaterials.findMany({ orderBy: [desc(constructionMaterials.createdAt)], limit: limitFetch }),
+        
+        // Electronics & Technology
+        electronics: () => db.query.electronicsGadgets.findMany({ orderBy: [desc(electronicsGadgets.createdAt)], limit: limitFetch }),
+        phones: () => db.query.phonesTabletsAccessories.findMany({ orderBy: [desc(phonesTabletsAccessories.createdAt)], limit: limitFetch }),
+        secondHandPhones: () => db.query.secondHandPhonesTabletsAccessories.findMany({ orderBy: [desc(secondHandPhonesTabletsAccessories.createdAt)], limit: limitFetch }),
+        computerRepair: () => db.query.computerMobileLaptopRepairServices.findMany({ orderBy: [desc(computerMobileLaptopRepairServices.createdAt)], limit: limitFetch }),
+        cyberCafe: () => db.query.cyberCafeInternetServices.findMany({ orderBy: [desc(cyberCafeInternetServices.createdAt)], limit: limitFetch }),
+        telecommunication: () => db.query.telecommunicationServices.findMany({ orderBy: [desc(telecommunicationServices.createdAt)], limit: limitFetch }),
+        // kebab-case aliases for frontend endpoints
+        'electronics-gadgets': () => db.query.electronicsGadgets.findMany({ orderBy: [desc(electronicsGadgets.createdAt)], limit: limitFetch }),
+        'phones-tablets': () => db.query.phonesTabletsAccessories.findMany({ orderBy: [desc(phonesTabletsAccessories.createdAt)], limit: limitFetch }),
+        'second-hand-phones': () => db.query.secondHandPhonesTabletsAccessories.findMany({ orderBy: [desc(secondHandPhonesTabletsAccessories.createdAt)], limit: limitFetch }),
+        'computer-repair': () => db.query.computerMobileLaptopRepairServices.findMany({ orderBy: [desc(computerMobileLaptopRepairServices.createdAt)], limit: limitFetch }),
+        'cyber-cafe': () => db.query.cyberCafeInternetServices.findMany({ orderBy: [desc(cyberCafeInternetServices.createdAt)], limit: limitFetch }),
+        
+        // Education & Training
+        tuition: () => db.query.tuitionPrivateClasses.findMany({ orderBy: [desc(tuitionPrivateClasses.createdAt)], limit: limitFetch }),
+        schools: () => db.query.schoolsCollegesCoaching.findMany({ orderBy: [desc(schoolsCollegesCoaching.createdAt)], limit: limitFetch }),
+        languageClasses: () => db.query.languageClasses.findMany({ orderBy: [desc(languageClasses.createdAt)], limit: limitFetch }),
+        skillTraining: () => db.query.skillTrainingCertification.findMany({ orderBy: [desc(skillTrainingCertification.createdAt)], limit: limitFetch }),
+        educationalConsultancy: () => db.query.educationalConsultancyStudyAbroad.findMany({ orderBy: [desc(educationalConsultancyStudyAbroad.createdAt)], limit: limitFetch }),
+        ebooks: () => db.query.ebooksOnlineCourses.findMany({ orderBy: [desc(ebooksOnlineCourses.createdAt)], limit: limitFetch }),
+        
+        // Sports, Fitness & Recreation
+        dance: () => db.query.danceKarateGymYoga.findMany({ orderBy: [desc(danceKarateGymYoga.createdAt)], limit: limitFetch }),
+        academies: () => db.query.academiesMusicArtsSports.findMany({ orderBy: [desc(academiesMusicArtsSports.createdAt)], limit: limitFetch }),
+        cricketTraining: () => db.query.cricketSportsTraining.findMany({ orderBy: [desc(cricketSportsTraining.createdAt)], limit: limitFetch }),
+        
+        // Shopping & Retail
+        fashion: () => db.query.fashionBeautyProducts.findMany({ orderBy: [desc(fashionBeautyProducts.createdAt)], limit: limitFetch }),
+        sareeClothing: () => db.query.sareeClothingShopping.findMany({ orderBy: [desc(sareeClothingShopping.createdAt)], limit: limitFetch }),
+        jewelry: () => db.query.jewelryAccessories.findMany({ orderBy: [desc(jewelryAccessories.createdAt)], limit: limitFetch }),
+        furniture: () => db.query.furnitureInteriorDecor.findMany({ orderBy: [desc(furnitureInteriorDecor.createdAt)], limit: limitFetch }),
+        pharmacy: () => db.query.pharmacyMedicalStores.findMany({ orderBy: [desc(pharmacyMedicalStores.createdAt)], limit: limitFetch }),
+        // kebab-case aliases for shopping/retail endpoints
+        'fashion-beauty': () => db.query.fashionBeautyProducts.findMany({ orderBy: [desc(fashionBeautyProducts.createdAt)], limit: limitFetch }),
+        'jewelry-accessories': () => db.query.jewelryAccessories.findMany({ orderBy: [desc(jewelryAccessories.createdAt)], limit: limitFetch }),
+        'furniture-interior-decor': () => db.query.furnitureInteriorDecor.findMany({ orderBy: [desc(furnitureInteriorDecor.createdAt)], limit: limitFetch }),
+        'pharmacy-medical': () => db.query.pharmacyMedicalStores.findMany({ orderBy: [desc(pharmacyMedicalStores.createdAt)], limit: limitFetch }),
+        
+        // Services
+        household: () => db.query.householdServices.findMany({ orderBy: [desc(householdServices.createdAt)], limit: limitFetch }),
+        healthWellness: () => db.query.healthWellnessServices.findMany({ orderBy: [desc(healthWellnessServices.createdAt)], limit: limitFetch }),
+        eventDecoration: () => db.query.eventDecorationServices.findMany({ orderBy: [desc(eventDecorationServices.createdAt)], limit: limitFetch }),
+        transportation: () => db.query.transportationMovingServices.findMany({ orderBy: [desc(transportationMovingServices.createdAt)], limit: limitFetch }),
+        serviceCentre: () => db.query.serviceCentreWarranty.findMany({ orderBy: [desc(serviceCentreWarranty.createdAt)], limit: limitFetch }),
+        vehicleLicense: () => db.query.vehicleLicenseClasses.findMany({ orderBy: [desc(vehicleLicenseClasses.createdAt)], limit: limitFetch }),
+        // kebab-case aliases for service endpoints
+        'household-services': () => db.query.householdServices.findMany({ orderBy: [desc(householdServices.createdAt)], limit: limitFetch }),
+        'health-wellness': () => db.query.healthWellnessServices.findMany({ orderBy: [desc(healthWellnessServices.createdAt)], limit: limitFetch }),
+        'event-decoration': () => db.query.eventDecorationServices.findMany({ orderBy: [desc(eventDecorationServices.createdAt)], limit: limitFetch }),
+        'service-centre': () => db.query.serviceCentreWarranty.findMany({ orderBy: [desc(serviceCentreWarranty.createdAt)], limit: limitFetch }),
+        
+        // Showrooms & Retail
+        showrooms: () => db.query.showrooms.findMany({ orderBy: [desc(showrooms.createdAt)], limit: limitFetch }),
+        
+        // Content
         blogPosts: () => db.query.blogPosts.findMany({ orderBy: [desc(blogPosts.publishedAt)], limit: limitFetch }),
         articles: () => db.query.articles.findMany({ orderBy: [desc(articles.createdAt)], limit: limitFetch }),
+        
+        // Categories
         categories: () => db.query.adminCategories.findMany({ with: { subcategories: true }, orderBy: [adminCategories.sortOrder, adminCategories.name], limit: limitFetch }),
+        subcategories: () => db.query.adminSubcategories.findMany({ with: { category: true }, orderBy: [desc(adminSubcategories.createdAt)], limit: limitFetch }),
+        
+        // Users
         users: () => db.query.users.findMany({ orderBy: [desc(users.createdAt)], limit: limitFetch }),
       };
 
       // Parse optional sources CSV param. If none provided, search all sources.
       const requestedSourcesRaw = (req.query.sources || '').toString();
-      const requestedSources = requestedSourcesRaw ? requestedSourcesRaw.split(',').map(s => s.trim()).filter(Boolean) : Object.keys(sourceFetchers);
+      let requestedSources = requestedSourcesRaw ? requestedSourcesRaw.split(',').map(s => s.trim()).filter(Boolean) : Object.keys(sourceFetchers);
+      
+      // If category filter is provided, override requested sources
+      if (categoryFilter && categorySourcesMap[categoryFilter]) {
+        requestedSources = categorySourcesMap[categoryFilter];
+      }
 
       const toFetch = requestedSources.filter(s => !!sourceFetchers[s]);
       const fetchPromises = toFetch.map((k) => sourceFetchers[k]());
@@ -133,7 +255,12 @@ export function registerRoutes(app: Express) {
         return rows
           .map((r: any) => {
             const title = r.title || r.name || r.showroomName || r.institutionName || r.username || r.slug || '';
-            const snippet = (r.description || r.summary || r.address || r.title || r.name || '') as string;
+            // Build a snippet that includes useful contact information (phone/whatsapp) when available
+            let snippet = (r.description || r.summary || r.address || r.title || r.name || '') as string;
+            const phone = (r.contactPhone || r.phone || r.whatsappNumber || r.alternatePhone || r.mobile || r.contact_number);
+            if (phone) {
+              snippet = `${snippet} Call: ${phone}`.trim();
+            }
             const raw = r;
             const serialized = ("" + JSON.stringify({ id: r.id, title, snippet, raw })).toLowerCase();
             const matchedWords = tokens.filter(t => serialized.includes(t));
@@ -161,12 +288,157 @@ export function registerRoutes(app: Express) {
         if (key === 'categories') {
           const mapped = (rows || []).map((c: any) => ({ id: c.id, title: c.name, raw: c }));
           results[key] = mapped.filter((item: any) => JSON.stringify(item).toLowerCase().includes(qLower)).slice(0, limitPerSource);
+        } else if (key === 'subcategories') {
+          const mapped = (rows || []).map((s: any) => ({ id: s.id, title: s.name, parentCategory: s.category?.name, raw: s }));
+          results[key] = mapped.filter((item: any) => JSON.stringify(item).toLowerCase().includes(qLower)).slice(0, limitPerSource);
         } else {
           results[key] = makeMatches(rows);
         }
       }
 
-      res.json({ q, results });
+      // If subcategory filter is provided, further restrict results to items that contain the
+      // subcategory slug or name in their serialized payload. This allows clicking a subcategory
+      // in the search popup to show only items relevant to that subcategory.
+      if (subcategoryFilter) {
+        Object.keys(results).forEach((src) => {
+          const arr = results[src] || [];
+          results[src] = arr.filter((it: any) => {
+            try {
+              const raw = it.raw || it;
+              const serialized = JSON.stringify(raw).toLowerCase();
+              // Quick hit if serialized payload contains the filter
+              if (serialized.includes(subcategoryFilter)) return true;
+
+              // Check resolved ids/slugs/names first (from adminSubcategories lookup)
+              for (const id of resolvedSubcategoryIds) {
+                if (serialized.includes(id)) return true;
+              }
+              for (const s of resolvedSubcategorySlugs) {
+                if (serialized.includes(s)) return true;
+              }
+              for (const n of resolvedSubcategoryNames) {
+                if (serialized.includes(n)) return true;
+              }
+
+              // Check common field names that may reference subcategory info
+              const candidates: string[] = [];
+              const addIf = (v: any) => { if (v !== undefined && v !== null) candidates.push(String(v).toLowerCase()); };
+
+              addIf(raw.subcategory);
+              addIf(raw.subCategory);
+              addIf(raw.sub_category);
+              addIf(raw.subcategoryName);
+              addIf(raw.subcategory_slug);
+              addIf(raw.subcategorySlug);
+              addIf(raw.subcategory?.slug);
+              addIf(raw.subcategory?.name);
+              addIf(raw.subcategoryId);
+              addIf(raw.sub_category_id);
+              addIf(raw.subcategory_id);
+              addIf(raw.parentSubcategoryId);
+              addIf(raw.parent_subcategory_id);
+              addIf(raw.category);
+              addIf(raw.categorySlug);
+              addIf(raw.category?.slug);
+              addIf(raw.category?.name);
+              addIf(raw.tags);
+              addIf(raw.keywords);
+              addIf(it.title);
+              addIf(it.name);
+
+              // If any candidate contains the subcategory filter, include the item
+              for (const c of candidates) {
+                if (c && c.includes(subcategoryFilter)) return true;
+              }
+
+              return false;
+            } catch (e) {
+              return false;
+            }
+          });
+        });
+      }
+
+      // Group results by category for "Explore Our Collections" section
+      const collectionsByCategory: Record<string, Record<string, any[]>> = {};
+      const sourceToCategory: Record<string, string> = {
+        // Education & Learning
+        'tuition': 'Education & Learning',
+        'schools': 'Education & Learning',
+        'languageClasses': 'Education & Learning',
+        'skillTraining': 'Education & Learning',
+        'educationalConsultancy': 'Education & Learning',
+        'ebooks': 'Education & Learning',
+        'dance': 'Education & Learning',
+        'academies': 'Education & Learning',
+        'cricketTraining': 'Education & Learning',
+        
+        // Electronics & Technology
+        'electronics': 'Electronics & Technology',
+        'phones': 'Electronics & Technology',
+        'secondHandPhones': 'Electronics & Technology',
+        'computerRepair': 'Electronics & Technology',
+        'cyberCafe': 'Electronics & Technology',
+        'telecommunication': 'Electronics & Technology',
+        'serviceCentre': 'Electronics & Technology',
+        'electronics-gadgets': 'Electronics & Technology',
+        'phones-tablets': 'Electronics & Technology',
+        'second-hand-phones': 'Electronics & Technology',
+        'computer-repair': 'Electronics & Technology',
+        'cyber-cafe': 'Electronics & Technology',
+        
+        // Fashion & Lifestyle
+        'fashion': 'Fashion & Lifestyle',
+        'sareeClothing': 'Fashion & Lifestyle',
+        'jewelry': 'Fashion & Lifestyle',
+        'healthWellness': 'Fashion & Lifestyle',
+        'pharmacy': 'Fashion & Lifestyle',
+        'fashion-beauty': 'Fashion & Lifestyle',
+        'jewelry-accessories': 'Fashion & Lifestyle',
+        'furniture-interior-decor': 'Furniture & Home Décor',
+        'pharmacy-medical': 'Fashion & Lifestyle',
+        
+        // Real Estate & Property
+        'properties': 'Real Estate & Property',
+        'rentals': 'Real Estate & Property',
+        'hostelPg': 'Real Estate & Property',
+        'propertyDeals': 'Real Estate & Property',
+        'commercialProperties': 'Real Estate & Property',
+        'officeSpaces': 'Real Estate & Property',
+        'industrialLand': 'Real Estate & Property',
+        'constructionMaterials': 'Real Estate & Property',
+        'construction-materials': 'Real Estate & Property',
+        
+        // Vehicles & Transportation
+        'cars': 'Vehicles & Transportation',
+        'secondHandCars': 'Vehicles & Transportation',
+        'carBikeRentals': 'Vehicles & Transportation',
+        'heavyEquipment': 'Vehicles & Transportation',
+        'showrooms': 'Vehicles & Transportation',
+        'vehicleLicense': 'Vehicles & Transportation',
+        'transportation': 'Vehicles & Transportation',
+        'cars-bikes': 'Vehicles & Transportation',
+        'second-hand-cars-bikes': 'Vehicles & Transportation',
+        'car-bike-rentals': 'Vehicles & Transportation',
+        
+        // Furniture & Home Décor
+        'furniture': 'Furniture & Home Décor',
+        'household': 'Furniture & Home Décor',
+        'eventDecoration': 'Furniture & Home Décor',
+      };
+
+      // Populate collections
+      Object.entries(results).forEach(([source, items]) => {
+        const categoryName = sourceToCategory[source] || 'Other';
+        if (!collectionsByCategory[categoryName]) {
+          collectionsByCategory[categoryName] = {};
+        }
+        if (items.length > 0) {
+          collectionsByCategory[categoryName][source] = items;
+        }
+      });
+
+      res.json({ q, results, collections: collectionsByCategory });
     } catch (error: any) {
       res.status(500).json({ message: error.message });
     }
@@ -177,15 +449,89 @@ export function registerRoutes(app: Express) {
     try {
       // Keep this list in sync with what /api/search queries.
       const sources = [
+        // Properties & Real Estate
         { key: 'properties', label: 'Properties' },
-        { key: 'cars', label: 'Vehicles' },
         { key: 'rentals', label: 'Rental Listings' },
+        { key: 'hostelPg', label: 'Hostel & PG' },
         { key: 'propertyDeals', label: 'Property Deals' },
         { key: 'commercialProperties', label: 'Commercial Properties' },
         { key: 'officeSpaces', label: 'Office Spaces' },
+        { key: 'industrialLand', label: 'Industrial Land' },
+        
+        // Vehicles
+        { key: 'cars', label: 'Cars & Bikes' },
+        { key: 'secondHandCars', label: 'Second Hand Vehicles' },
+        { key: 'carBikeRentals', label: 'Vehicle Rentals' },
+        { key: 'cars-bikes', label: 'Cars & Bikes' },
+        { key: 'second-hand-cars-bikes', label: 'Second Hand Vehicles' },
+        { key: 'car-bike-rentals', label: 'Vehicle Rentals' },
+        
+        // Equipment & Machinery
+        { key: 'heavyEquipment', label: 'Heavy Equipment' },
+        { key: 'constructionMaterials', label: 'Construction Materials' },
+        { key: 'construction-materials', label: 'Construction Materials' },
+        
+        // Electronics & Technology
+        { key: 'electronics', label: 'Electronics & Gadgets' },
+        { key: 'phones', label: 'Phones & Tablets' },
+        { key: 'secondHandPhones', label: 'Second Hand Phones' },
+        { key: 'computerRepair', label: 'Computer & Laptop Repair' },
+        { key: 'cyberCafe', label: 'Cyber Cafe & Internet' },
+        { key: 'telecommunication', label: 'Telecommunication Services' },
+        { key: 'electronics-gadgets', label: 'Electronics & Gadgets' },
+        { key: 'phones-tablets', label: 'Phones & Tablets' },
+        { key: 'second-hand-phones', label: 'Second Hand Phones' },
+        { key: 'computer-repair', label: 'Computer & Laptop Repair' },
+        { key: 'cyber-cafe', label: 'Cyber Cafe & Internet' },
+        
+        // Education & Training
+        { key: 'tuition', label: 'Tuition & Private Classes' },
+        { key: 'schools', label: 'Schools, Colleges & Coaching' },
+        { key: 'languageClasses', label: 'Language Classes' },
+        { key: 'skillTraining', label: 'Skill Training & Certification' },
+        { key: 'educationalConsultancy', label: 'Educational Consultancy' },
+        { key: 'ebooks', label: 'E-Books & Online Courses' },
+        
+        // Sports, Fitness & Recreation
+        { key: 'dance', label: 'Dance, Karate, Gym & Yoga' },
+        { key: 'academies', label: 'Academies (Music, Arts, Sports)' },
+        { key: 'cricketTraining', label: 'Cricket & Sports Training' },
+        
+        // Shopping & Retail
+        { key: 'fashion', label: 'Fashion & Beauty Products' },
+        { key: 'sareeClothing', label: 'Saree & Clothing' },
+        { key: 'jewelry', label: 'Jewelry & Accessories' },
+        { key: 'furniture', label: 'Furniture & Interior Decor' },
+        { key: 'pharmacy', label: 'Pharmacy & Medical Stores' },
+        { key: 'fashion-beauty', label: 'Fashion & Beauty Products' },
+        { key: 'jewelry-accessories', label: 'Jewelry & Accessories' },
+        { key: 'furniture-interior-decor', label: 'Furniture & Interior Decor' },
+        { key: 'pharmacy-medical', label: 'Pharmacy & Medical Stores' },
+        
+        // Services
+        { key: 'household', label: 'Household Services' },
+        { key: 'healthWellness', label: 'Health & Wellness Services' },
+        { key: 'eventDecoration', label: 'Event Decoration Services' },
+        { key: 'transportation', label: 'Transportation & Moving Services' },
+        { key: 'serviceCentre', label: 'Service Centre & Warranty' },
+        { key: 'vehicleLicense', label: 'Vehicle License Classes' },
+        { key: 'household-services', label: 'Household Services' },
+        { key: 'health-wellness', label: 'Health & Wellness Services' },
+        { key: 'event-decoration', label: 'Event Decoration Services' },
+        { key: 'service-centre', label: 'Service Centre & Warranty' },
+        
+        // Showrooms & Retail
+        { key: 'showrooms', label: 'Showrooms' },
+        
+        // Content
         { key: 'blogPosts', label: 'Blog Posts' },
         { key: 'articles', label: 'Articles' },
+        
+        // Categories
         { key: 'categories', label: 'Categories' },
+        { key: 'subcategories', label: 'Subcategories' },
+        
+        // Users
         { key: 'users', label: 'Users' },
       ];
 

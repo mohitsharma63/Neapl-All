@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import {
   Home as HomeIcon,
   Building,
@@ -30,6 +30,7 @@ import {
   Trophy,
   Globe2,
   Brain,
+  Truck,
   Star,
   TrendingUp,
   Shield,
@@ -91,8 +92,237 @@ const iconMap: Record<string, any> = {
   'trophy': Trophy,
   'globe2': Globe2,
   'brain': Brain,
+  'truck': Truck,
+  'badge': Badge,
 };
 
+// Neutral fallback icon component using lucide `Badge` for consistent visuals
+const DefaultIcon: React.FC<{ className?: string }> = ({ className = '' }) => (
+  <Badge className={`${className} text-gray-400`} />
+);
+
+// Resolve icon from various possible data values (normalize strings)
+function getIconByName(name?: string): any | null {
+  if (!name || typeof name !== 'string') return null;
+  const raw = name.trim();
+  const candidates = new Set<string>();
+  candidates.add(raw);
+  candidates.add(raw.toLowerCase());
+  candidates.add(raw.replace(/[_\s]+/g, '-').toLowerCase());
+  candidates.add(raw.replace(/[_\-\s]+/g, '').toLowerCase());
+  candidates.add(raw.replace(/[_\s]+/g, '_').toLowerCase());
+
+  for (const c of Array.from(candidates)) {
+    if (iconMap[c]) return iconMap[c];
+  }
+  return null;
+}
+
+// Static mapping from normalized category slug/name to iconMap key
+const categoryIconMapping: Record<string, string> = {
+  'education': 'graduation-cap',
+  'education-learning': 'graduation-cap',
+  'education & learning': 'graduation-cap',
+  'electronics': 'monitor',
+  'electronics-technology': 'monitor',
+  'electronics & technology': 'monitor',
+  'fashion': 'shirt',
+  'fashion-lifestyle': 'shirt',
+  'fashion & lifestyle': 'shirt',
+  'furniture': 'sofa',
+  'furniture-home-decor': 'sofa',
+  'furniture & home decor': 'sofa',
+  'real-estate': 'building2',
+  'real-estate-property': 'building2',
+  'real estate & property': 'building2',
+  'vehicles': 'car',
+  'vehicles-transportation': 'car',
+  'vehicles & transportation': 'car',
+  'skilled-labour': 'briefcase',
+  'skilled-labor': 'briefcase',
+  'skilled labour': 'briefcase',
+  'health-wellness': 'dumbbell',
+  'health & wellness': 'dumbbell',
+  'pharmacy-medical': 'monitor',
+  'construction-materials': 'building',
+  'jewelry-accessories': 'award',
+  'jewellery-accessories': 'award',
+  'books': 'book-open',
+  'education-services': 'graduation-cap',
+  // Construction / Property mappings
+  'construction-building-materials': 'building',
+  'construction & building materials': 'building',
+  'local-market': 'building2',
+  'local-market-commercial-property': 'building2',
+  'commercial-property': 'building2',
+  'industrial-land': 'building2',
+  'factory-industrial-land': 'building2',
+  'company-office-space': 'briefcase',
+  'office-space': 'briefcase',
+  'rental-rooms-flats-apartments': 'house',
+  'rental-rooms': 'house',
+  'rental-flats-apartments': 'house',
+  'rental-listings': 'house',
+  'hostel-pg': 'house',
+  'hostels-pg': 'house',
+  'property-deals': 'map-pin',
+};
+
+// Subcategory-specific icon mapping (normalized slug/name -> iconMap key)
+const subcategoryIconMapping: Record<string, string> = {
+  'tuition-private-classes': 'graduation-cap',
+  'dance-karate-gym-yoga': 'dumbbell',
+  'dance-karate-gym-yoga-classes': 'dumbbell',
+  'language-classes': 'languages',
+  'academies-music-arts-sports': 'music',
+  'skill-training-certification': 'award',
+  'schools-colleges-coaching-institutes': 'school',
+  'cricket-sports-training': 'trophy',
+  'ebooks-online-courses': 'book-open',
+  'e-books-online-courses': 'book-open',
+  'e-books-and-online-courses': 'book-open',
+  'educational-consultancy-study-abroad': 'globe2',
+  'educational-consultancy-study-abroad-admissions': 'globe2',
+  'computer-mobile-laptop-repair-services': 'laptop',
+  'cyber-cafe-internet-services': 'globe',
+  'new-phones-tablets-accessories': 'smartphone',
+  'electronics-gadgets': 'monitor',
+  'fashion-beauty-products': 'shirt',
+  'jewelry-accessories': 'award',
+  'furniture-interior-decor': 'sofa',
+  'commercial-properties': 'building2',
+  'cars-bikes': 'car',
+  'second-hand-cars-bikes': 'car',
+  'car-bike-rentals': 'car',
+  'construction-materials': 'building',
+  'household-services': 'briefcase',
+  'health-wellness-services': 'dumbbell',
+  'pharmacy-medical-stores': 'book-marked',
+  'event-decoration-services': 'sparkles',
+  'residential-properties': 'house',
+  'heavy-equipment': 'truck',
+  'heavy-equipment-for-sale': 'truck',
+  'showrooms': 'building2',
+  'showrooms-authorized': 'building2',
+  'showrooms-second-hand': 'building2',
+  'showroom': 'building2',
+  'authorized-showrooms': 'building2',
+  'second-hand-showrooms': 'building2',
+  'secondhand-showrooms': 'building2',
+  'second hand': 'building2',
+  'second-hand': 'building2',
+  'vehicle-license-classes': 'badge',
+  'vehicle-license': 'badge',
+  'vehicle-licence': 'badge',
+  'vehiclelicenseclasses': 'badge',
+  'vehicle license classes': 'badge',
+  'vehicle license': 'badge',
+  'telecommunication-services': 'globe',
+  'second-hand-phones-tablets-accessories': 'smartphone',
+  'second-hand-phones': 'smartphone',
+  'service-centre-warranty': 'monitor',
+  // Saree / clothing variants
+  'saree-clothing': 'shirt',
+  'saree-clothing-shopping': 'shirt',
+  'sarees': 'shirt',
+  'saree': 'shirt',
+  'sari': 'shirt',
+  // Property / construction subcategories
+  'construction-building-materials': 'building',
+  'local-market': 'building2',
+  'local-market-commercial-property': 'building2',
+  'commercial-properties': 'building2',
+  'commercial-property': 'building2',
+  'industrial-land': 'building2',
+  'factory-industrial-land': 'building2',
+  'office-spaces': 'briefcase',
+  'company-office-space': 'briefcase',
+  'rental-rooms-flats-apartments': 'house',
+  'rental-listings': 'house',
+  'rooms-flats-apartments': 'house',
+  'hostel-pg': 'house',
+  'hostels-pg': 'house',
+  'property-deals': 'map-pin',
+};
+
+// Resolve an icon for a category/subcategory object using multiple fallbacks
+function resolveIconForCategory(item?: any): any | null {
+  if (!item) return null;
+  // Try explicit icon field first
+  const byIconField = getIconByName(item.icon);
+  if (byIconField) return byIconField;
+
+  // Try slug
+  const bySlug = getIconByName(item.slug);
+  if (bySlug) return bySlug;
+
+  // Try name variants and mapping
+  const name = (item.name || '').toString().trim();
+  const normalized = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+
+  // direct lookup in iconMap by normalized name
+  const byName = getIconByName(normalized);
+  if (byName) return byName;
+
+  // Try removing common suffixes (classes, courses, services, training, institutes, admissions)
+  const suffixes = ['-classes', '-courses', '-course', '-services', '-training', '-institutes', '-admissions', '-online'];
+  for (const s of suffixes) {
+    if (normalized.endsWith(s)) {
+      const base = normalized.slice(0, -s.length);
+      if (base) {
+        const byBaseName = getIconByName(base);
+        if (byBaseName) return byBaseName;
+        if (subcategoryIconMapping[base]) return iconMap[subcategoryIconMapping[base]] || null;
+        if (categoryIconMapping[base]) return iconMap[categoryIconMapping[base]] || null;
+      }
+    }
+  }
+
+  // mapping lookup
+  // subcategory mapping takes precedence
+  if (subcategoryIconMapping[normalized]) {
+    return iconMap[subcategoryIconMapping[normalized]] || null;
+  }
+
+  if (subcategoryIconMapping[name.toLowerCase()]) {
+    return iconMap[subcategoryIconMapping[name.toLowerCase()]] || null;
+  }
+
+  // then category mapping
+  if (categoryIconMapping[normalized]) {
+    return iconMap[categoryIconMapping[normalized]] || null;
+  }
+
+  // also try the raw lowercased name for category mapping
+  if (categoryIconMapping[name.toLowerCase()]) {
+    return iconMap[categoryIconMapping[name.toLowerCase()]] || null;
+  }
+
+  // Keyword-based fallback for common subcategory phrases
+  const lname = name.toLowerCase();
+  if (lname.includes('cyber') || lname.includes('internet') || lname.includes('cafe')) {
+    return iconMap['globe'] || null;
+  }
+  if (lname.includes('showroom') || lname.includes('showrooms') || lname.includes('authorized') || lname.includes('second-hand') || lname.includes('second hand')) {
+    return iconMap['building2'] || null;
+  }
+  if (lname.includes('computer') || lname.includes('repair') || lname.includes('service centre') || lname.includes('service center') || lname.includes('service')) {
+    return iconMap['laptop'] || null;
+  }
+  if (lname.includes('phone') || lname.includes('tablet')) {
+    return iconMap['smartphone'] || null;
+  }
+  // Clothing / saree keyword fallback
+  if (lname.includes('saree') || lname.includes('sari') || lname.includes('cloth') || lname.includes('clothing')) {
+    return iconMap['shirt'] || null;
+  }
+  // Vehicle license keyword fallback
+  if (lname.includes('license') || lname.includes('licence') || lname.includes('vehicle license') || lname.includes('license classes')) {
+    return iconMap['badge'] || null;
+  }
+
+  return null;
+}
 const pastelColors = [
   "bg-purple-100 hover:bg-purple-200",
   "bg-blue-100 hover:bg-blue-200",
@@ -140,6 +370,31 @@ export default function Home() {
       return response.json();
     },
   });
+
+  // Dev-only: log categories and resolved icon availability to help mapping
+  useEffect(() => {
+    try {
+      if (!categories || !Array.isArray(categories)) return;
+      const debug = categories.map((c: any) => ({
+        id: c.id,
+        name: c.name,
+        slug: c.slug,
+        iconField: c.icon,
+        subcategories: (c.subcategories || []).map((s: any) => ({
+          id: s.id,
+          name: s.name,
+          slug: s.slug,
+          iconField: s.icon,
+          resolved: !!resolveIconForCategory(s),
+        })),
+      }));
+      // eslint-disable-next-line no-console
+      console.debug('CATEGORIES DEBUG:', debug);
+    } catch (e) {
+      // eslint-disable-next-line no-console
+      console.error('Error logging categories', e);
+    }
+  }, [categories]);
 
   const { data: sliders = [], isLoading: slidersLoading } = useQuery({
     queryKey: ["sliders", "Home"],
@@ -498,10 +753,11 @@ export default function Home() {
       {/* Category Navigation - Clean & Luxury with Animations */}
       <section className="container mx-auto px-4 py-8">
         <div className="bg-white rounded-2xl border border-gray-200/60 shadow-sm overflow-hidden">
-          <div className="overflow-x-auto scrollbar-hide">
-            <div className="flex items-center gap-2 px-6 py-4 min-w-max">
+            <div className="relative">
+              <div className="overflow-x-auto scrollbar-hide">
+                <div className="flex items-center gap-2 px-6 py-4 min-w-max">
               {categories.map((category: any, index: number) => {
-                const Icon = iconMap[category.icon] || iconMap['home'];
+                const Icon = resolveIconForCategory(category);
                 const isActive = activeCategory === category.id;
                 return (
                   <button
@@ -517,7 +773,11 @@ export default function Home() {
                     <div className={`w-12 h-12 rounded-xl flex items-center justify-center mb-2 transition-all duration-500 ${
                       isActive ? 'bg-white/20 rotate-6 scale-110' : 'bg-white group-hover:rotate-3'
                     }`}>
-                      <Icon className={`w-6 h-6 transition-all duration-500 ${isActive ? 'text-white animate-bounce-slow' : 'text-[#0B8457]'}`} />
+                      {Icon ? (
+                        <Icon className={`w-6 h-6 transition-all duration-500 ${isActive ? 'text-white animate-bounce-slow' : 'text-[#0B8457]'}`} />
+                      ) : (
+                        <DefaultIcon className={`w-6 h-6 ${isActive ? 'bg-white/20' : ''}`} />
+                      )}
                     </div>
                     <span className="text-xs font-semibold text-center leading-tight transition-all duration-300">
                       {category.name}
@@ -525,8 +785,23 @@ export default function Home() {
                   </button>
                 );
               })}
+                  {/* Static Skilled Labour tile to match other category tiles */}
+                  <button
+                    key="skilled-labour"
+                    onClick={() => setActiveCategory(activeCategory === 'skilled-labour' ? '' : 'skilled-labour')}
+                    style={{ animationDelay: `${categories.length * 0.05}s` }}
+                    className={`flex flex-col items-center justify-center px-8 py-4 min-w-[140px] rounded-xl transition-all duration-500 animate-fade-in-up bg-gray-50/80 hover:bg-gray-100 text-gray-700 hover:shadow-lg hover:scale-105 hover:-translate-y-0.5`}
+                  >
+                    <div className={`w-12 h-12 rounded-xl flex items-center justify-center mb-2 transition-all duration-500 bg-white group-hover:rotate-3`}>
+                      <Briefcase className={`w-6 h-6 text-[#0B8457]`} />
+                    </div>
+                    <span className="text-xs font-semibold text-center leading-tight transition-all duration-300">
+                      Skilled Labour
+                    </span>
+                  </button>
+                </div>
+              </div>
             </div>
-          </div>
         </div>
 
         {/* Expanded Category View with Subcategories */}
@@ -534,7 +809,7 @@ export default function Home() {
           const selectedCategory = categories.find((c: any) => c.id === activeCategory);
           if (!selectedCategory) return null;
 
-          const Icon = iconMap[selectedCategory.icon] || iconMap['home'];
+          const Icon = resolveIconForCategory(selectedCategory);
           const activeSubcategories = selectedCategory.subcategories?.filter((s: any) => s.isActive) || [];
 
           return (
@@ -545,7 +820,11 @@ export default function Home() {
                 <div className="absolute bottom-0 left-0 w-48 h-48 bg-white/5 rounded-full -ml-24 -mb-24"></div>
                 <div className="relative flex items-center gap-6">
                   <div className="w-20 h-20 rounded-2xl flex items-center justify-center flex-shrink-0 bg-white/10 backdrop-blur-sm border border-white/20">
-                    <Icon className="w-10 h-10 text-white" />
+                    {Icon ? (
+                      <Icon className="w-10 h-10 text-white" />
+                    ) : (
+                      <DefaultIcon className="w-10 h-10 bg-white/10 rounded-2xl" />
+                    )}
                   </div>
                   <div className="flex-1">
                     <h3 className="text-3xl font-bold mb-2 text-white">{selectedCategory.name}</h3>
@@ -565,7 +844,8 @@ export default function Home() {
                 <div className="mb-8">
                   <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
                     {activeSubcategories.map((subcategory: any, index: number) => {
-                      const SubIcon = iconMap[subcategory.icon] || iconMap['home'];
+                      // Resolve icon for each subcategory based on its own name/slug first
+                      const SubIcon = resolveIconForCategory(subcategory);
                       const colorClass = pastelColors[index % pastelColors.length];
                       return (
                         <Link
@@ -575,7 +855,11 @@ export default function Home() {
                           className={`${colorClass} p-6 rounded-2xl hover:shadow-xl transition-all duration-500 group border border-gray-200 animate-fade-in-up hover:scale-105 hover:-translate-y-1`}
                         >
                           <div className="flex flex-col items-center text-center gap-3">
-                            <SubIcon className="w-8 h-8 transition-transform duration-500 group-hover:scale-125 group-hover:rotate-12" />
+                            {SubIcon ? (
+                              <SubIcon className="w-8 h-8 transition-transform duration-500 group-hover:scale-125 group-hover:rotate-12" />
+                            ) : (
+                              <DefaultIcon className="w-8 h-8" />
+                            )}
                             <h3 className="font-medium text-sm leading-tight transition-all duration-300 group-hover:text-base">
                               {subcategory.name}
                             </h3>
@@ -713,26 +997,10 @@ export default function Home() {
       </section>
 
       {/* Skilled Labour - Coming Soon Section */}
-      <section className="w-full bg-white py-12">
-        <div className="container mx-auto px-4">
-          <div className="bg-gradient-to-r from-[#0B8457]/10 to-[#059669]/10 rounded-3xl p-12 border-2 border-[#0B8457]/20 relative overflow-hidden w-full">
-            <div className="absolute top-0 right-0 w-40 h-40 bg-[#0B8457]/5 rounded-full -mr-20 -mt-20"></div>
-            <div className="relative z-10 flex flex-col items-center text-center">
-              <div className="w-20 h-20 rounded-full bg-[#0B8457]/20 flex items-center justify-center mb-6">
-                <Briefcase className="w-10 h-10 text-[#0B8457]" />
-              </div>
-              <h3 className="text-3xl md:text-4xl font-bold mb-3 text-gray-900">Skilled Labour</h3>
-              <p className="text-lg text-muted-foreground mb-6 max-w-2xl">
-                Connect with professional tradespeople, contractors, and skilled workers for all your project needs
-              </p>
-              <div className="inline-flex items-center gap-3 px-6 py-3 bg-[#0B8457] text-white rounded-full font-semibold">
-                <Sparkles className="w-5 h-5" />
-                Coming Soon
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
+    
+             
+       
+       
 
       {/* Services Carousel Section */}
       <section className="w-full bg-gradient-to-b from-slate-50 via-white to-slate-50 py-20">
@@ -801,7 +1069,7 @@ export default function Home() {
                             </div>
                           </Link>
                           <div className="px-4 pb-4">
-                            <Link to={`/service-details/${product.id}`} className="w-full block">
+                            <Link to="/service-details/7b8cc32d-6901-4ee8-b7f3-620dd484e0b8" className="w-full block">
                               <button className="w-full bg-gradient-to-r from-[#0B8457] to-[#059669] hover:from-[#059669] hover:to-[#0B8457] text-white font-semibold py-2.5 px-4 rounded-lg transition-all duration-300 flex items-center justify-center gap-2 group/btn">
                                 <Eye className="w-4 h-4 group-hover/btn:scale-110 transition-transform" />
                                 View Details
@@ -856,7 +1124,7 @@ export default function Home() {
                             </div>
                           </Link>
                           <div className="px-4 pb-4">
-                            <Link to={`/service-details/${vehicle.id}`} className="w-full block">
+                            <Link to="/service-details/7b8cc32d-6901-4ee8-b7f3-620dd484e0b8" className="w-full block">
                               <button className="w-full bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white font-semibold py-2.5 px-4 rounded-lg transition-all duration-300 flex items-center justify-center gap-2 group/btn">
                                 <Eye className="w-4 h-4 group-hover/btn:scale-110 transition-transform" />
                                 View Details
@@ -899,7 +1167,7 @@ export default function Home() {
                             </Card>
                           </Link>
                           <div className="mt-3 px-0">
-                            <Link to={`/service-details/${material.id}`} className="block w-full">
+                            <Link to="/service-details/7b8cc32d-6901-4ee8-b7f3-620dd484e0b8" className="block w-full">
                               <button className="w-full bg-gradient-to-r from-[#0B8457] to-[#059669] hover:from-[#059669] hover:to-[#0B8457] text-white font-semibold py-2.5 px-4 rounded-lg transition-all duration-300 flex items-center justify-center gap-2 group/btn">
                                 <Eye className="w-4 h-4 group-hover/btn:scale-110 transition-transform" />
                                 View Details
@@ -954,7 +1222,7 @@ export default function Home() {
                             </div>
                           </Link>
                           <div className="px-4 pb-4">
-                            <Link to={`/service-details/${product.id}`} className="w-full block">
+                            <Link to="/service-details/7b8cc32d-6901-4ee8-b7f3-620dd484e0b8" className="w-full block">
                               <button className="w-full bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white font-semibold py-2.5 px-4 rounded-lg transition-all duration-300 flex items-center justify-center gap-2 group/btn">
                                 <Eye className="w-4 h-4 group-hover/btn:scale-110 transition-transform" />
                                 View Details
@@ -1009,7 +1277,7 @@ export default function Home() {
                             </div>
                           </Link>
                           <div className="px-4 pb-4">
-                            <Link to={`/service-details/${product.id}`} className="w-full block">
+                            <Link to="/service-details/7b8cc32d-6901-4ee8-b7f3-620dd484e0b8" className="w-full block">
                               <button className="w-full bg-gradient-to-r from-pink-500 to-pink-600 hover:from-pink-600 hover:to-pink-700 text-white font-semibold py-2.5 px-4 rounded-lg transition-all duration-300 flex items-center justify-center gap-2 group/btn">
                                 <Eye className="w-4 h-4 group-hover/btn:scale-110 transition-transform" />
                                 View Details
@@ -1064,7 +1332,7 @@ export default function Home() {
                             </div>
                           </Link>
                           <div className="px-4 pb-4">
-                            <Link to={`/service-details/${property.id}`} className="w-full block">
+                            <Link to="/service-details/7b8cc32d-6901-4ee8-b7f3-620dd484e0b8" className="w-full block">
                               <button className="w-full bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white font-semibold py-2.5 px-4 rounded-lg transition-all duration-300 flex items-center justify-center gap-2 group/btn">
                                 <Eye className="w-4 h-4 group-hover/btn:scale-110 transition-transform" />
                                 View Details
@@ -1119,7 +1387,7 @@ export default function Home() {
                             </div>
                           </Link>
                           <div className="px-4 pb-4">
-                            <Link to={`/service-details/${product.id}`} className="w-full block">
+                            <Link to="/service-details/7b8cc32d-6901-4ee8-b7f3-620dd484e0b8" className="w-full block">
                               <button className="w-full bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white font-semibold py-2.5 px-4 rounded-lg transition-all duration-300 flex items-center justify-center gap-2 group/btn">
                                 <Eye className="w-4 h-4 group-hover/btn:scale-110 transition-transform" />
                                 View Details
@@ -1174,7 +1442,7 @@ export default function Home() {
                             </div>
                           </Link>
                           <div className="px-4 pb-4">
-                            <Link to={`/service-details/${product.id}`} className="w-full block">
+                            <Link to="/service-details/7b8cc32d-6901-4ee8-b7f3-620dd484e0b8" className="w-full block">
                               <button className="w-full bg-gradient-to-r from-rose-500 to-rose-600 hover:from-rose-600 hover:to-rose-700 text-white font-semibold py-2.5 px-4 rounded-lg transition-all duration-300 flex items-center justify-center gap-2 group/btn">
                                 <Eye className="w-4 h-4 group-hover/btn:scale-110 transition-transform" />
                                 View Details
@@ -1229,7 +1497,7 @@ export default function Home() {
                             </div>
                           </Link>
                           <div className="px-4 pb-4">
-                            <Link to={`/service-details/${course.id}`} className="w-full block">
+                            <Link to="/service-details/7b8cc32d-6901-4ee8-b7f3-620dd484e0b8" className="w-full block">
                               <button className="w-full bg-gradient-to-r from-indigo-500 to-indigo-600 hover:from-indigo-600 hover:to-indigo-700 text-white font-semibold py-2.5 px-4 rounded-lg transition-all duration-300 flex items-center justify-center gap-2 group/btn">
                                 <Eye className="w-4 h-4 group-hover/btn:scale-110 transition-transform" />
                                 View Details
@@ -1284,7 +1552,7 @@ export default function Home() {
                             </div>
                           </Link>
                           <div className="px-4 pb-4">
-                            <Link to={`/service-details/${course.id}`} className="w-full block">
+                            <Link to="/service-details/7b8cc32d-6901-4ee8-b7f3-620dd484e0b8" className="w-full block">
                               <button className="w-full bg-gradient-to-r from-cyan-500 to-cyan-600 hover:from-cyan-600 hover:to-cyan-700 text-white font-semibold py-2.5 px-4 rounded-lg transition-all duration-300 flex items-center justify-center gap-2 group/btn">
                                 <Eye className="w-4 h-4 group-hover/btn:scale-110 transition-transform" />
                                 View Details
@@ -1339,7 +1607,7 @@ export default function Home() {
                             </div>
                           </Link>
                           <div className="px-4 pb-4">
-                            <Link to={`/service-details/${service.id}`} className="w-full block">
+                            <Link to="/service-details/7b8cc32d-6901-4ee8-b7f3-620dd484e0b8" className="w-full block">
                               <button className="w-full bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white font-semibold py-2.5 px-4 rounded-lg transition-all duration-300 flex items-center justify-center gap-2 group/btn">
                                 <Eye className="w-4 h-4 group-hover/btn:scale-110 transition-transform" />
                                 View Details
@@ -1394,7 +1662,7 @@ export default function Home() {
                             </div>
                           </Link>
                           <div className="px-4 pb-4">
-                            <Link to={`/service-details/${course.id}`} className="w-full block">
+                            <Link to="/service-details/7b8cc32d-6901-4ee8-b7f3-620dd484e0b8" className="w-full block">
                               <button className="w-full bg-gradient-to-r from-teal-500 to-teal-600 hover:from-teal-600 hover:to-teal-700 text-white font-semibold py-2.5 px-4 rounded-lg transition-all duration-300 flex items-center justify-center gap-2 group/btn">
                                 <Eye className="w-4 h-4 group-hover/btn:scale-110 transition-transform" />
                                 View Details
@@ -1449,7 +1717,7 @@ export default function Home() {
                             </div>
                           </Link>
                           <div className="px-4 pb-4">
-                            <Link to={`/service-details/${service.id}`} className="w-full block">
+                            <Link to="/service-details/7b8cc32d-6901-4ee8-b7f3-620dd484e0b8" className="w-full block">
                               <button className="w-full bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white font-semibold py-2.5 px-4 rounded-lg transition-all duration-300 flex items-center justify-center gap-2 group/btn">
                                 <Eye className="w-4 h-4 group-hover/btn:scale-110 transition-transform" />
                                 View Details
@@ -1504,7 +1772,7 @@ export default function Home() {
                             </div>
                           </Link>
                           <div className="px-4 pb-4">
-                            <Link to={`/service-details/${service.id}`} className="w-full block">
+                            <Link to="/service-details/7b8cc32d-6901-4ee8-b7f3-620dd484e0b8" className="w-full block">
                               <button className="w-full bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 text-white font-semibold py-2.5 px-4 rounded-lg transition-all duration-300 flex items-center justify-center gap-2 group/btn">
                                 <Eye className="w-4 h-4 group-hover/btn:scale-110 transition-transform" />
                                 View Details
@@ -1559,7 +1827,7 @@ export default function Home() {
                             </div>
                           </Link>
                           <div className="px-4 pb-4">
-                            <Link to={`/service-details/${service.id}`} className="w-full block">
+                            <Link to="/service-details/7b8cc32d-6901-4ee8-b7f3-620dd484e0b8" className="w-full block">
                               <button className="w-full bg-gradient-to-r from-fuchsia-500 to-fuchsia-600 hover:from-fuchsia-600 hover:to-fuchsia-700 text-white font-semibold py-2.5 px-4 rounded-lg transition-all duration-300 flex items-center justify-center gap-2 group/btn">
                                 <Eye className="w-4 h-4 group-hover/btn:scale-110 transition-transform" />
                                 View Details
@@ -1614,7 +1882,7 @@ export default function Home() {
                             </div>
                           </Link>
                           <div className="px-4 pb-4">
-                            <Link to={`/service-details/${service.id}`} className="w-full block">
+                            <Link to="/service-details/7b8cc32d-6901-4ee8-b7f3-620dd484e0b8" className="w-full block">
                               <button className="w-full bg-gradient-to-r from-slate-500 to-slate-600 hover:from-slate-600 hover:to-slate-700 text-white font-semibold py-2.5 px-4 rounded-lg transition-all duration-300 flex items-center justify-center gap-2 group/btn">
                                 <Eye className="w-4 h-4 group-hover/btn:scale-110 transition-transform" />
                                 View Details
@@ -1669,7 +1937,7 @@ export default function Home() {
                             </div>
                           </Link>
                           <div className="px-4 pb-4">
-                            <Link to={`/service-details/${product.id}`} className="w-full block">
+                            <Link to="/service-details/7b8cc32d-6901-4ee8-b7f3-620dd484e0b8" className="w-full block">
                               <button className="w-full bg-gradient-to-r from-lime-500 to-lime-600 hover:from-lime-600 hover:to-lime-700 text-white font-semibold py-2.5 px-4 rounded-lg transition-all duration-300 flex items-center justify-center gap-2 group/btn">
                                 <Eye className="w-4 h-4 group-hover/btn:scale-110 transition-transform" />
                                 View Details
@@ -1724,7 +1992,7 @@ export default function Home() {
                             </div>
                           </Link>
                           <div className="px-4 pb-4">
-                            <Link to={`/service-details/${product.id}`} className="w-full block">
+                            <Link to="/service-details/7b8cc32d-6901-4ee8-b7f3-620dd484e0b8" className="w-full block">
                               <button className="w-full bg-gradient-to-r from-violet-500 to-violet-600 hover:from-violet-600 hover:to-violet-700 text-white font-semibold py-2.5 px-4 rounded-lg transition-all duration-300 flex items-center justify-center gap-2 group/btn">
                                 <Eye className="w-4 h-4 group-hover/btn:scale-110 transition-transform" />
                                 View Details
@@ -1779,7 +2047,7 @@ export default function Home() {
                             </div>
                           </Link>
                           <div className="px-4 pb-4">
-                            <Link to={`/service-details/${course.id}`} className="w-full block">
+                            <Link to="/service-details/7b8cc32d-6901-4ee8-b7f3-620dd484e0b8" className="w-full block">
                               <button className="w-full bg-gradient-to-r from-sky-500 to-sky-600 hover:from-sky-600 hover:to-sky-700 text-white font-semibold py-2.5 px-4 rounded-lg transition-all duration-300 flex items-center justify-center gap-2 group/btn">
                                 <Eye className="w-4 h-4 group-hover/btn:scale-110 transition-transform" />
                                 View Details

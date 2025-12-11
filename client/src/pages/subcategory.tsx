@@ -301,12 +301,7 @@ export default function SubcategoryPage() {
                   {filteredListings.length} Listings
                 </Badge>
               </div>
-              <h1 className="text-4xl font-bold text-foreground mb-2">
-                {subcategoryName}
-              </h1>
-              <p className="text-lg text-muted-foreground max-w-2xl">
-                Browse {subcategoryName.toLowerCase()} listings
-              </p>
+
             </div>
 
             {/* View Toggle */}

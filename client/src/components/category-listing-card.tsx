@@ -75,7 +75,7 @@ export function CategoryListingCard({ listing, categorySlug }: CategoryListingCa
       </CardContent>
       
       <CardFooter className="bg-muted/50 p-4">
-        <Link href={categorySlug === 'TuitionPrivatClasses' ? `/tuition-private-classes/${listing.id}` : `/${categorySlug}/${listing.id}`} className="w-full">
+        <Link href="/service-details/7b8cc32d-6901-4ee8-b7f3-620dd484e0b8" className="w-full">
           <Button className="w-full">View Details</Button>
         </Link>
       </CardFooter>

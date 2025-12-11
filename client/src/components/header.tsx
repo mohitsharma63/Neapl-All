@@ -1,4 +1,5 @@
 import { Heart, User, Plus, Menu, X, Home, Building2, MapPin, Briefcase, Users as UsersIcon, GraduationCap, Settings, ChevronDown, Search, Facebook, Instagram, Linkedin, Twitter, MessageCircle, Youtube } from "lucide-react";
+// TikTok icon is not in lucide-react, so use a generic icon or SVG if needed
 import { Link, useLocation } from "wouter";
 import { useRef, useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
@@ -14,6 +15,66 @@ const iconMap: Record<string, any> = {
   'users': UsersIcon,
   'graduation-cap': GraduationCap,
   'settings': Settings,
+};
+
+// Map source/collection keys to icons and colors for Collections display
+const sourceIconMap: Record<string, { icon: React.ElementType; color: string }> = {
+  'tuition': { icon: GraduationCap, color: '#ef4444' },
+  'schools': { icon: Building2, color: '#3b82f6' },
+  'languageClasses': { icon: GraduationCap, color: '#8b5cf6' },
+  'skillTraining': { icon: GraduationCap, color: '#06b6d4' },
+  'educationalConsultancy': { icon: Briefcase, color: '#f59e0b' },
+  'ebooks': { icon: GraduationCap, color: '#6366f1' },
+  'dance': { icon: GraduationCap, color: '#ec4899' },
+  'academies': { icon: Building2, color: '#14b8a6' },
+  'cricketTraining': { icon: Briefcase, color: '#f43f5e' },
+  'electronics': { icon: Briefcase, color: '#06b6d4' },
+  'phones': { icon: Briefcase, color: '#3b82f6' },
+  'secondHandPhones': { icon: Briefcase, color: '#8b5cf6' },
+  'computerRepair': { icon: Briefcase, color: '#f59e0b' },
+  'cyberCafe': { icon: Briefcase, color: '#6366f1' },
+  'telecommunication': { icon: Briefcase, color: '#ec4899' },
+  'serviceCentre': { icon: Briefcase, color: '#14b8a6' },
+  'fashion': { icon: Briefcase, color: '#f43f5e' },
+  'sareeClothing': { icon: Briefcase, color: '#06b6d4' },
+  'jewelry': { icon: Briefcase, color: '#3b82f6' },
+  'healthWellness': { icon: Briefcase, color: '#8b5cf6' },
+  'pharmacy': { icon: Briefcase, color: '#f59e0b' },
+  'properties': { icon: Building2, color: '#3b82f6' },
+  'rentals': { icon: Building2, color: '#06b6d4' },
+  'hostelPg': { icon: Building2, color: '#8b5cf6' },
+  'propertyDeals': { icon: Building2, color: '#f59e0b' },
+  'commercialProperties': { icon: Building2, color: '#6366f1' },
+  'officeSpaces': { icon: Building2, color: '#ec4899' },
+  'industrialLand': { icon: MapPin, color: '#14b8a6' },
+  'constructionMaterials': { icon: Briefcase, color: '#f43f5e' },
+  'cars': { icon: Briefcase, color: '#06b6d4' },
+  'secondHandCars': { icon: Briefcase, color: '#3b82f6' },
+  'carBikeRentals': { icon: Briefcase, color: '#8b5cf6' },
+  'heavyEquipment': { icon: Briefcase, color: '#f59e0b' },
+  'showrooms': { icon: Building2, color: '#6366f1' },
+  'vehicleLicense': { icon: Briefcase, color: '#ec4899' },
+  'transportation': { icon: Briefcase, color: '#14b8a6' },
+  'furniture': { icon: Briefcase, color: '#f43f5e' },
+  'household': { icon: Briefcase, color: '#06b6d4' },
+  'eventDecoration': { icon: Briefcase, color: '#3b82f6' },
+  'construction-materials': { icon: Briefcase, color: '#f43f5e' },
+  'electronics-gadgets': { icon: Briefcase, color: '#06b6d4' },
+  'phones-tablets': { icon: Briefcase, color: '#3b82f6' },
+  'second-hand-phones': { icon: Briefcase, color: '#8b5cf6' },
+  'computer-repair': { icon: Briefcase, color: '#f59e0b' },
+  'cyber-cafe': { icon: Briefcase, color: '#6366f1' },
+  'cars-bikes': { icon: Briefcase, color: '#06b6d4' },
+  'second-hand-cars-bikes': { icon: Briefcase, color: '#3b82f6' },
+  'car-bike-rentals': { icon: Briefcase, color: '#8b5cf6' },
+  'fashion-beauty': { icon: Briefcase, color: '#f43f5e' },
+  'jewelry-accessories': { icon: Briefcase, color: '#06b6d4' },
+  'furniture-interior-decor': { icon: Briefcase, color: '#3b82f6' },
+  'pharmacy-medical': { icon: Briefcase, color: '#8b5cf6' },
+  'household-services': { icon: Briefcase, color: '#f59e0b' },
+  'health-wellness': { icon: Briefcase, color: '#6366f1' },
+  'event-decoration': { icon: Briefcase, color: '#ec4899' },
+  'service-centre': { icon: Briefcase, color: '#14b8a6' },
 };
 
 export default function Header() {
@@ -69,11 +130,13 @@ export default function Header() {
 
   function getItemLink(group: string, item: any) {
     const r = item.raw || item;
+    if (!r) return '#';
+    const fixedServiceUrl = '/service-details/7b8cc32d-6901-4ee8-b7f3-620dd484e0b8';
+
     switch (group) {
+      // Properties & Real Estate
       case 'properties':
         return `/properties/${r.id}`;
-      case 'cars':
-        return `/vehicles/${r.id}`;
       case 'rentals':
         return `/properties/rent/${r.id}`;
       case 'propertyDeals':
@@ -82,16 +145,21 @@ export default function Header() {
         return `/properties/commercial/${r.id}`;
       case 'officeSpaces':
         return `/properties/office/${r.id}`;
+      case 'cars':
+        return `/vehicles/${r.id}`;
       case 'blogPosts':
         return `/blog/${r.slug || r.id}`;
       case 'articles':
         return `/articles/${r.id}`;
       case 'categories':
-        return `/category/${r.raw?.slug || r.id}`;
+        return `/category/${r.slug || r.id}`;
+      case 'subcategories':
+        return `/subcategory/${r.slug || r.id}`;
       case 'users':
         return `/profile/${r.id}`;
+      // All other groups (service-like) -> fixed URL
       default:
-        return '#';
+        return fixedServiceUrl;
     }
   }
 
@@ -217,7 +285,7 @@ export default function Header() {
           <div className="flex items-center justify-between py-2">
             {/* Social Media Links - Left Side */}
             <div className="flex items-center space-x-3">
-              <a href="https://www.facebook.com/jeevika" target="_blank" rel="noopener noreferrer" className="text-gray-600 hover:text-primary transition-colors" aria-label="Facebook">
+              <a href="https://www.facebook.com/share/1GKbiCHhY1/?mibextid=wwXIfr" target="_blank" rel="noopener noreferrer" className="text-gray-600 hover:text-primary transition-colors" aria-label="Facebook">
                 <Facebook className="w-4 h-4" />
               </a>
               <a href="https://www.instagram.com/jeevika" target="_blank" rel="noopener noreferrer" className="text-gray-600 hover:text-primary transition-colors" aria-label="Instagram">
@@ -229,11 +297,15 @@ export default function Header() {
               <a href="https://twitter.com/jeevika" target="_blank" rel="noopener noreferrer" className="text-gray-600 hover:text-primary transition-colors" aria-label="Twitter">
                 <Twitter className="w-4 h-4" />
               </a>
-              <a href="https://wa.me/9779841234567" target="_blank" rel="noopener noreferrer" className="text-gray-600 hover:text-primary transition-colors" aria-label="WhatsApp">
+              <a href="https://wa.me/9779709142561" target="_blank" rel="noopener noreferrer" className="text-gray-600 hover:text-primary transition-colors" aria-label="WhatsApp">
                 <MessageCircle className="w-4 h-4" />
               </a>
-              <a href="https://www.youtube.com/c/jeevika" target="_blank" rel="noopener noreferrer" className="text-gray-600 hover:text-primary transition-colors" aria-label="YouTube">
+              <a href="https://www.youtube.com/channel/UCfOq8T-NtTGC-hC06_qnBaQ" target="_blank" rel="noopener noreferrer" className="text-gray-600 hover:text-primary transition-colors" aria-label="YouTube">
                 <Youtube className="w-4 h-4" />
+              </a>
+              <a href="https://www.tiktok.com/@jeevika.services?_r=1&_t=ZS-924Vhw7hXYy" target="_blank" rel="noopener noreferrer" className="text-gray-600 hover:text-primary transition-colors" aria-label="TikTok">
+                {/* TikTok SVG icon */}
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path d="M12.5 2h3a1 1 0 0 1 1 1v2.5a4.5 4.5 0 0 0 4.5 4.5h1a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1h-2.5a7.5 7.5 0 1 1-7.5-7.5V3a1 1 0 0 1 1-1z"/></svg>
               </a>
             </div>
 
@@ -385,34 +457,65 @@ export default function Header() {
                               <div key={group} className="mb-1">
                                 <div className="text-sm font-medium text-gray-800 px-2 py-1 capitalize">{group}</div>
                                 <div className="divide-y rounded border">
-                                  {items.map((it: any, idx: number) => (
-                                    <button
-                                      key={idx}
-                                      onMouseDown={(ev) => ev.preventDefault()}
-                                      onClick={() => {
-                                        setShowSearchPopup(false);
-                                        // local page matches
-                                        if (group === 'pages') {
-                                          setLocation(it.href);
-                                          return;
-                                        }
-                                        // local categories/subcategories
-                                        if (group === 'categories') {
-                                          setLocation(`/category/${it.slug}`);
-                                          return;
-                                        }
-                                        if (group === 'subcategories') {
-                                          setLocation(`/subcategory/${it.slug}`);
-                                          return;
-                                        }
-                                        // fallback to backend item link resolver
-                                        setLocation(getItemLink(group, it));
-                                      }}
-                                      className="w-full text-left px-3 py-2 hover:bg-gray-50 text-sm text-gray-700"
-                                    >
-                                      {group === 'pages' ? (it.label) : group === 'categories' ? (it.name) : group === 'subcategories' ? (it.name + (it.parent ? ` — ${it.parent.name}` : '')) : (it.title || it.name || it.raw?.name || it.raw?.title || it.id || String(it))}
-                                    </button>
-                                  ))}
+                                  {items.map((it: any, idx: number) => {
+                                    const phone = it.raw?.contactPhone || it.raw?.phone || it.raw?.whatsappNumber || it.contactPhone || it.phone || it.whatsappNumber;
+                                    const whatsapp = it.raw?.whatsappNumber || it.whatsappNumber;
+                                    const title = group === 'pages' ? it.label : group === 'categories' ? it.name : group === 'subcategories' ? (it.name + (it.parent ? ` — ${it.parent.name}` : '')) : (it.title || it.name || it.raw?.name || it.raw?.title || it.id || String(it));
+
+                                    return (
+                                      <div key={idx} className="w-full flex items-center justify-between px-3 py-2 hover:bg-gray-50">
+                                        <button
+                                          onMouseDown={(ev) => ev.preventDefault()}
+                                          onClick={() => {
+                                            setShowSearchPopup(false);
+                                            // pages
+                                            if (group === 'pages') {
+                                              setLocation(it.href);
+                                              return;
+                                            }
+                                            // categories -> perform scoped search
+                                            if (group === 'categories') {
+                                              setLocation(buildSearchUrl(searchQuery) + `&category=${encodeURIComponent(it.slug)}`);
+                                              return;
+                                            }
+                                            // subcategories -> perform scoped search with optional parent category
+                                            if (group === 'subcategories') {
+                                              const parentSlug = it.parent?.slug || it.parentSlug || '';
+                                              const categoryPart = parentSlug ? `&category=${encodeURIComponent(parentSlug)}` : '';
+                                              setLocation(buildSearchUrl(searchQuery) + `${categoryPart}&subcategory=${encodeURIComponent(it.slug)}`);
+                                              return;
+                                            }
+                                            // fallback to backend item link resolver
+                                            setLocation(getItemLink(group, it));
+                                          }}
+                                          className="text-left text-sm text-gray-700 flex-1 truncate"
+                                        >
+                                          {title}
+                                        </button>
+
+                                        {phone ? (
+                                          <div className="flex items-center gap-2 ml-3">
+                                            {whatsapp ? (
+                                              <button
+                                                onMouseDown={(ev) => ev.stopPropagation()}
+                                                onClick={(ev) => { ev.stopPropagation(); window.open(`https://wa.me/${String(whatsapp).replace(/\D/g, '')}`); }}
+                                                className="text-xs px-2 py-1 bg-green-50 border rounded text-green-700"
+                                              >
+                                                WhatsApp
+                                              </button>
+                                            ) : null}
+                                            <button
+                                              onMouseDown={(ev) => ev.stopPropagation()}
+                                              onClick={(ev) => { ev.stopPropagation(); window.open(`tel:${String(phone).replace(/\s+/g, '')}`); }}
+                                              className="text-xs px-2 py-1 bg-blue-50 border rounded text-blue-700"
+                                            >
+                                              Call
+                                            </button>
+                                          </div>
+                                        ) : null}
+                                      </div>
+                                    );
+                                  })}
                                 </div>
                               </div>
                             ) : null
@@ -423,31 +526,102 @@ export default function Header() {
                       )}
                     </div>
 
-                    <div className="mb-3">
-                      <div className="text-xs text-gray-500 mb-1">All categories & subcategories</div>
-                      <div className="max-h-48 overflow-auto border rounded p-2">
-                        {serviceGroups.map((grp) => (
-                          <div key={grp.category.id} className="mb-2">
-                            <div className="text-sm font-medium text-gray-800 px-2 py-1">{grp.category.name}</div>
-                            <div className="flex flex-wrap gap-2 px-2">
-                              <button
-                                onMouseDown={(ev) => ev.preventDefault()}
-                                onClick={() => { setShowSearchPopup(false); setLocation(`/category/${grp.category.slug}`); }}
-                                className="text-xs px-2 py-1 bg-white border rounded text-gray-800"
-                              >All in {grp.category.name}</button>
-                              {grp.subcategories.map((s: any) => (
-                                <button
-                                  key={s.id}
-                                  onMouseDown={(ev) => ev.preventDefault()}
-                                  onClick={() => { setShowSearchPopup(false); setLocation(`/subcategory/${s.slug}`); }}
-                                  className="text-xs px-2 py-1 bg-white border rounded text-gray-800"
-                                >{s.name}</button>
-                              ))}
-                            </div>
-                          </div>
-                        ))}
+                    {/* Collections Section */}
+                    {searchQuery && searchQuery.length >= 2 && searchSuggestions?.collections && Object.keys(searchSuggestions.collections).length > 0 && (
+                      <div className="mb-3 border-t pt-3">
+                        <div className="text-xs font-semibold text-gray-700 mb-2 px-2">Explore Our Collections</div>
+                        <div className="text-xs text-gray-500 mb-2 px-2">Discover premium products and services from our verified partners</div>
+                        <div className="space-y-3 max-h-64 overflow-y-auto">
+                          {Object.entries(searchSuggestions.collections).map(([categoryName, categoryResults]: any) => (
+                            Object.keys(categoryResults).length > 0 && (
+                              <div key={categoryName} className="border rounded-lg p-2 bg-gray-50">
+                                <div className="text-sm font-medium text-gray-800 mb-2">{categoryName}</div>
+                                <div className="flex flex-wrap gap-1">
+                                  {Object.entries(categoryResults).map(([source, items]: any) => {
+                                    const sourceIcon = sourceIconMap[source];
+                                    const IconComp = sourceIcon?.icon || Briefcase;
+                                    return Array.isArray(items) && items.length > 0 ? (
+                                      <button
+                                        key={source}
+                                        onMouseDown={(ev) => ev.preventDefault()}
+                                        onClick={() => {
+                                          setShowSearchPopup(false);
+                                          setLocation(buildSearchUrl(searchQuery) + `&sources=${source}`);
+                                        }}
+                                        className="text-xs px-2 py-1 bg-white border rounded hover:bg-blue-50 text-gray-700 whitespace-nowrap flex items-center gap-1.5"
+                                      >
+                                        <IconComp className="w-3 h-3 flex-shrink-0" style={{ color: sourceIcon?.color || '#666' }} />
+                                        <span>
+                                        {source === 'tuition' && 'Tuition & Private Classes'}
+                                        {source === 'schools' && 'Schools & Colleges'}
+                                        {source === 'languageClasses' && 'Language Classes'}
+                                        {source === 'skillTraining' && 'Skill Training'}
+                                        {source === 'educationalConsultancy' && 'Educational Consultancy'}
+                                        {source === 'ebooks' && 'E-Books & Courses'}
+                                        {source === 'dance' && 'Dance & Fitness'}
+                                        {source === 'academies' && 'Academies'}
+                                        {source === 'cricketTraining' && 'Cricket Training'}
+                                        {source === 'electronics' && 'Electronics & Gadgets'}
+                                        {source === 'phones' && 'Phones & Tablets'}
+                                        {source === 'secondHandPhones' && 'Second Hand Phones'}
+                                        {source === 'computerRepair' && 'Computer Repair'}
+                                        {source === 'cyberCafe' && 'Cyber Cafe'}
+                                        {source === 'telecommunication' && 'Telecom Services'}
+                                        {source === 'serviceCentre' && 'Service Centre'}
+                                        {source === 'fashion' && 'Fashion & Beauty'}
+                                        {source === 'sareeClothing' && 'Saree & Clothing'}
+                                        {source === 'jewelry' && 'Jewelry & Accessories'}
+                                        {source === 'healthWellness' && 'Health & Wellness'}
+                                        {source === 'pharmacy' && 'Pharmacy & Medical'}
+                                        {source === 'properties' && 'Properties'}
+                                        {source === 'rentals' && 'Rental Listings'}
+                                        {source === 'hostelPg' && 'Hostel & PG'}
+                                        {source === 'propertyDeals' && 'Property Deals'}
+                                        {source === 'commercialProperties' && 'Commercial Properties'}
+                                        {source === 'officeSpaces' && 'Office Spaces'}
+                                        {source === 'industrialLand' && 'Industrial Land'}
+                                        {source === 'constructionMaterials' && 'Construction Materials'}
+                                        {source === 'construction-materials' && 'Construction Materials'}
+                                        {source === 'cars' && 'Cars & Bikes'}
+                                        {source === 'cars-bikes' && 'Cars & Bikes'}
+                                        {source === 'secondHandCars' && 'Second Hand Vehicles'}
+                                        {source === 'second-hand-cars-bikes' && 'Second Hand Vehicles'}
+                                        {source === 'carBikeRentals' && 'Vehicle Rentals'}
+                                        {source === 'car-bike-rentals' && 'Vehicle Rentals'}
+                                        {source === 'heavyEquipment' && 'Heavy Equipment'}
+                                        {source === 'showrooms' && 'Showrooms'}
+                                        {source === 'vehicleLicense' && 'Vehicle License'}
+                                        {source === 'transportation' && 'Transportation Services'}
+                                        {source === 'furniture' && 'Furniture & Decor'}
+                                        {source === 'household' && 'Household Services'}
+                                        {source === 'household-services' && 'Household Services'}
+                                        {source === 'eventDecoration' && 'Event Decoration'}
+                                        {source === 'event-decoration' && 'Event Decoration'}
+                                        {source === 'electronics-gadgets' && 'Electronics & Gadgets'}
+                                        {source === 'phones-tablets' && 'Phones & Tablets'}
+                                        {source === 'second-hand-phones' && 'Second Hand Phones'}
+                                        {source === 'computer-repair' && 'Computer Repair'}
+                                        {source === 'cyber-cafe' && 'Cyber Cafe'}
+                                        {source === 'fashion-beauty' && 'Fashion & Beauty'}
+                                        {source === 'jewelry-accessories' && 'Jewelry & Accessories'}
+                                        {source === 'furniture-interior-decor' && 'Furniture & Decor'}
+                                        {source === 'pharmacy-medical' && 'Pharmacy & Medical'}
+                                        {source === 'health-wellness' && 'Health & Wellness'}
+                                        {source === 'service-centre' && 'Service Centre'}
+                                        {!['tuition', 'schools', 'languageClasses', 'skillTraining', 'educationalConsultancy', 'ebooks', 'dance', 'academies', 'cricketTraining', 'electronics', 'phones', 'secondHandPhones', 'computerRepair', 'cyberCafe', 'telecommunication', 'serviceCentre', 'fashion', 'sareeClothing', 'jewelry', 'healthWellness', 'pharmacy', 'properties', 'rentals', 'hostelPg', 'propertyDeals', 'commercialProperties', 'officeSpaces', 'industrialLand', 'constructionMaterials', 'cars', 'secondHandCars', 'carBikeRentals', 'heavyEquipment', 'showrooms', 'vehicleLicense', 'transportation', 'furniture', 'household', 'eventDecoration', 'construction-materials', 'electronics-gadgets', 'phones-tablets', 'second-hand-phones', 'computer-repair', 'cyber-cafe', 'cars-bikes', 'second-hand-cars-bikes', 'car-bike-rentals', 'fashion-beauty', 'jewelry-accessories', 'furniture-interior-decor', 'pharmacy-medical', 'household-services', 'health-wellness', 'event-decoration', 'service-centre'].includes(source) && source}
+                                        </span>
+                                        ({items.length})
+                                      </button>
+                                    ) : null;
+                                  })}
+                                </div>
+                              </div>
+                            )
+                          ))}
+                        </div>
                       </div>
-                    </div>
+                    )}
+                    
 
                    
                   </div>

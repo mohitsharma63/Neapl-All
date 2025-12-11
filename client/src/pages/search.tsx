@@ -93,11 +93,11 @@ export default function SearchPage() {
 function getItemLink(group: string, item: any) {
   const r = item?.raw || item;
   if (!r) return '#';
+  const fixedServiceUrl = '/service-details/7b8cc32d-6901-4ee8-b7f3-620dd484e0b8';
+
   switch (group) {
     case 'properties':
       return `/properties/${r.id}`;
-    case 'cars':
-      return `/vehicles/${r.id}`;
     case 'rentals':
       return `/properties/rent/${r.id}`;
     case 'propertyDeals':
@@ -106,16 +106,20 @@ function getItemLink(group: string, item: any) {
       return `/properties/commercial/${r.id}`;
     case 'officeSpaces':
       return `/properties/office/${r.id}`;
+    case 'cars':
+      return `/vehicles/${r.id}`;
     case 'blogPosts':
       return `/blog/${r.slug || r.id}`;
     case 'articles':
       return `/articles/${r.id}`;
     case 'categories':
-      return `/category/${r.raw?.slug || r.id}`;
+      return `/category/${r.slug || r.id}`;
+    case 'subcategories':
+      return `/subcategory/${r.slug || r.id}`;
     case 'users':
       return `/profile/${r.id}`;
     default:
-      return '#';
+      return fixedServiceUrl;
   }
 }
 
