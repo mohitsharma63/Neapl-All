@@ -1,7 +1,7 @@
 import { useState } from "react";
+import { useParams, Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
-import { Link } from "wouter";
-import { MapPin, Phone, Eye, Grid, List, Search, User, GraduationCap, BookOpen, Clock } from "lucide-react";
+import { MapPin, Phone, Mail, Eye, Grid, List, Search, User, GraduationCap, BookOpen, Clock } from "lucide-react";
 import Header from "@/components/header";
 import Footer from "@/components/footer";
 import { Card, CardContent } from "@/components/ui/card";
@@ -18,8 +18,21 @@ export default function TuitionPrivateClasses() {
   const [selectedLevel, setSelectedLevel] = useState("all");
   const [selectedMode, setSelectedMode] = useState("all");
 
+  const params = useParams();
+  const idParam = (params as any).id as string | undefined;
+
   const { data: listings = [], isLoading } = useQuery({
     queryKey: ["/api/tuition-private-classes"],
+  });
+
+  const { data: singleListing, isLoading: isSingleLoading } = useQuery({
+    queryKey: ["/api/admin/tuition-private-classes", idParam],
+    enabled: !!idParam,
+    queryFn: async () => {
+      const resp = await fetch(`/api/admin/tuition-private-classes/${idParam}`);
+      if (!resp.ok) throw new Error("Failed to fetch class");
+      return resp.json();
+    },
   });
 
   const filteredListings = listings.filter((listing: any) => {
@@ -40,6 +53,155 @@ export default function TuitionPrivateClasses() {
   const cities = Array.from(new Set(listings.map((l: any) => l.city).filter(Boolean)));
   const subjects = Array.from(new Set(listings.flatMap((l: any) => l.subjects || []).filter(Boolean)));
   const levels = Array.from(new Set(listings.flatMap((l: any) => l.classLevels || []).filter(Boolean)));
+
+  const formatDate = (d: any) => {
+    if (!d) return "-";
+    try {
+      return new Date(d).toLocaleString();
+    } catch {
+      return String(d);
+    }
+  };
+
+  // If an id param is present in the route, show the detailed view for that class
+  if (idParam) {
+    if (isSingleLoading) {
+      return (
+        <div className="min-h-screen bg-background">
+          <Header />
+          <div className="container mx-auto px-4 py-12 text-center">Loading class details...</div>
+          <Footer />
+        </div>
+      );
+    }
+
+    if (!singleListing) {
+      return (
+        <div className="min-h-screen bg-background">
+          <Header />
+          <div className="container mx-auto px-4 py-12 text-center">Class not found</div>
+          <Footer />
+        </div>
+      );
+    }
+
+    return (
+      <div className="min-h-screen bg-background">
+        <Header />
+        <div className="container mx-auto px-4 py-8">
+          <div className="mb-6">
+            <button onClick={() => window.history.back()} className="text-sm text-muted-foreground underline mb-3">← Back</button>
+            <h1 className="text-3xl font-bold mb-2">{singleListing.title || singleListing.name || singleListing.tutorName}</h1>
+            {(singleListing.tutorName || singleListing.contactPerson) && (
+              <div className="text-sm text-muted-foreground mb-2">Tutor: <span className="font-semibold">{singleListing.tutorName || singleListing.contactPerson}</span></div>
+            )}
+            {(singleListing.feePerMonth || singleListing.feePerHour || singleListing.feePerSubject || singleListing.feeAmount) && (
+              <div className="text-lg font-bold text-green-700">{`₹${Number(singleListing.feePerMonth || singleListing.feePerHour || singleListing.feePerSubject || singleListing.feeAmount || 0).toLocaleString()}`}{singleListing.feePerMonth ? '/month' : singleListing.feePerHour ? '/hr' : ''}</div>
+            )}
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <div className="lg:col-span-2 space-y-6">
+              {(singleListing.description || singleListing.summary) && (
+                <div className="mb-4 bg-white p-4 rounded shadow">
+                  <h2 className="font-semibold mb-2">About this class</h2>
+                  <p className="text-muted-foreground">{singleListing.description || singleListing.summary}</p>
+                </div>
+              )}
+
+              {/* Subjects */}
+              {(singleListing.subjectsOffered && singleListing.subjectsOffered.length > 0) || (singleListing.subjects && singleListing.subjects.length > 0) ? (
+                <div className="bg-white p-4 rounded shadow">
+                  <h3 className="font-semibold mb-2">Subjects</h3>
+                  <div className="flex flex-wrap gap-2">
+                    {(singleListing.subjectsOffered || singleListing.subjects).map((s: string, i: number) => (
+                      <Badge key={i} className="bg-gray-100 text-gray-800">{s}</Badge>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
+
+              <div className="bg-white p-4 rounded shadow">
+                <h3 className="font-semibold mb-3">Class Details</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div className="text-sm text-muted-foreground">Listing type</div>
+                  <div className="font-medium">{singleListing.listingType || '—'}</div>
+
+                  <div className="text-sm text-muted-foreground">Subject category</div>
+                  <div className="font-medium">{singleListing.subjectCategory || '—'}</div>
+
+                  <div className="text-sm text-muted-foreground">Teaching mode</div>
+                  <div className="font-medium">{singleListing.teachingMode || '—'}</div>
+
+                  <div className="text-sm text-muted-foreground">Class type</div>
+                  <div className="font-medium">{singleListing.classType || '—'}</div>
+
+                  <div className="text-sm text-muted-foreground">Tutor qualification</div>
+                  <div className="font-medium">{singleListing.tutorQualification || '—'}</div>
+
+                  <div className="text-sm text-muted-foreground">Experience (years)</div>
+                  <div className="font-medium">{singleListing.tutorExperienceYears ?? '—'}</div>
+
+                  <div className="text-sm text-muted-foreground">Grade level</div>
+                  <div className="font-medium">{singleListing.gradeLevel || (singleListing.minGrade || singleListing.maxGrade ? `${singleListing.minGrade || ''}${singleListing.minGrade && singleListing.maxGrade ? ' - ' : ''}${singleListing.maxGrade || ''}` : '—')}</div>
+
+                  <div className="text-sm text-muted-foreground">Board</div>
+                  <div className="font-medium">{singleListing.board || '—'}</div>
+
+                  <div className="text-sm text-muted-foreground">Batch size</div>
+                  <div className="font-medium">{singleListing.batchSize ?? '—'}</div>
+
+                  <div className="text-sm text-muted-foreground">Fees</div>
+                  <div className="font-medium">{singleListing.feePerMonth ? `₹${Number(singleListing.feePerMonth).toLocaleString()}/month` : singleListing.feePerHour ? `₹${Number(singleListing.feePerHour).toLocaleString()}/hr` : singleListing.feePerSubject ? `₹${Number(singleListing.feePerSubject).toLocaleString()}/subject` : '—'}</div>
+                </div>
+
+                <div className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-2">
+                  {['demoClassAvailable','studyMaterialProvided','testSeriesIncluded','doubtClearingSessions','flexibleTimings','weekendClasses','homeTuitionAvailable','onlineClassesAvailable'].map((k) => {
+                    const val = (singleListing as any)[k];
+                    return (
+                      <div key={k} className="flex items-center gap-2 p-2 bg-gray-50 rounded">
+                        <span className={`inline-block w-2 h-2 rounded-full ${val ? 'bg-green-500' : 'bg-gray-400'}`}></span>
+                        <span className="text-sm">{k.replace(/([A-Z])/g, ' $1').replace(/(^.|_)/g, (s) => s.toUpperCase())}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+
+            <aside className="space-y-4">
+              <div className="bg-white p-4 rounded shadow">
+                <div className="font-semibold">Contact</div>
+                <div className="mt-2">
+                  <div className="text-sm text-muted-foreground">{singleListing.contactPerson || '—'}</div>
+                  {singleListing.contactPhone && <a href={`tel:${singleListing.contactPhone}`} className="block mt-3 w-full text-center bg-green-600 text-white px-4 py-2 rounded">Call</a>}
+                  {singleListing.contactEmail && <a href={`mailto:${singleListing.contactEmail}`} className="block mt-2 w-full text-center bg-gray-800 text-white px-4 py-2 rounded"><Mail className="inline-block mr-2"/> Email</a>}
+                </div>
+              </div>
+
+              <div className="bg-white p-4 rounded shadow">
+                <div className="flex items-center justify-between">
+                  <div className="font-semibold">Details & Stats</div>
+                  <div className="text-sm text-muted-foreground">{singleListing.isActive ? <Badge className="bg-green-100 text-green-800">Active</Badge> : <Badge className="bg-gray-100 text-gray-800">Inactive</Badge>}</div>
+                </div>
+
+                <div className="mt-3 text-sm text-muted-foreground">
+                  <div className="mb-2">{singleListing.isFeatured ? <Badge className="mr-2">Featured</Badge> : null}Views: <span className="font-medium">{singleListing.viewCount ?? 0}</span></div>
+                  <div className="mb-1">Created: <span className="font-medium">{formatDate(singleListing.createdAt)}</span></div>
+                  <div className="mb-1">Updated: <span className="font-medium">{formatDate(singleListing.updatedAt)}</span></div>
+                  <div className="mb-1">Location: <span className="font-medium">{[singleListing.areaName, singleListing.city, singleListing.stateProvince, singleListing.country].filter(Boolean).join(', ') || '—'}</span></div>
+                  <div className="mb-1">Address: <span className="font-medium">{singleListing.fullAddress || '—'}</span></div>
+                  <div className="mb-1">Posted by: <span className="font-medium">{singleListing.userId || singleListing.sellerId || '—'}</span></div>
+                </div>
+              </div>
+
+            </aside>
+          </div>
+        </div>
+        <Footer />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -178,7 +340,9 @@ export default function TuitionPrivateClasses() {
               <Card key={listing.id} className="overflow-hidden hover:shadow-lg transition-shadow">
                 <CardContent className="p-4">
                   <div className="flex justify-between items-start mb-3">
-                    <h3 className="font-semibold text-lg line-clamp-2">{listing.title}</h3>
+                      <h3 className="font-semibold text-lg line-clamp-2">
+                        <a href={`/listing/tuition-private-classes/${listing.id}`} className="hover:underline">{listing.title}</a>
+                      </h3>
                     {listing.isFeatured && (
                       <Badge className="bg-yellow-500">Featured</Badge>
                     )}
@@ -258,7 +422,7 @@ export default function TuitionPrivateClasses() {
                     )}
                   </div>
 
-                  <Link href={`/tuition-class/${listing.id}`}>
+                  <Link href={`/tuition-private-classes/${listing.id}`}>
                     <Button className="w-full">View Details</Button>
                   </Link>
                 </CardContent>

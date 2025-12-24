@@ -389,6 +389,20 @@ export default function ServiceDetails() {
           `/api/construction-materials/${id}`,
           `/api/rental-listings/${id}`,
           `/api/property-deals/${id}`,
+          // Admin endpoints mirroring the public endpoints so details can be fetched from admin API
+          `/api/admin/tuition-private-classes/${id}`,
+          `/api/admin/cars-bikes/${id}`,
+          `/api/admin/phones-tablets-accessories/${id}`,
+          `/api/admin/electronics-gadgets/${id}`,
+          `/api/admin/fashion-beauty/${id}`,
+          `/api/admin/skill-training/${id}`,
+          `/api/admin/health-wellness/${id}`,
+          `/api/admin/dance-gym-yoga/${id}`,
+          `/api/admin/language-classes/${id}`,
+          `/api/admin/academy-music-arts/${id}`,
+          `/api/admin/construction-materials/${id}`,
+          `/api/admin/rental-listings/${id}`,
+          `/api/admin/property-deals/${id}`,
         ];
 
         let data: any = null;

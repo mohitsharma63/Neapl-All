@@ -192,11 +192,14 @@ function CarBikeRentalsForm() {
       const storedUser = localStorage.getItem("user");
       const userData = storedUser ? JSON.parse(storedUser) : null;
 
+      // Exclude system fields when updating
+      const { id, createdAt, updatedAt, ...dataToSend } = data;
+
       const response = await fetch(url, {
         method,
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          ...data,
+          ...dataToSend,
           images,
           documents,
           features,
@@ -260,10 +263,11 @@ function CarBikeRentalsForm() {
 
   const toggleActiveMutation = useMutation({
     mutationFn: async (rental: CarBikeRentalFormData) => {
+      const { id, createdAt, updatedAt, ...dataToSend } = rental;
       const response = await fetch(`/api/car-bike-rentals/${rental.id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...rental, isActive: !rental.isActive }),
+        body: JSON.stringify({ ...dataToSend, isActive: !rental.isActive }),
       });
       if (!response.ok) throw new Error("Failed to toggle active status");
       return response.json();
@@ -276,10 +280,11 @@ function CarBikeRentalsForm() {
 
   const toggleFeaturedMutation = useMutation({
     mutationFn: async (rental: CarBikeRentalFormData) => {
+      const { id, createdAt, updatedAt, ...dataToSend } = rental;
       const response = await fetch(`/api/car-bike-rentals/${rental.id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...rental, isFeatured: !rental.isFeatured }),
+        body: JSON.stringify({ ...dataToSend, isFeatured: !rental.isFeatured }),
       });
       if (!response.ok) throw new Error("Failed to toggle featured status");
       return response.json();

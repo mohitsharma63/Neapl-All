@@ -3762,7 +3762,7 @@ function AnalyticsSection() {
       try {
         setLoading(true);
         setError(null);
-        const res = await fetch(`/api/seller/dashboard?userId=${encodeURIComponent(user.id)}`);
+        const res = await fetch(`/api/seller/dashboard`);
         if (!res.ok) {
           throw new Error(`Failed to load dashboard data (${res.status})`);
         }
@@ -5827,7 +5827,8 @@ function RentalListingsSection() {
   );
 }
 
-export default function AdminDashboard() {
+export default function SellerDashboard() {
+  const { user, isLoading } = useUser();
   const [activeSection, setActiveSection] = useState(() => {
     const saved = localStorage.getItem('activeSection');
     return saved || "dashboard";
@@ -5836,8 +5837,33 @@ export default function AdminDashboard() {
   const [globalFilters, setGlobalFilters] = useState<any>({ search: '', isActive: '', isFeatured: '' });
 
   useEffect(() => {
+    if (isLoading) return;
+    if (!user) {
+      window.location.href = '/login';
+      return;
+    }
+    if (user.role === 'admin') {
+      window.location.href = '/';
+      return;
+    }
+    if (user.accountType !== 'seller') {
+      window.location.href = '/';
+      return;
+    }
+  }, [isLoading, user]);
+
+  useEffect(() => {
+    if (isLoading) return;
+    if (!user) return;
+    if (user.role === 'admin') return;
+    if (user.accountType !== 'seller') return;
     localStorage.setItem('activeSection', activeSection);
-  }, [activeSection]);
+  }, [activeSection, isLoading, user]);
+
+  if (isLoading) return null;
+  if (!user) return null;
+  if (user.role === 'admin') return null;
+  if (user.accountType !== 'seller') return null;
 
   const renderSection = () => {
     // Normalize the active section to handle different slug formats

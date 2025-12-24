@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useForm, useFieldArray } from "react-hook-form";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -13,7 +13,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Edit, Trash2, Eye, X, Pencil } from "lucide-react";
+import { Plus, Edit, Trash2, Eye, X, Pencil, Upload, Camera } from "lucide-react";
 
 // Define the interface for Saree/Clothing/Shopping products
 interface SareeClothingFormData {
@@ -203,6 +203,9 @@ export default function SareeClothingShoppingForm(props?: {
   const [editingItem, setEditingItem] = useState<SareeProductApi | null>(null);
   const [viewingItem, setViewingItem] = useState<SareeProductApi | null>(null);
   const [uploadingImages, setUploadingImages] = useState(false);
+  const [dragActive, setDragActive] = useState(false);
+  const [imagePreviewError, setImagePreviewError] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [userId, setUserId] = useState<string | null>(null);
   const [userRole, setUserRole] = useState<string | null>(null);
 
@@ -491,12 +494,36 @@ export default function SareeClothingShoppingForm(props?: {
     const files = e.target.files;
     if (!files || files.length === 0) return;
 
+    await processFiles(files);
+    // Reset input
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
+  const processFiles = async (files: FileList) => {
     setUploadingImages(true);
+    setImagePreviewError(null);
     const newImages: string[] = [];
+    const maxFileSize = 5 * 1024 * 1024; // 5MB
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
 
     try {
       for (let i = 0; i < files.length; i++) {
         const file = files[i];
+
+        // Validate file size
+        if (file.size > maxFileSize) {
+          setImagePreviewError(`File ${file.name} is too large. Maximum size is 5MB.`);
+          continue;
+        }
+
+        // Validate file type
+        if (!allowedTypes.includes(file.type)) {
+          setImagePreviewError(`File ${file.name} is not a valid image format. Please use JPEG, PNG, WebP, or GIF.`);
+          continue;
+        }
+
         const reader = new FileReader();
 
         const result = await new Promise<string>((resolve, reject) => {
@@ -508,14 +535,24 @@ export default function SareeClothingShoppingForm(props?: {
         newImages.push(result);
       }
 
-      const currentImages = watch("images") || [];
-      setValue("images", [...currentImages, ...newImages]);
+      if (newImages.length > 0) {
+        const currentImages = watch("images") || [];
+        const totalImages = currentImages.length + newImages.length;
 
-      toast({
-        title: "Success",
-        description: `${newImages.length} image(s) uploaded successfully`,
-      });
+        if (totalImages > 10) {
+          setImagePreviewError(`Maximum 10 images allowed. You can upload ${10 - currentImages.length} more image(s).`);
+          return;
+        }
+
+        setValue("images", [...currentImages, ...newImages]);
+
+        toast({
+          title: "Success",
+          description: `${newImages.length} image(s) uploaded successfully`,
+        });
+      }
     } catch (error) {
+      setImagePreviewError("Failed to process images. Please try again.");
       toast({
         title: "Error",
         description: "Failed to upload images",
@@ -523,6 +560,27 @@ export default function SareeClothingShoppingForm(props?: {
       });
     } finally {
       setUploadingImages(false);
+    }
+  };
+
+  // Drag and drop handlers
+  const handleDrag = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.type === "dragenter" || e.type === "dragover") {
+      setDragActive(true);
+    } else if (e.type === "dragleave") {
+      setDragActive(false);
+    }
+  };
+
+  const handleDrop = async (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragActive(false);
+
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+      await processFiles(e.dataTransfer.files);
     }
   };
 
@@ -623,36 +681,102 @@ export default function SareeClothingShoppingForm(props?: {
 
                     <div className="grid grid-cols-2 gap-4">
                       <div>
-                        <Label htmlFor="images">Product Images</Label>
-                        <Input
-                          id="images"
-                          type="file"
-                          accept="image/*"
-                          multiple
-                          onChange={handleImageUpload}
-                          className="mt-2"
-                          disabled={uploadingImages}
-                        />
-                        {uploadingImages && <p className="text-sm text-muted-foreground mt-2">Uploading...</p>}
+                        <Label htmlFor="images" className="text-base font-semibold mb-3 block">Product Images</Label>
+                        <div
+                          onDragEnter={handleDrag}
+                          onDragLeave={handleDrag}
+                          onDragOver={handleDrag}
+                          onDrop={handleDrop}
+                          className={`relative border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-all ${
+                            dragActive
+                              ? 'border-pink-500 bg-pink-50'
+                              : 'border-gray-300 bg-gray-50 hover:border-pink-400 hover:bg-pink-50'
+                          } ${uploadingImages ? 'opacity-60 pointer-events-none' : ''}`}
+                          onClick={() => fileInputRef.current?.click()}
+                        >
+                          <Input
+                            ref={fileInputRef}
+                            id="images"
+                            type="file"
+                            accept="image/*"
+                            multiple
+                            onChange={handleImageUpload}
+                            className="hidden"
+                            disabled={uploadingImages}
+                          />
+                          <div className="flex flex-col items-center gap-2">
+                            {uploadingImages ? (
+                              <>
+                                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-pink-600 mx-auto"></div>
+                                <p className="text-sm text-muted-foreground">Uploading images...</p>
+                              </>
+                            ) : (
+                              <>
+                                <Camera className="w-10 h-10 text-pink-500 mx-auto" />
+                                <div>
+                                  <p className="text-sm font-medium text-gray-900">
+                                    Drag and drop images here
+                                  </p>
+                                  <p className="text-xs text-gray-500 mt-1">
+                                    or click to select files (Max 5MB each, up to 10 images)
+                                  </p>
+                                </div>
+                              </>
+                            )}
+                          </div>
+                        </div>
+                        {imagePreviewError && (
+                          <p className="text-xs text-red-500 mt-2">{imagePreviewError}</p>
+                        )}
+                        <p className="text-xs text-gray-500 mt-2">
+                          Supported: JPEG, PNG, WebP, GIF
+                        </p>
                       </div>
                     </div>
 
                     {watch("images") && watch("images")!.length > 0 && (
-                      <div className="grid grid-cols-4 gap-4">
-                        {watch("images")!.map((img: string, idx: number) => (
-                          <div key={idx} className="relative group">
-                            <img src={img} alt={`Product ${idx + 1}`} className="w-full h-24 object-cover rounded-lg border-2 border-pink-200" />
-                            <Button
-                              type="button"
-                              variant="destructive"
-                              size="icon"
-                              className="absolute top-1 right-1 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
-                              onClick={() => removeImage(idx)}
-                            >
-                              <X className="w-3 h-3" />
-                            </Button>
-                          </div>
-                        ))}
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between">
+                          <Label className="text-base font-semibold">
+                            Uploaded Images ({watch("images")!.length}/10)
+                          </Label>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => fileInputRef.current?.click()}
+                            disabled={uploadingImages || (watch("images")?.length || 0) >= 10}
+                          >
+                            <Plus className="w-4 h-4 mr-2" />
+                            Add More
+                          </Button>
+                        </div>
+                        <div className="grid grid-cols-5 gap-3">
+                          {watch("images")!.map((img: string, idx: number) => (
+                            <div key={idx} className="relative group">
+                              <img
+                                src={img}
+                                alt={`Product ${idx + 1}`}
+                                className="w-full h-24 object-cover rounded-lg border-2 border-pink-200 hover:border-pink-400 transition-colors"
+                              />
+                              <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-30 rounded-lg transition-all flex items-center justify-center">
+                                <Button
+                                  type="button"
+                                  variant="destructive"
+                                  size="icon"
+                                  className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
+                                  onClick={() => removeImage(idx)}
+                                  title={`Remove image ${idx + 1}`}
+                                >
+                                  <X className="w-4 h-4" />
+                                </Button>
+                              </div>
+                              <div className="absolute top-1 left-1 bg-pink-600 text-white text-xs rounded-full w-6 h-6 flex items-center justify-center font-semibold">
+                                {idx + 1}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
                       </div>
                     )}
                   </div>

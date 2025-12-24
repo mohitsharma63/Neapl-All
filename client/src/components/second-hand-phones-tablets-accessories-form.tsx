@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -53,6 +53,7 @@ type ProductFormData = {
   urgentSale?: boolean;
   isActive?: boolean;
   isFeatured?: boolean;
+  images?: string[];
 };
 
 export default function SecondHandPhonesTabletsAccessoriesForm() {
@@ -61,6 +62,10 @@ export default function SecondHandPhonesTabletsAccessoriesForm() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<any>(null);
   const [viewingProduct, setViewingProduct] = useState<any>(null);
+  const [images, setImages] = useState<string[]>([]);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const [dragActive, setDragActive] = useState(false);
+  const [imageError, setImageError] = useState<string | null>(null);
 
   const { register, handleSubmit, reset, setValue, watch } = useForm<ProductFormData>();
 
@@ -147,14 +152,17 @@ export default function SecondHandPhonesTabletsAccessoriesForm() {
     Object.keys(product).forEach((key) => {
       setValue(key as any, product[key]);
     });
+    // load existing images into preview when editing
+    setImages(product.images || []);
     setIsDialogOpen(true);
   };
 
   const onSubmit = (data: ProductFormData) => {
+    const payload: ProductFormData = { ...data, images } as ProductFormData;
     if (editingProduct) {
-      updateMutation.mutate({ id: editingProduct.id, data });
+      updateMutation.mutate({ id: editingProduct.id, data: payload });
     } else {
-      createMutation.mutate(data);
+      createMutation.mutate(payload);
     }
   };
 
@@ -181,6 +189,59 @@ export default function SecondHandPhonesTabletsAccessoriesForm() {
     };
     return colors[condition] || 'bg-gray-600';
   };
+
+  const validateImageFile = (file: File) => {
+    const allowed = ["image/jpeg", "image/png", "image/webp", "image/gif"];
+    const maxSize = 5 * 1024 * 1024; // 5MB
+    if (!allowed.includes(file.type)) return "Only JPG, PNG, WEBP, GIF files are allowed";
+    if (file.size > maxSize) return "Each image must be 5MB or smaller";
+    return null;
+  };
+
+  const processFiles = (files: FileList | null) => {
+    if (!files) return;
+    setImageError(null);
+    Array.from(files).forEach((file) => {
+      const err = validateImageFile(file);
+      if (err) {
+        setImageError(err);
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const result = e.target?.result as string;
+        setImages((prev) => {
+          if (prev.length >= 10) return prev;
+          return [...prev, result];
+        });
+      };
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setDragActive(false);
+    processFiles(e.dataTransfer.files);
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    setDragActive(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    setDragActive(false);
+  };
+
+  const openFileDialog = () => fileInputRef.current?.click();
+
+  const removeImage = (index: number) => setImages((prev) => prev.filter((_, i) => i !== index));
+
+  useEffect(() => {
+    if (!isDialogOpen) setImages([]);
+  }, [isDialogOpen]);
 
   return (
     <div className="space-y-6">
@@ -299,6 +360,53 @@ export default function SecondHandPhonesTabletsAccessoriesForm() {
                   <Label htmlFor="description">Description</Label>
                   <Textarea id="description" {...register("description")} rows={3} />
                 </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Images</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  className="hidden"
+                  accept="image/*"
+                  multiple
+                  onChange={(e) => processFiles(e.target.files)}
+                />
+
+                <div
+                  onDrop={handleDrop}
+                  onDragOver={handleDragOver}
+                  onDragLeave={handleDragLeave}
+                  className={`border-dashed border-2 rounded p-4 text-center ${dragActive ? 'border-blue-400 bg-blue-50' : 'border-gray-200'}`}
+                >
+                  <p className="text-sm text-muted-foreground">Drag & drop images here, or</p>
+                  <div className="mt-2">
+                    <Button type="button" onClick={openFileDialog}>Select Images</Button>
+                  </div>
+                  {imageError && <p className="text-sm text-red-600 mt-2">{imageError}</p>}
+                </div>
+
+                {images.length > 0 && (
+                  <div className="grid grid-cols-4 gap-4 mt-4">
+                    {images.map((src, i) => (
+                      <div key={i} className="relative">
+                        <img src={src} alt={`img-${i}`} className="h-24 w-full object-cover rounded" />
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="absolute top-1 right-1"
+                          onClick={() => removeImage(i)}
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </CardContent>
             </Card>
 
@@ -544,6 +652,15 @@ export default function SecondHandPhonesTabletsAccessoriesForm() {
               <DialogTitle>{viewingProduct.title}</DialogTitle>
             </DialogHeader>
             <div className="space-y-4">
+              {/* Images */}
+              {Array.isArray(viewingProduct.images) && viewingProduct.images.length > 0 && (
+                <div className="flex gap-2 overflow-x-auto">
+                  {viewingProduct.images.map((img: string, idx: number) => (
+                    <img key={idx} src={img} alt={`${viewingProduct.title || 'product'}-${idx}`} className="w-32 h-20 object-cover rounded" />
+                  ))}
+                </div>
+              )}
+
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <p className="text-sm font-medium">Category</p>
@@ -561,6 +678,32 @@ export default function SecondHandPhonesTabletsAccessoriesForm() {
                   <p className="text-sm font-medium">Price</p>
                   <p className="text-sm text-muted-foreground">₹{Number(viewingProduct.price).toLocaleString()}</p>
                 </div>
+                {viewingProduct.description && (
+                  <div className="col-span-2">
+                    <p className="text-sm font-medium">Description</p>
+                    <p className="text-sm text-muted-foreground">{viewingProduct.description}</p>
+                  </div>
+                )}
+                <div>
+                  <p className="text-sm font-medium">Contact Person</p>
+                  <p className="text-sm text-muted-foreground">{viewingProduct.contactPerson || '-'}</p>
+                </div>
+                <div>
+                  <p className="text-sm font-medium">Phone</p>
+                  <p className="text-sm text-muted-foreground">{viewingProduct.contactPhone || '-'}</p>
+                </div>
+                <div>
+                  <p className="text-sm font-medium">City</p>
+                  <p className="text-sm text-muted-foreground">{viewingProduct.city || viewingProduct.areaName || viewingProduct.storageCapacity || '-'}</p>
+                </div>
+                <div>
+                  <p className="text-sm font-medium">Address</p>
+                  <p className="text-sm text-muted-foreground">{viewingProduct.fullAddress || '-'}</p>
+                </div>
+              </div>
+              <div className="pt-4 border-t text-sm text-muted-foreground">
+                <p>Created: {new Date(viewingProduct.createdAt).toLocaleString()}</p>
+                <p>Last Updated: {new Date(viewingProduct.updatedAt).toLocaleString()}</p>
               </div>
             </div>
           </DialogContent>

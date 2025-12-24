@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useForm } from "react-hook-form";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -110,6 +110,10 @@ export default function PhonesTabletsAccessoriesForm() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<any>(null);
   const [viewingProduct, setViewingProduct] = useState<any>(null);
+  const [images, setImages] = useState<string[]>([]);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const [dragActive, setDragActive] = useState(false);
+  const [imageError, setImageError] = useState<string | null>(null);
 
   const { register, handleSubmit, reset, setValue, watch } = useForm<ProductFormData>();
 
@@ -189,10 +193,41 @@ export default function PhonesTabletsAccessoriesForm() {
     setIsDialogOpen(false);
     setEditingProduct(null);
     reset();
+    setImages([]);
   };
+
+  const processFiles = (files: FileList | null) => {
+    if (!files || files.length === 0) return;
+    const allowed = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+    const maxSize = 5 * 1024 * 1024;
+    const incoming: Promise<string>[] = [];
+    for (let i = 0; i < files.length; i++) {
+      const f = files[i];
+      if (!allowed.includes(f.type)) { setImageError('Only JPG, PNG, WEBP and GIF allowed'); continue; }
+      if (f.size > maxSize) { setImageError('Each image must be <= 5MB'); continue; }
+      incoming.push(new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(String(reader.result));
+        reader.onerror = () => reject(new Error('Failed to read file'));
+        reader.readAsDataURL(f);
+      }));
+    }
+    if (incoming.length === 0) return;
+    Promise.all(incoming).then((dataUrls) => {
+      setImages(prev => [...prev, ...dataUrls].slice(0, 10));
+      setImageError(null);
+    }).catch(e => { console.error(e); setImageError('Failed to process images'); });
+  };
+
+  const handleDrop = (e: React.DragEvent) => { e.preventDefault(); e.stopPropagation(); setDragActive(false); processFiles(e.dataTransfer.files); };
+  const handleDragOver = (e: React.DragEvent) => { e.preventDefault(); e.stopPropagation(); setDragActive(true); };
+  const handleDragLeave = (e: React.DragEvent) => { e.preventDefault(); e.stopPropagation(); setDragActive(false); };
+  const openFileDialog = () => fileInputRef.current?.click();
+  const removeImage = (idx: number) => setImages(prev => prev.filter((_, i) => i !== idx));
 
   const handleEdit = (product: any) => {
     setEditingProduct(product);
+    setImages(product.images || []);
     Object.keys(product).forEach((key) => {
       setValue(key as any, product[key]);
     });
@@ -200,10 +235,11 @@ export default function PhonesTabletsAccessoriesForm() {
   };
 
   const onSubmit = (data: ProductFormData) => {
+    const payload = { ...data, images };
     if (editingProduct) {
-      updateMutation.mutate({ id: editingProduct.id, data });
+      updateMutation.mutate({ id: editingProduct.id, data: payload });
     } else {
-      createMutation.mutate(data);
+      createMutation.mutate(payload);
     }
   };
 
@@ -499,6 +535,15 @@ export default function PhonesTabletsAccessoriesForm() {
               <DialogTitle>{viewingProduct.title}</DialogTitle>
             </DialogHeader>
             <div className="space-y-4">
+              {/* Images */}
+              {Array.isArray(viewingProduct.images) && viewingProduct.images.length > 0 && (
+                <div className="flex gap-2 overflow-x-auto">
+                  {viewingProduct.images.map((img: string, idx: number) => (
+                    <img key={idx} src={img} alt={`${viewingProduct.title || 'product'}-${idx}`} className="w-32 h-20 object-cover rounded" />
+                  ))}
+                </div>
+              )}
+
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <p className="text-sm font-medium">Category</p>
@@ -516,6 +561,34 @@ export default function PhonesTabletsAccessoriesForm() {
                   <p className="text-sm font-medium">Stock Status</p>
                   <p className="text-sm text-muted-foreground">{viewingProduct.inStock ? 'In Stock' : 'Out of Stock'}</p>
                 </div>
+                {/* Description */}
+                {viewingProduct.description && (
+                  <div className="col-span-2">
+                    <p className="text-sm font-medium">Description</p>
+                    <p className="text-sm text-muted-foreground">{viewingProduct.description}</p>
+                  </div>
+                )}
+                {/* Contact & Location */}
+                <div>
+                  <p className="text-sm font-medium">Contact Person</p>
+                  <p className="text-sm text-muted-foreground">{viewingProduct.contactPerson || '-'}</p>
+                </div>
+                <div>
+                  <p className="text-sm font-medium">Phone</p>
+                  <p className="text-sm text-muted-foreground">{viewingProduct.contactPhone || '-'}</p>
+                </div>
+                <div>
+                  <p className="text-sm font-medium">City</p>
+                  <p className="text-sm text-muted-foreground">{viewingProduct.city || viewingProduct.areaName || viewingProduct.storageCapacity || '-'}</p>
+                </div>
+                <div>
+                  <p className="text-sm font-medium">Address</p>
+                  <p className="text-sm text-muted-foreground">{viewingProduct.fullAddress || '-'}</p>
+                </div>
+              </div>
+              <div className="pt-4 border-t text-sm text-muted-foreground">
+                <p>Created: {new Date(viewingProduct.createdAt).toLocaleString()}</p>
+                <p>Last Updated: {new Date(viewingProduct.updatedAt).toLocaleString()}</p>
               </div>
             </div>
           </DialogContent>

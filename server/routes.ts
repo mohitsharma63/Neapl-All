@@ -1,9 +1,3 @@
-
-import type { Express } from "express";
-import { db } from "./db";
-import { categories, subcategories } from "@shared/schema";
-import { eq } from "drizzle-orm";
-
 import type { Express } from "express";
 import { createServer } from "http";
 import { db } from "./db";
@@ -44,7 +38,6 @@ import {
   sareeClothingShopping,
   ebooksOnlineCourses,
   cricketSportsTraining,
-  // educationalConsultancyStudyAbroad, // This line is commented out in the original code
   pharmacyMedicalStores, // Import pharmacyMedicalStores
   tuitionPrivateClasses, // Added
   danceKarateGymYoga, // Added
@@ -70,9 +63,100 @@ import {
   cyberCafeInternetServices, // Added
 } from "../shared/schema";
 import { uploadMedia, handleMediaUpload } from './upload';
-import { eq, sql, desc, or } from "drizzle-orm";
+import { eq, sql, desc, or, and } from "drizzle-orm";
 
 export function registerRoutes(app: Express) {
+  // Middleware: sanitize incoming JSON payloads for DB writes
+  // - remove client-supplied system timestamp fields
+  // - convert ISO-like date strings to `Date` objects so DB drivers can call `.toISOString()` safely
+  app.use((req, _res, next) => {
+    try {
+      if (!req.body || typeof req.body !== 'object') return next();
+      const sanitized: Record<string, any> = {};
+      const isoLike = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/;
+      for (const [k, v] of Object.entries(req.body)) {
+        if (k === 'createdAt' || k === 'updatedAt') continue;
+        if (v == null) {
+          sanitized[k] = null;
+          continue;
+        }
+        if (typeof v === 'string') {
+          // convert ISO-like strings to Date objects
+          if (isoLike.test(v)) {
+            const d = new Date(v);
+            sanitized[k] = isNaN(d.getTime()) ? v : d;
+          } else {
+            sanitized[k] = v;
+          }
+          continue;
+        }
+        // preserve arrays
+        if (Array.isArray(v)) {
+          sanitized[k] = v;
+          continue;
+        }
+        // preserve Date objects
+        if (v instanceof Date) {
+          sanitized[k] = v;
+          continue;
+        }
+        // For plain objects, keep as-is (many columns are JSON/JSONB) but avoid prototype issues
+        if (typeof v === 'object') {
+          sanitized[k] = v;
+          continue;
+        }
+        sanitized[k] = v;
+      }
+      req.body = sanitized;
+    } catch (e) {
+      // swallow sanitizer errors and leave body untouched
+      console.error('Request sanitizer error:', e);
+    }
+    next();
+  });
+
+  // Middleware: enforce at least 1 image for listing-like forms
+  // Applies when request payload explicitly includes `images` or `photos` fields.
+  app.use((req, res, next) => {
+    try {
+      const method = String(req.method || '').toUpperCase();
+      if (method !== 'POST' && method !== 'PUT' && method !== 'PATCH') return next();
+      if (!req.originalUrl || !req.originalUrl.includes('/api/')) return next();
+      if (!req.body || typeof req.body !== 'object') return next();
+
+      const hasImagesField = Object.prototype.hasOwnProperty.call(req.body, 'images');
+      const hasPhotosField = Object.prototype.hasOwnProperty.call(req.body, 'photos');
+      if (!hasImagesField && !hasPhotosField) return next();
+
+      const normalize = (v: any): string[] => {
+        if (v == null) return [];
+        if (Array.isArray(v)) return v.filter((x) => typeof x === 'string' && x.trim().length > 0);
+        if (typeof v === 'string') {
+          const s = v.trim();
+          if (!s) return [];
+          try {
+            const parsed = JSON.parse(s);
+            if (Array.isArray(parsed)) return parsed.filter((x) => typeof x === 'string' && x.trim().length > 0);
+          } catch {
+            // ignore
+          }
+          return [s];
+        }
+        return [];
+      };
+
+      const images = hasImagesField ? normalize((req.body as any).images) : [];
+      const photos = hasPhotosField ? normalize((req.body as any).photos) : [];
+      const total = images.length + photos.length;
+      if (total <= 0) {
+        return res.status(400).json({ message: 'At least one image is required' });
+      }
+    } catch (e) {
+      console.error('Image required middleware error:', e);
+    }
+    next();
+  });
+
   app.get("/api/stats", async (_req, res) => {
     try {
       const [propertiesCount, agenciesCount, locationsCount] = await Promise.all([
@@ -251,6 +335,14 @@ export function registerRoutes(app: Express) {
       const fetchPromises = toFetch.map((k) => sourceFetchers[k]());
       const fetched = await Promise.all(fetchPromises);
 
+      const safeStringify = (obj: any) => {
+        try {
+          return JSON.stringify(obj, (_k, v) => (typeof v === 'bigint' ? v.toString() : v));
+        } catch (e) {
+          return '';
+        }
+      };
+
       const makeMatches = (rows: any[]) => {
         return rows
           .map((r: any) => {
@@ -262,7 +354,7 @@ export function registerRoutes(app: Express) {
               snippet = `${snippet} Call: ${phone}`.trim();
             }
             const raw = r;
-            const serialized = ("" + JSON.stringify({ id: r.id, title, snippet, raw })).toLowerCase();
+            const serialized = ("" + safeStringify({ id: r.id, title, snippet, raw })).toLowerCase();
             const matchedWords = tokens.filter(t => serialized.includes(t));
             return { id: r.id, title, snippet, raw, matchedWords };
           })
@@ -287,10 +379,10 @@ export function registerRoutes(app: Express) {
         const rows = fetched[i] || [];
         if (key === 'categories') {
           const mapped = (rows || []).map((c: any) => ({ id: c.id, title: c.name, raw: c }));
-          results[key] = mapped.filter((item: any) => JSON.stringify(item).toLowerCase().includes(qLower)).slice(0, limitPerSource);
+          results[key] = mapped.filter((item: any) => safeStringify(item).toLowerCase().includes(qLower)).slice(0, limitPerSource);
         } else if (key === 'subcategories') {
           const mapped = (rows || []).map((s: any) => ({ id: s.id, title: s.name, parentCategory: s.category?.name, raw: s }));
-          results[key] = mapped.filter((item: any) => JSON.stringify(item).toLowerCase().includes(qLower)).slice(0, limitPerSource);
+          results[key] = mapped.filter((item: any) => safeStringify(item).toLowerCase().includes(qLower)).slice(0, limitPerSource);
         } else {
           results[key] = makeMatches(rows);
         }
@@ -305,7 +397,7 @@ export function registerRoutes(app: Express) {
           results[src] = arr.filter((it: any) => {
             try {
               const raw = it.raw || it;
-              const serialized = JSON.stringify(raw).toLowerCase();
+              const serialized = safeStringify(raw).toLowerCase();
               // Quick hit if serialized payload contains the filter
               if (serialized.includes(subcategoryFilter)) return true;
 
@@ -874,6 +966,28 @@ export function registerRoutes(app: Express) {
     }
   });
 
+  // Multiple media upload endpoint for admin (e.g., listing image galleries)
+  app.post('/api/admin/upload-multiple', uploadMedia.array('files', 10), (req, res) => {
+    try {
+      const files = (req as any).files as Express.Multer.File[] | undefined;
+      if (!files || files.length === 0) {
+        return res.status(400).json({ message: 'No files uploaded' });
+      }
+
+      const mapped = files.map((file) => ({
+        url: `/uploads/media/${file.filename}`,
+        filename: file.filename,
+        originalName: file.originalname,
+        size: file.size,
+      }));
+
+      return res.json({ success: true, files: mapped });
+    } catch (err: any) {
+      console.error('Multi media upload error:', err);
+      return res.status(500).json({ message: err?.message || 'Upload failed' });
+    }
+  });
+
   app.put('/api/admin/article-categories/:id', async (req, res) => {
     try {
       const sessionUser = (req as any).session?.user;
@@ -912,13 +1026,15 @@ export function registerRoutes(app: Express) {
 
   app.get("/api/seller/dashboard", async (req, res) => {
     try {
-      const { userId, role } = req.query;
-
-      if (!userId || typeof userId !== "string") {
-        return res.status(400).json({ message: "userId is required" });
+      const sessionUser = (req as any).session?.user;
+      if (!sessionUser?.id) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      if (sessionUser.accountType !== "seller") {
+        return res.status(403).json({ message: "Forbidden: seller access required" });
       }
 
-      const sellerId = userId as string;
+      const sellerId = sessionUser.id as string;
 
       const [
         rental,
@@ -953,7 +1069,10 @@ export function registerRoutes(app: Express) {
           orderBy: desc(hostelPgListings.createdAt),
         }),
         db.query.carsBikes.findMany({
-          where: or(eq(carsBikes.userId, sellerId), eq(carsBikes.sellerId, sellerId)),
+          where: and(
+            or(eq(carsBikes.userId, sellerId), eq(carsBikes.sellerId, sellerId)),
+            eq(carsBikes.role, "seller"),
+          ),
           orderBy: desc(carsBikes.createdAt),
         }),
         db.query.propertyDeals.findMany({
@@ -981,19 +1100,31 @@ export function registerRoutes(app: Express) {
           orderBy: desc(constructionMaterials.createdAt),
         }),
         db.query.heavyEquipment.findMany({
-          where: or(eq(heavyEquipment.userId, sellerId), eq(heavyEquipment.sellerId, sellerId)),
+          where: and(
+            or(eq(heavyEquipment.userId, sellerId), eq(heavyEquipment.sellerId, sellerId)),
+            eq(heavyEquipment.role, "seller"),
+          ),
           orderBy: desc(heavyEquipment.createdAt),
         }),
         db.query.showrooms.findMany({
-          where: or(eq(showrooms.userId, sellerId), eq(showrooms.sellerId, sellerId)),
+          where: and(
+            or(eq(showrooms.userId, sellerId), eq(showrooms.sellerId, sellerId)),
+            eq(showrooms.role, "seller"),
+          ),
           orderBy: desc(showrooms.createdAt),
         }),
         db.query.secondHandCarsBikes.findMany({
-          where: or(eq(secondHandCarsBikes.userId, sellerId), eq(secondHandCarsBikes.sellerId, sellerId)),
+          where: and(
+            or(eq(secondHandCarsBikes.userId, sellerId), eq(secondHandCarsBikes.sellerId, sellerId)),
+            eq(secondHandCarsBikes.role, "seller"),
+          ),
           orderBy: desc(secondHandCarsBikes.createdAt),
         }),
         db.query.carBikeRentals.findMany({
-          where: or(eq(carBikeRentals.userId, sellerId), eq(carBikeRentals.ownerId, sellerId)),
+          where: and(
+            or(eq(carBikeRentals.userId, sellerId), eq(carBikeRentals.ownerId, sellerId)),
+            eq(carBikeRentals.role, "seller"),
+          ),
           orderBy: desc(carBikeRentals.createdAt),
         }),
         db.query.tuitionPrivateClasses.findMany({
@@ -1029,7 +1160,10 @@ export function registerRoutes(app: Express) {
           orderBy: desc(schoolsCollegesCoaching.createdAt),
         }),
         db.query.transportationMovingServices.findMany({
-          where: or(eq(transportationMovingServices.userId, sellerId), eq(transportationMovingServices.ownerId, sellerId)),
+          where: and(
+            or(eq(transportationMovingServices.userId, sellerId), eq(transportationMovingServices.ownerId, sellerId)),
+            eq(transportationMovingServices.role, "seller"),
+          ),
           orderBy: desc(transportationMovingServices.createdAt),
         }),
       ]);
@@ -1157,7 +1291,7 @@ export function registerRoutes(app: Express) {
 
       res.json({
         sellerId,
-        role: role || null,
+        role: (sessionUser.role as string) || (sessionUser.accountType as string) || "seller",
         totalListings,
         activeListings,
         featuredListings,
@@ -2703,18 +2837,19 @@ export function registerRoutes(app: Express) {
   // GET all materials (with optional filters)
   app.get("/api/admin/construction-materials", async (req, res) => {
     try {
-      const { isActive, isFeatured, category, city, userId, role } = req.query;
+      const { isActive, isFeatured, category, city } = req.query;
+      const sessionUser = (req as any).session?.user || null;
+      const queryUserId = typeof req.query.userId === 'string' ? req.query.userId : undefined;
 
       let materials;
-
-      // Base query with role-based filtering
-      if (role === 'admin' || role === 'user') {
+      if (sessionUser && sessionUser.role === 'admin') {
         materials = await db.query.constructionMaterials.findMany({
+          where: queryUserId ? eq(constructionMaterials.userId, queryUserId) : undefined,
           orderBy: desc(constructionMaterials.createdAt),
         });
-      } else if (userId) {
+      } else if (sessionUser && sessionUser.id) {
         materials = await db.query.constructionMaterials.findMany({
-          where: eq(constructionMaterials.userId, userId as string),
+          where: eq(constructionMaterials.userId, sessionUser.id as string),
           orderBy: desc(constructionMaterials.createdAt),
         });
       } else {
@@ -2944,16 +3079,18 @@ export function registerRoutes(app: Express) {
   // GET all property deals
   app.get("/api/admin/property-deals", async (req, res) => {
     try {
-      const { userId, role } = req.query;
+      const sessionUser = (req as any).session?.user || null;
+      const queryUserId = typeof req.query.userId === 'string' ? req.query.userId : undefined;
+
       let deals;
-      
-      if (role === 'admin' || role === 'user') {
+      if (sessionUser && sessionUser.role === 'admin') {
         deals = await db.query.propertyDeals.findMany({
+          where: queryUserId ? eq(propertyDeals.userId, queryUserId) : undefined,
           orderBy: desc(propertyDeals.createdAt),
         });
-      } else if (userId) {
+      } else if (sessionUser && sessionUser.id) {
         deals = await db.query.propertyDeals.findMany({
-          where: eq(propertyDeals.userId, userId as string),
+          where: eq(propertyDeals.userId, sessionUser.id as string),
           orderBy: desc(propertyDeals.createdAt),
         });
       } else {
@@ -3088,16 +3225,18 @@ export function registerRoutes(app: Express) {
   // GET all commercial properties
   app.get("/api/admin/commercial-properties", async (req, res) => {
     try {
-      const { userId, role } = req.query;
+      const sessionUser = (req as any).session?.user || null;
+      const queryUserId = typeof req.query.userId === 'string' ? req.query.userId : undefined;
+
       let properties;
-      
-      if (role === 'admin' || role === 'user') {
+      if (sessionUser && sessionUser.role === 'admin') {
         properties = await db.query.commercialProperties.findMany({
+          where: queryUserId ? eq(commercialProperties.userId, queryUserId) : undefined,
           orderBy: desc(commercialProperties.createdAt),
         });
-      } else if (userId) {
+      } else if (sessionUser && sessionUser.id) {
         properties = await db.query.commercialProperties.findMany({
-          where: eq(commercialProperties.userId, userId as string),
+          where: eq(commercialProperties.userId, sessionUser.id as string),
           orderBy: desc(commercialProperties.createdAt),
         });
       } else {
@@ -3232,16 +3371,18 @@ export function registerRoutes(app: Express) {
   // GET all industrial land
   app.get("/api/admin/industrial-land", async (req, res) => {
     try {
-      const { userId, role } = req.query;
-      let lands;
+      const sessionUser = (req as any).session?.user || null;
+      const queryUserId = typeof req.query.userId === 'string' ? req.query.userId : undefined;
 
-      if (role === 'admin' || role === 'user') {
+      let lands;
+      if (sessionUser && sessionUser.role === 'admin') {
         lands = await db.query.industrialLand.findMany({
+          where: queryUserId ? eq(industrialLand.userId, queryUserId) : undefined,
           orderBy: desc(industrialLand.createdAt),
         });
-      } else if (userId) {
+      } else if (sessionUser && sessionUser.id) {
         lands = await db.query.industrialLand.findMany({
-          where: eq(industrialLand.userId, userId as string),
+          where: eq(industrialLand.userId, sessionUser.id as string),
           orderBy: desc(industrialLand.createdAt),
         });
       } else {
@@ -3376,16 +3517,18 @@ export function registerRoutes(app: Express) {
   // GET all office spaces
   app.get("/api/admin/office-spaces", async (req, res) => {
     try {
-      const { userId, role } = req.query;
+      const sessionUser = (req as any).session?.user || null;
+      const queryUserId = typeof req.query.userId === 'string' ? req.query.userId : undefined;
+
       let offices;
-      
-      if (role === 'admin' || role === 'user') {
+      if (sessionUser && sessionUser.role === 'admin') {
         offices = await db.query.officeSpaces.findMany({
+          where: queryUserId ? eq(officeSpaces.userId, queryUserId) : undefined,
           orderBy: desc(officeSpaces.createdAt),
         });
-      } else if (userId) {
+      } else if (sessionUser && sessionUser.id) {
         offices = await db.query.officeSpaces.findMany({
-          where: eq(officeSpaces.userId, userId as string),
+          where: eq(officeSpaces.userId, sessionUser.id as string),
           orderBy: desc(officeSpaces.createdAt),
         });
       } else {
@@ -3520,28 +3663,39 @@ export function registerRoutes(app: Express) {
   // GET all cars & bikes
   app.get("/api/admin/cars-bikes", async (req, res) => {
     try {
-      // Derive user identity from server-side session rather than trusting query params
+      // Allow optional query filtering by userId for admin pages
       const sessionUser = (req as any).session?.user || null;
+      const queryUserId = typeof req.query.userId === 'string' ? req.query.userId : undefined;
 
-      let carsBikes = [];
+      let listings = [];
 
       if (sessionUser && sessionUser.role === 'admin') {
-        // Admin sees all vehicles
-        carsBikes = await db.query.carsBikes.findMany({
+        const adminId = sessionUser.id as string;
+        if (queryUserId && queryUserId !== adminId) {
+          return res.status(403).json({ message: "Forbidden: cannot access other users' listings" });
+        }
+        listings = await db.query.carsBikes.findMany({
+          where: and(eq(carsBikes.userId, adminId), eq(carsBikes.role, 'admin')),
           orderBy: desc(carsBikes.createdAt),
         });
       } else if (sessionUser && sessionUser.id) {
-        // Sellers / regular users see only their own vehicles (sellerId)
-        carsBikes = await db.query.carsBikes.findMany({
+        // Regular users: only their own listings. If queryUserId is provided but doesn't match session user, ignore it.
+        listings = await db.query.carsBikes.findMany({
           where: eq(carsBikes.sellerId, sessionUser.id as string),
           orderBy: desc(carsBikes.createdAt),
         });
+      } else if (queryUserId) {
+        // No session present but userId provided (used by some client code): try to return listings for that userId
+        // This branch is conservative and only returns rows filtering by userId to avoid exposing other data.
+        listings = await db.query.carsBikes.findMany({
+          where: eq(carsBikes.userId, queryUserId),
+          orderBy: desc(carsBikes.createdAt),
+        });
       } else {
-        // Not authenticated: return empty array to avoid leaking data
-        carsBikes = [];
+        listings = [];
       }
 
-      res.json(carsBikes);
+      res.json(listings);
     } catch (error: any) {
       res.status(500).json({ message: error.message });
     }
@@ -3596,12 +3750,21 @@ export function registerRoutes(app: Express) {
         fullAddress,
         isActive,
         isFeatured,
+        userId,
+        role,
       } = req.body;
 
       // Validate required fields
       if (!title || !listingType || !vehicleType || !brand || !model || !year || !price) {
         return res.status(400).json({
           message: "Missing required fields: title, listingType, vehicleType, brand, model, year, price"
+        });
+      }
+
+      // Validate userId
+      if (!userId) {
+        return res.status(400).json({
+          message: "User ID is required"
         });
       }
 
@@ -3639,6 +3802,8 @@ export function registerRoutes(app: Express) {
           fullAddress: fullAddress || null,
           isActive: isActive !== undefined ? isActive : true,
           isFeatured: isFeatured || false,
+          userId: userId,
+          role: role || 'user',
         })
         .returning();
 
@@ -3682,6 +3847,8 @@ export function registerRoutes(app: Express) {
         fullAddress,
         isActive,
         isFeatured,
+        userId,
+        role,
       } = req.body;
 
       // Convert date string to Date object if provided, handle invalid dates
@@ -3729,6 +3896,8 @@ export function registerRoutes(app: Express) {
       if (fullAddress !== undefined) updateData.fullAddress = fullAddress || null;
       if (isActive !== undefined) updateData.isActive = isActive;
       if (isFeatured !== undefined) updateData.isFeatured = isFeatured;
+      if (userId !== undefined) updateData.userId = userId;
+      if (role !== undefined) updateData.role = role;
 
       const [updatedVehicle] = await db
         .update(carsBikes)
@@ -3821,16 +3990,25 @@ export function registerRoutes(app: Express) {
   // GET all showrooms
   app.get("/api/admin/showrooms", async (req, res) => {
     try {
-      const { userId, role } = req.query;
+      const sessionUser = (req as any).session?.user || null;
+      const queryUserId = typeof req.query.userId === 'string' ? req.query.userId : undefined;
+
       let showroomsList;
-      
-      if (role === 'admin' || role === 'user') {
+      if (sessionUser && sessionUser.role === 'admin') {
+        const adminId = sessionUser.id as string;
+        if (queryUserId && queryUserId !== adminId) {
+          return res.status(403).json({ message: "Forbidden: cannot access other users' listings" });
+        }
         showroomsList = await db.query.showrooms.findMany({
+          where: and(
+            or(eq(showrooms.userId, adminId), eq(showrooms.sellerId, adminId)),
+            eq(showrooms.role, 'admin'),
+          ),
           orderBy: desc(showrooms.createdAt),
         });
-      } else if (userId) {
+      } else if (sessionUser && sessionUser.id) {
         showroomsList = await db.query.showrooms.findMany({
-          where: eq(showrooms.userId, userId as string),
+          where: eq(showrooms.userId, sessionUser.id as string),
           orderBy: desc(showrooms.createdAt),
         });
       } else {
@@ -3987,27 +4165,31 @@ export function registerRoutes(app: Express) {
   // GET all heavy equipment
   app.get("/api/admin/heavy-equipment", async (req, res) => {
     try {
-      const { userId, role } = req.query;
+      const sessionUser = (req as any).session?.user || null;
+      const queryUserId = typeof req.query.userId === 'string' ? req.query.userId : undefined;
 
       let equipment;
-
-      // If user is admin, fetch all equipment
-      if (role === 'admin' || role === 'user') {
+      if (sessionUser && sessionUser.role === 'admin') {
+        const adminId = sessionUser.id as string;
+        if (queryUserId && queryUserId !== adminId) {
+          return res.status(403).json({ message: "Forbidden: cannot access other users' listings" });
+        }
         equipment = await db.query.heavyEquipment.findMany({
+          where: and(
+            or(eq(heavyEquipment.userId, adminId), eq(heavyEquipment.sellerId, adminId)),
+            eq(heavyEquipment.role, 'admin'),
+          ),
           orderBy: desc(heavyEquipment.createdAt),
         });
-      } else if (userId) {
-        // For non-admin users, filter by userId at database level
+      } else if (sessionUser && sessionUser.id) {
+        const sid = sessionUser.id as string;
         equipment = await db.query.heavyEquipment.findMany({
-          where: eq(heavyEquipment.userId, userId as string),
+          where: or(eq(heavyEquipment.userId, sid), eq(heavyEquipment.sellerId, sid)),
           orderBy: desc(heavyEquipment.createdAt),
         });
       } else {
-        // If no userId provided and not admin, return empty array
         equipment = [];
       }
-
-      console.log(`Fetched ${equipment.length} equipment items for user ${userId} with role ${role}`);
       res.json(equipment);
     } catch (error: any) {
       console.error('Error fetching heavy equipment:', error);
@@ -4228,23 +4410,29 @@ export function registerRoutes(app: Express) {
 
   app.get("/api/admin/second-hand-cars-bikes", async (req, res) => {
     try {
-      const { userId, role } = req.query;
+      const sessionUser = (req as any).session?.user || null;
+      const queryUserId = typeof req.query.userId === 'string' ? req.query.userId : undefined;
 
       let vehicles;
-
-      // If user is admin, fetch all vehicles
-      if (role === 'admin' || role === 'user') {
+      if (sessionUser && sessionUser.role === 'admin') {
+        const adminId = sessionUser.id as string;
+        if (queryUserId && queryUserId !== adminId) {
+          return res.status(403).json({ message: "Forbidden: cannot access other users' listings" });
+        }
         vehicles = await db.query.secondHandCarsBikes.findMany({
+          where: and(
+            or(eq(secondHandCarsBikes.userId, adminId), eq(secondHandCarsBikes.sellerId, adminId)),
+            eq(secondHandCarsBikes.role, 'admin'),
+          ),
           orderBy: desc(secondHandCarsBikes.createdAt),
         });
-      } else if (userId) {
-        // For non-admin users, filter by userId at database level
+      } else if (sessionUser && sessionUser.id) {
+        const sid = sessionUser.id as string;
         vehicles = await db.query.secondHandCarsBikes.findMany({
-          where: eq(secondHandCarsBikes.userId, userId as string),
+          where: or(eq(secondHandCarsBikes.userId, sid), eq(secondHandCarsBikes.sellerId, sid)),
           orderBy: desc(secondHandCarsBikes.createdAt),
         });
       } else {
-        // If no userId provided and not admin, return empty array
         vehicles = [];
       }
 
@@ -4380,18 +4568,26 @@ export function registerRoutes(app: Express) {
   });
 
   app.get("/api/second-hand-cars-bikes", async (req, res) => {
-    const { userId, role } = req.query;
+    const sessionUser = (req as any).session?.user || null;
+    const queryUserId = typeof req.query.userId === 'string' ? req.query.userId : undefined;
 
     let listings;
-
-    // If user is admin, fetch all listings
-    if (role === 'admin' || role === 'user') {
-      listings = await db.select().from(secondHandCarsBikes);
-    } else if (userId) {
-      // For non-admin users, filter by userId at database level
-      listings = await db.select().from(secondHandCarsBikes).where(eq(secondHandCarsBikes.userId, userId as string));
+    if (sessionUser && sessionUser.role === 'admin') {
+      listings = await db
+        .select()
+        .from(secondHandCarsBikes)
+        .where(
+          queryUserId
+            ? or(eq(secondHandCarsBikes.userId, queryUserId), eq(secondHandCarsBikes.sellerId, queryUserId))
+            : undefined
+        );
+    } else if (sessionUser && sessionUser.id) {
+      const sid = sessionUser.id as string;
+      listings = await db
+        .select()
+        .from(secondHandCarsBikes)
+        .where(or(eq(secondHandCarsBikes.userId, sid), eq(secondHandCarsBikes.sellerId, sid)));
     } else {
-      // If no userId provided and not admin, return empty array
       listings = [];
     }
     res.json(listings);
@@ -4399,8 +4595,14 @@ export function registerRoutes(app: Express) {
 
 
   app.post("/api/second-hand-cars-bikes", async (req, res) => {
-    const newListing = await db.insert(secondHandCarsBikes).values(req.body).returning();
-    res.json(newListing[0]);
+    try {
+      const { createdAt, updatedAt, ...data } = req.body || {};
+      const [newListing] = await db.insert(secondHandCarsBikes).values({ ...data }).returning();
+      res.json(newListing);
+    } catch (error: any) {
+      console.error('Error creating second-hand listing:', error);
+      res.status(400).json({ message: error.message });
+    }
   });
 
   app.get("/api/second-hand-cars-bikes/:id", async (req, res) => {
@@ -4412,11 +4614,17 @@ export function registerRoutes(app: Express) {
   });
 
   app.put("/api/second-hand-cars-bikes/:id", async (req, res) => {
-    const updated = await db.update(secondHandCarsBikes).set(req.body).where(eq(secondHandCarsBikes.id, req.params.id)).returning();
-    if (updated.length === 0) {
-      return res.status(404).json({ error: "Listing not found" });
+    try {
+      const { createdAt, updatedAt, ...data } = req.body || {};
+      const updated = await db.update(secondHandCarsBikes).set({ ...data, updatedAt: new Date() }).where(eq(secondHandCarsBikes.id, req.params.id)).returning();
+      if (updated.length === 0) {
+        return res.status(404).json({ error: "Listing not found" });
+      }
+      res.json(updated[0]);
+    } catch (error: any) {
+      console.error('Error updating second-hand listing:', error);
+      res.status(400).json({ message: error.message });
     }
-    res.json(updated[0]);
   });
 
   app.delete("/api/second-hand-cars-bikes/:id", async (req, res) => {
@@ -4427,28 +4635,26 @@ export function registerRoutes(app: Express) {
   // Car & Bike Rentals routes
   app.get("/api/car-bike-rentals", async (req, res) => {
     try {
-      const { userId, role } = req.query;
+      const sessionUser = (req as any).session?.user || null;
+      const queryUserId = typeof req.query.userId === 'string' ? req.query.userId : undefined;
 
       let rentals;
-
-      // If user is admin, fetch all rentals
-      if (role === 'admin' || role === 'user') {
+      if (sessionUser && sessionUser.role === 'admin') {
         rentals = await db.query.carBikeRentals.findMany({
+          where: queryUserId
+            ? or(eq(carBikeRentals.userId, queryUserId), eq(carBikeRentals.ownerId, queryUserId))
+            : undefined,
           orderBy: desc(carBikeRentals.createdAt),
         });
-      } else if (userId) {
-        // For non-admin users, filter by userId at database level
-        // Try both ownerId and userId fields for compatibility
-        const allRentals = await db.query.carBikeRentals.findMany({
+      } else if (sessionUser && sessionUser.id) {
+        const sid = sessionUser.id as string;
+        rentals = await db.query.carBikeRentals.findMany({
+          where: or(eq(carBikeRentals.userId, sid), eq(carBikeRentals.ownerId, sid)),
           orderBy: desc(carBikeRentals.createdAt),
         });
-        rentals = allRentals.filter(r => r.ownerId === userId || r.userId === userId);
       } else {
-        // If no userId provided and not admin, return empty array
         rentals = [];
       }
-
-      console.log(`Fetched ${rentals.length} car/bike rentals for user ${userId} with role ${role}`);
       res.json(rentals);
     } catch (error: any) {
       console.error('Error fetching car/bike rentals:', error);
@@ -4457,8 +4663,14 @@ export function registerRoutes(app: Express) {
   });
 
   app.post("/api/car-bike-rentals", async (req, res) => {
-    const newRental = await db.insert(carBikeRentals).values(req.body).returning();
-    res.json(newRental[0]);
+    try {
+      const { createdAt, updatedAt, ...data } = req.body || {};
+      const [newRental] = await db.insert(carBikeRentals).values({ ...data }).returning();
+      res.json(newRental);
+    } catch (error: any) {
+      console.error('Error creating car-bike rental:', error);
+      res.status(400).json({ message: error.message });
+    }
   });
 
   app.get("/api/car-bike-rentals/:id", async (req, res) => {
@@ -4471,36 +4683,20 @@ export function registerRoutes(app: Express) {
 
   app.put("/api/car-bike-rentals/:id", async (req, res) => {
     try {
-      // Sanitize the update data to ensure proper Date handling
-      const {
-        insuranceValidUntil,
-        availableFrom,
-        ...restData
-      } = req.body;
+      // Exclude id, createdAt, and updatedAt from the request body
+      const { id, createdAt, updatedAt, ...restData } = req.body;
 
       const updateData: any = {
         ...restData,
         updatedAt: new Date(),
       };
 
-      // Handle timestamp fields - convert to Date if valid, otherwise set to null
-      if (insuranceValidUntil !== undefined) {
-        try {
-          const date = new Date(insuranceValidUntil);
-          updateData.insuranceValidUntil = isNaN(date.getTime()) ? null : date;
-        } catch {
-          updateData.insuranceValidUntil = null;
+      // Remove any fields that are undefined to avoid overwriting with undefined
+      Object.keys(updateData).forEach(key => {
+        if (updateData[key] === undefined) {
+          delete updateData[key];
         }
-      }
-
-      if (availableFrom !== undefined) {
-        try {
-          const date = new Date(availableFrom);
-          updateData.availableFrom = isNaN(date.getTime()) ? null : date;
-        } catch {
-          updateData.availableFrom = null;
-        }
-      }
+      });
 
       const updated = await db.update(carBikeRentals).set(updateData).where(eq(carBikeRentals.id, req.params.id)).returning();
       if (updated.length === 0) {
@@ -4523,27 +4719,31 @@ export function registerRoutes(app: Express) {
   // GET all transportation services
   app.get("/api/admin/transportation-moving-services", async (req, res) => {
     try {
-      const { userId, role } = req.query;
+      const sessionUser = (req as any).session?.user || null;
+      const queryUserId = typeof req.query.userId === 'string' ? req.query.userId : undefined;
 
       let services;
-
-      // If user is admin, fetch all services
-      if (role === 'admin' || role === 'user') {
+      if (sessionUser && sessionUser.role === 'admin') {
+        const adminId = sessionUser.id as string;
+        if (queryUserId && queryUserId !== adminId) {
+          return res.status(403).json({ message: "Forbidden: cannot access other users' listings" });
+        }
         services = await db.query.transportationMovingServices.findMany({
+          where: and(
+            or(eq(transportationMovingServices.userId, adminId), eq(transportationMovingServices.ownerId, adminId)),
+            eq(transportationMovingServices.role, 'admin'),
+          ),
           orderBy: desc(transportationMovingServices.createdAt),
         });
-      } else if (userId) {
-        // For non-admin users, filter by userId
-        const allServices = await db.query.transportationMovingServices.findMany({
+      } else if (sessionUser && sessionUser.id) {
+        const sid = sessionUser.id as string;
+        services = await db.query.transportationMovingServices.findMany({
+          where: or(eq(transportationMovingServices.userId, sid), eq(transportationMovingServices.ownerId, sid)),
           orderBy: desc(transportationMovingServices.createdAt),
         });
-        services = allServices.filter(s => s.ownerId === userId || s.userId === userId);
       } else {
-        // If no userId provided and not admin, return empty array
         services = [];
       }
-
-      console.log(`Fetched ${services.length} transportation services for user ${userId} with role ${role}`);
       res.json(services);
     } catch (error: any) {
       console.error('Error fetching transportation services:', error);
@@ -4688,28 +4888,31 @@ export function registerRoutes(app: Express) {
   // GET all vehicle license classes
   app.get("/api/admin/vehicle-license-classes", async (req, res) => {
     try {
-      const { userId, role } = req.query;
+      const sessionUser = (req as any).session?.user || null;
+      const queryUserId = typeof req.query.userId === 'string' ? req.query.userId : undefined;
 
       let classes;
-
-      // If user is admin, fetch all classes
-      if (role === 'admin' || role === 'user') {
+      if (sessionUser && sessionUser.role === 'admin') {
+        const adminId = sessionUser.id as string;
+        if (queryUserId && queryUserId !== adminId) {
+          return res.status(403).json({ message: "Forbidden: cannot access other users' listings" });
+        }
         classes = await db.query.vehicleLicenseClasses.findMany({
+          where: and(
+            or(eq(vehicleLicenseClasses.userId, adminId), eq(vehicleLicenseClasses.ownerId, adminId)),
+            eq(vehicleLicenseClasses.role, 'admin'),
+          ),
           orderBy: desc(vehicleLicenseClasses.createdAt),
         });
-      } else if (userId) {
-        // For non-admin users, filter by userId at database level
-        // Try both ownerId and userId fields for compatibility
-        const allClasses = await db.query.vehicleLicenseClasses.findMany({
+      } else if (sessionUser && sessionUser.id) {
+        const sid = sessionUser.id as string;
+        classes = await db.query.vehicleLicenseClasses.findMany({
+          where: or(eq(vehicleLicenseClasses.userId, sid), eq(vehicleLicenseClasses.ownerId, sid)),
           orderBy: desc(vehicleLicenseClasses.createdAt),
         });
-        classes = allClasses.filter(c => c.ownerId === userId || c.userId === userId);
       } else {
-        // If no userId provided and not admin, return empty array
         classes = [];
       }
-
-      console.log(`Fetched ${classes.length} vehicle license classes for user ${userId} with role ${role}`);
       res.json(classes);
     } catch (error: any) {
       res.status(500).json({ message: error.message });
@@ -4739,26 +4942,34 @@ export function registerRoutes(app: Express) {
       const { nextBatchStartDate, ...restData } = req.body;
 
       // Handle date field - convert to Date if valid, otherwise set to null
-      let nextBatchStartDateValue = null;
+      let nextBatchStartDateValue: string | null = null;
       if (nextBatchStartDate) {
         try {
           const date = new Date(nextBatchStartDate);
-          nextBatchStartDateValue = isNaN(date.getTime()) ? null : date;
+          nextBatchStartDateValue = isNaN(date.getTime()) ? null : date.toISOString();
         } catch {
           nextBatchStartDateValue = null;
         }
       }
 
-      const [newClass] = await db
-        .insert(vehicleLicenseClasses)
-        .values({
-          ...restData,
-          nextBatchStartDate: nextBatchStartDateValue,
-          country: req.body.country || "India",
-        })
-        .returning();
+      // Remove system-managed timestamp fields if client sent them
+      if ((restData as any).createdAt !== undefined) delete (restData as any).createdAt;
+      if ((restData as any).updatedAt !== undefined) delete (restData as any).updatedAt;
 
-      res.status(201).json(newClass);
+      const payloadToInsert = {
+        ...restData,
+        nextBatchStartDate: nextBatchStartDateValue,
+        country: req.body.country || "India",
+      };
+
+      try {
+        const [newClass] = await db.insert(vehicleLicenseClasses).values(payloadToInsert).returning();
+        res.status(201).json(newClass);
+      } catch (dbErr: any) {
+        console.error('DB insert error for vehicleLicenseClasses payload:', inspectPayloadForLogging(payloadToInsert));
+        console.error('DB error:', dbErr);
+        throw dbErr;
+      }
     } catch (error: any) {
       console.error("Error creating vehicle license class:", error);
       res.status(400).json({ message: error.message });
@@ -4771,15 +4982,19 @@ export function registerRoutes(app: Express) {
       const { nextBatchStartDate, ...restData } = req.body;
 
       // Handle date field - convert to Date if valid, otherwise set to null
-      let nextBatchStartDateValue = null;
+      let nextBatchStartDateValue: string | null = null;
       if (nextBatchStartDate) {
         try {
           const date = new Date(nextBatchStartDate);
-          nextBatchStartDateValue = isNaN(date.getTime()) ? null : date;
+          nextBatchStartDateValue = isNaN(date.getTime()) ? null : date.toISOString();
         } catch {
           nextBatchStartDateValue = null;
         }
       }
+
+      // Remove system-managed timestamp fields if client sent them
+      if ((restData as any).createdAt !== undefined) delete (restData as any).createdAt;
+      if ((restData as any).updatedAt !== undefined) delete (restData as any).updatedAt;
 
       const updateData = {
         ...restData,
@@ -4787,22 +5002,45 @@ export function registerRoutes(app: Express) {
         updatedAt: new Date(),
       };
 
-      const [updatedClass] = await db
-        .update(vehicleLicenseClasses)
-        .set(updateData)
-        .where(eq(vehicleLicenseClasses.id, req.params.id))
-        .returning();
+      try {
+        const [updatedClass] = await db.update(vehicleLicenseClasses).set(updateData).where(eq(vehicleLicenseClasses.id, req.params.id)).returning();
 
-      if (!updatedClass) {
-        return res.status(404).json({ message: "License class not found" });
+        if (!updatedClass) {
+          return res.status(404).json({ message: "License class not found" });
+        }
+
+        res.json(updatedClass);
+      } catch (dbErr: any) {
+        console.error('DB update error for vehicleLicenseClasses updateData:', inspectPayloadForLogging(updateData));
+        console.error('DB error:', dbErr);
+        throw dbErr;
       }
-
-      res.json(updatedClass);
     } catch (error: any) {
       console.error("Error updating vehicle license class:", error);
       res.status(400).json({ message: error.message });
     }
   });
+
+  function inspectPayloadForLogging(obj: Record<string, any>) {
+    const result: Record<string, { type: string; hasToISOString: boolean; preview: any }> = {};
+    for (const [k, v] of Object.entries(obj || {})) {
+      result[k] = {
+        type: v === null ? 'null' : Array.isArray(v) ? 'array' : typeof v,
+        hasToISOString: v != null && typeof (v as any).toISOString === 'function',
+        preview: (() => {
+          try {
+            if (v === null) return null;
+            if (typeof v === 'string') return v.length > 200 ? v.slice(0, 200) + '...' : v;
+            if (typeof v === 'object') return JSON.stringify(v).slice(0, 200);
+            return String(v);
+          } catch (e) {
+            return String(v);
+          }
+        })(),
+      };
+    }
+    return result;
+  }
 
   // DELETE vehicle license class
   app.delete("/api/admin/vehicle-license-classes/:id", async (req, res) => {
@@ -4982,29 +5220,23 @@ export function registerRoutes(app: Express) {
   // GET all jewelry & accessories
   app.get("/api/admin/jewelry-accessories", async (req, res) => {
     try {
-      const { userId, role } = req.query;
+      const sessionUser = (req as any).session?.user || null;
+      const queryUserId = typeof req.query.userId === 'string' ? req.query.userId : undefined;
 
       let items;
-
-      if (role === 'admin' || role === 'user') {
-        // Admin sees all items
+      if (sessionUser && sessionUser.role === 'admin') {
         items = await db.query.jewelryAccessories.findMany({
+          where: queryUserId ? eq(jewelryAccessories.userId, queryUserId) : undefined,
           orderBy: desc(jewelryAccessories.createdAt),
         });
-      } else if (userId) {
-        // Regular users see only their items
+      } else if (sessionUser && sessionUser.id) {
         items = await db.query.jewelryAccessories.findMany({
-          where: eq(jewelryAccessories.userId, userId as string),
+          where: eq(jewelryAccessories.userId, sessionUser.id as string),
           orderBy: desc(jewelryAccessories.createdAt),
         });
       } else {
-        // No userId and not admin - return all items for backward compatibility
-        items = await db.query.jewelryAccessories.findMany({
-          orderBy: desc(jewelryAccessories.createdAt),
-        });
+        items = [];
       }
-
-      console.log(`Fetching jewelry accessories - role: ${role}, userId: ${userId}, count: ${items.length}`);
       res.json(items);
     } catch (error: any) {
       console.error('Error fetching jewelry & accessories:', error);
@@ -5454,23 +5686,21 @@ export function registerRoutes(app: Express) {
   // GET all event decoration services
   app.get("/api/admin/event-decoration-services", async (req, res) => {
     try {
-      const { userId, role } = req.query;
+      const sessionUser = (req as any).session?.user || null;
+      const queryUserId = typeof req.query.userId === 'string' ? req.query.userId : undefined;
 
       let services;
-
-      // If user is admin, fetch all services
-      if (role === 'admin' || role === 'user') {
+      if (sessionUser && sessionUser.role === 'admin') {
         services = await db.query.eventDecorationServices.findMany({
+          where: queryUserId ? eq(eventDecorationServices.userId, queryUserId) : undefined,
           orderBy: desc(eventDecorationServices.createdAt),
         });
-      } else if (userId) {
-        // For non-admin users (sellers), filter by userId
+      } else if (sessionUser && sessionUser.id) {
         services = await db.query.eventDecorationServices.findMany({
-          where: eq(eventDecorationServices.userId, userId as string),
+          where: eq(eventDecorationServices.userId, sessionUser.id as string),
           orderBy: desc(eventDecorationServices.createdAt),
         });
       } else {
-        // If no userId provided and not admin, return empty array
         services = [];
       }
 
@@ -6027,15 +6257,32 @@ export function registerRoutes(app: Express) {
   // CREATE new fashion & beauty product
   app.post("/api/admin/fashion-beauty-products", async (req, res) => {
     try {
-      const [newProduct] = await db
-        .insert(fashionBeautyProducts)
-        .values({
-          ...req.body,
-          country: req.body.country || "India",
-        })
-        .returning();
+      // Sanitize payload: convert timestamp strings to Date for timestamp columns and remove client-managed timestamps
+      const { saleEndDate, createdAt, updatedAt, ...rest } = req.body || {};
 
-      res.status(201).json(newProduct);
+      let saleEndDateValue: Date | null = null;
+      if (saleEndDate) {
+        try {
+          const d = new Date(saleEndDate);
+          saleEndDateValue = isNaN(d.getTime()) ? null : d;
+        } catch {
+          saleEndDateValue = null;
+        }
+      }
+
+      const payloadToInsert = {
+        ...rest,
+        saleEndDate: saleEndDateValue,
+        country: req.body.country || "India",
+      };
+
+      try {
+        const [newProduct] = await db.insert(fashionBeautyProducts).values(payloadToInsert).returning();
+        res.status(201).json(newProduct);
+      } catch (dbErr: any) {
+        console.error('DB insert error for fashionBeautyProducts payload:', payloadToInsert, dbErr);
+        throw dbErr;
+      }
     } catch (error: any) {
       res.status(400).json({ message: error.message });
     }
@@ -6044,17 +6291,37 @@ export function registerRoutes(app: Express) {
   // UPDATE fashion & beauty product
   app.put("/api/admin/fashion-beauty-products/:id", async (req, res) => {
     try {
-      const [updatedProduct] = await db
-        .update(fashionBeautyProducts)
-        .set({ ...req.body, updatedAt: new Date() })
-        .where(eq(fashionBeautyProducts.id, req.params.id))
-        .returning();
+      // Sanitize payload: convert timestamp strings to Date for timestamp columns and remove client-managed timestamps
+      const { saleEndDate, createdAt, updatedAt, ...rest } = req.body || {};
 
-      if (!updatedProduct) {
-        return res.status(404).json({ message: "Product not found" });
+      let saleEndDateValue: Date | null = null;
+      if (saleEndDate) {
+        try {
+          const d = new Date(saleEndDate);
+          saleEndDateValue = isNaN(d.getTime()) ? null : d;
+        } catch {
+          saleEndDateValue = null;
+        }
       }
 
-      res.json(updatedProduct);
+      const updateData = {
+        ...rest,
+        saleEndDate: saleEndDateValue,
+        updatedAt: new Date(),
+      };
+
+      try {
+        const [updatedProduct] = await db.update(fashionBeautyProducts).set(updateData).where(eq(fashionBeautyProducts.id, req.params.id)).returning();
+
+        if (!updatedProduct) {
+          return res.status(404).json({ message: "Product not found" });
+        }
+
+        res.json(updatedProduct);
+      } catch (dbErr: any) {
+        console.error('DB update error for fashionBeautyProducts updateData:', updateData, dbErr);
+        throw dbErr;
+      }
     } catch (error: any) {
       res.status(400).json({ message: error.message });
     }
@@ -6528,17 +6795,18 @@ export function registerRoutes(app: Express) {
   // GET all dance/karate/gym/yoga classes
   app.get("/api/admin/dance-karate-gym-yoga", async (req, res) => {
     try {
-      const { userId, role } = req.query;
+      const sessionUser = (req as any).session?.user || null;
+      const queryUserId = typeof req.query.userId === 'string' ? req.query.userId : undefined;
 
       let classes;
-
-      if (role === 'admin' || role === 'user') {
+      if (sessionUser && sessionUser.role === 'admin') {
         classes = await db.query.danceKarateGymYoga.findMany({
+          where: queryUserId ? eq(danceKarateGymYoga.userId, queryUserId) : undefined,
           orderBy: desc(danceKarateGymYoga.createdAt),
         });
-      } else if (userId) {
+      } else if (sessionUser && sessionUser.id) {
         classes = await db.query.danceKarateGymYoga.findMany({
-          where: eq(danceKarateGymYoga.userId, userId as string),
+          where: eq(danceKarateGymYoga.userId, sessionUser.id as string),
           orderBy: desc(danceKarateGymYoga.createdAt),
         });
       } else {
@@ -6701,14 +6969,20 @@ export function registerRoutes(app: Express) {
   // GET all language classes
   app.get("/api/admin/language-classes", async (req, res) => {
     try {
-      const { userId, role } = req.query;
+      const sessionUser = (req as any).session?.user || null;
+      const queryUserId = typeof req.query.userId === 'string' ? req.query.userId : undefined;
 
       let classes;
-
-      if (role === 'admin' || role === 'user') {
-        classes = await db.query.languageClasses.findMany({ orderBy: desc(languageClasses.createdAt) });
-      } else if (userId) {
-        classes = await db.query.languageClasses.findMany({ where: eq(languageClasses.userId, userId as string), orderBy: desc(languageClasses.createdAt) });
+      if (sessionUser && sessionUser.role === 'admin') {
+        classes = await db.query.languageClasses.findMany({
+          where: queryUserId ? eq(languageClasses.userId, queryUserId) : undefined,
+          orderBy: desc(languageClasses.createdAt),
+        });
+      } else if (sessionUser && sessionUser.id) {
+        classes = await db.query.languageClasses.findMany({
+          where: eq(languageClasses.userId, sessionUser.id as string),
+          orderBy: desc(languageClasses.createdAt),
+        });
       } else {
         classes = [];
       }
@@ -6854,28 +7128,23 @@ export function registerRoutes(app: Express) {
 
 app.get("/api/admin/academies-music-arts-sports", async (req, res) => {
     try {
-      const { userId, role } = req.query;
+      const sessionUser = (req as any).session?.user || null;
+      const queryUserId = typeof req.query.userId === 'string' ? req.query.userId : undefined;
 
       let academies;
-
-      // If user is admin, fetch all academies
-      if (role === 'admin' || role === 'user') {
+      if (sessionUser && sessionUser.role === 'admin') {
         academies = await db.query.academiesMusicArtsSports.findMany({
+          where: queryUserId ? eq(academiesMusicArtsSports.userId, queryUserId) : undefined,
           orderBy: desc(academiesMusicArtsSports.createdAt),
         });
-      } else if (userId) {
-        // For non-admin users, filter by userId at database level
+      } else if (sessionUser && sessionUser.id) {
         academies = await db.query.academiesMusicArtsSports.findMany({
-          where: eq(academiesMusicArtsSports.userId, userId as string),
+          where: eq(academiesMusicArtsSports.userId, sessionUser.id as string),
           orderBy: desc(academiesMusicArtsSports.createdAt),
         });
       } else {
-         academies = await db.query.academiesMusicArtsSports.findMany({
-        orderBy: desc(academiesMusicArtsSports.createdAt),
-      });
+        academies = [];
       }
-
-      console.log(`Fetched ${academies.length} academies for user ${userId} with role ${role}`);
       res.json(academies);
     } catch (error: any) {
       console.error('Error fetching academies:', error);
@@ -7109,28 +7378,22 @@ app.get("/api/admin/academies-music-arts-sports", async (req, res) => {
   // Academies - Music, Arts, Sports Routes - Full CRUD
 app.get("/api/admin/schools-colleges-coaching", async (req, res) => {
   try {
-    const { userId, role } = req.query;
+    const sessionUser = (req as any).session?.user || null;
+    const queryUserId = typeof req.query.userId === 'string' ? req.query.userId : undefined;
 
     let results;
-
-    // If admin — fetch all
-    if (role === "admin") {
+    if (sessionUser && sessionUser.role === 'admin') {
       results = await db.query.schoolsCollegesCoaching.findMany({
+        where: queryUserId ? eq(schoolsCollegesCoaching.userId, queryUserId) : undefined,
         orderBy: desc(schoolsCollegesCoaching.createdAt),
       });
-
-    // Normal user — fetch only their data
-    } else if (userId) {
+    } else if (sessionUser && sessionUser.id) {
       results = await db.query.schoolsCollegesCoaching.findMany({
-        where: eq(schoolsCollegesCoaching.userId, userId as string),
+        where: eq(schoolsCollegesCoaching.userId, sessionUser.id as string),
         orderBy: desc(schoolsCollegesCoaching.createdAt),
       });
-
-    // If no userId — fetch all public data
     } else {
-      results = await db.query.schoolsCollegesCoaching.findMany({
-        orderBy: desc(schoolsCollegesCoaching.createdAt),
-      });
+      results = [];
     }
 
     res.json(results);
@@ -7332,35 +7595,29 @@ app.patch("/api/admin/schools-colleges-coaching/:id/toggle-featured", async (req
 });
 app.get("/api/admin/skill-training-certification", async (req, res) => {
   try {
-    const { userId, role } = req.query;
+    const sessionUser = (req as any).session?.user || null;
+    const queryUserId = typeof req.query.userId === 'string' ? req.query.userId : undefined;
 
     let results;
-
-    if (role === "admin") {
-      // Admin → fetch ALL
+    if (sessionUser && sessionUser.role === 'admin') {
       results = await db.query.skillTrainingCertification.findMany({
+        where: queryUserId ? eq(skillTrainingCertification.userId, queryUserId) : undefined,
         orderBy: desc(skillTrainingCertification.createdAt),
       });
-
-    } else if (userId) {
-      // Normal user → fetch only their records
+    } else if (sessionUser && sessionUser.id) {
       results = await db.query.skillTrainingCertification.findMany({
-        where: eq(skillTrainingCertification.userId, userId as string),
+        where: eq(skillTrainingCertification.userId, sessionUser.id as string),
         orderBy: desc(skillTrainingCertification.createdAt),
       });
-
     } else {
-      // No user → fetch all public
-      results = await db.query.skillTrainingCertification.findMany({
-        orderBy: desc(skillTrainingCertification.createdAt),
-      });
+      results = [];
     }
 
     res.json(results);
 
   } catch (error: any) {
     console.error("Error fetching skill training:", error);
-    // res.status(500).json({ message: error: error.message });
+    res.status(500).json({ message: error.message });
   }
 });
 app.get("/api/admin/skill-training-certification/:id", async (req, res) => {
@@ -7594,18 +7851,18 @@ app.patch("/api/admin/skill-training-certification/:id/toggle-featured", async (
   // GET all tuition classes
   app.get("/api/admin/tuition-private-classes", async (req, res) => {
     try {
-      const { userId, role } = req.query;
+      const sessionUser = (req as any).session?.user || null;
+      const queryUserId = typeof req.query.userId === 'string' ? req.query.userId : undefined;
 
       let classes;
-
-      // If role is 'admin' or 'user', return all records
-      if (role === 'admin' || role === 'user') {
+      if (sessionUser && sessionUser.role === 'admin') {
         classes = await db.query.tuitionPrivateClasses.findMany({
+          where: queryUserId ? eq(tuitionPrivateClasses.userId, queryUserId) : undefined,
           orderBy: desc(tuitionPrivateClasses.createdAt),
         });
-      } else if (userId) {
+      } else if (sessionUser && sessionUser.id) {
         classes = await db.query.tuitionPrivateClasses.findMany({
-          where: eq(tuitionPrivateClasses.userId, userId as string),
+          where: eq(tuitionPrivateClasses.userId, sessionUser.id as string),
           orderBy: desc(tuitionPrivateClasses.createdAt),
         });
       } else {
@@ -7621,11 +7878,13 @@ app.patch("/api/admin/skill-training-certification/:id/toggle-featured", async (
   // GET single tuition class by ID
   app.get("/api/admin/tuition-private-classes/:id", async (req, res) => {
     try {
+      console.log(`GET /api/admin/tuition-private-classes/${req.params.id} query=${JSON.stringify(req.query)}`);
       const tuitionClass = await db.query.tuitionPrivateClasses.findFirst({
         where: eq(tuitionPrivateClasses.id, req.params.id),
       });
 
       if (!tuitionClass) {
+        console.warn(`Tuition class not found for id=${req.params.id}`);
         return res.status(404).json({ message: "Tuition class not found" });
       }
 
@@ -7743,23 +8002,21 @@ app.patch("/api/admin/skill-training-certification/:id/toggle-featured", async (
   // GET all educational consultancy services
   app.get("/api/admin/educational-consultancy-study-abroad", async (req, res) => {
     try {
-      const { userId, role } = req.query;
+      const sessionUser = (req as any).session?.user || null;
+      const queryUserId = typeof req.query.userId === 'string' ? req.query.userId : undefined;
 
       let services;
-
-      // If user is admin, fetch all services
-      if (role === 'admin' || role === 'user') {
+      if (sessionUser && sessionUser.role === 'admin') {
         services = await db.query.educationalConsultancyStudyAbroad.findMany({
+          where: queryUserId ? eq(educationalConsultancyStudyAbroad.ownerId, queryUserId) : undefined,
           orderBy: desc(educationalConsultancyStudyAbroad.createdAt),
         });
-      } else if (userId) {
-        // For non-admin users, filter by userId at database level
+      } else if (sessionUser && sessionUser.id) {
         services = await db.query.educationalConsultancyStudyAbroad.findMany({
-          where: eq(educationalConsultancyStudyAbroad.ownerId, userId as string),
+          where: eq(educationalConsultancyStudyAbroad.ownerId, sessionUser.id as string),
           orderBy: desc(educationalConsultancyStudyAbroad.createdAt),
         });
       } else {
-        // If no userId provided and not admin, return empty array
         services = [];
       }
 
@@ -7889,29 +8146,23 @@ app.patch("/api/admin/skill-training-certification/:id/toggle-featured", async (
   // Pharmacy & Medical Stores Routes - Full CRUD
   app.get("/api/admin/pharmacy-medical-stores", async (req, res) => {
     try {
-      const { userId, role } = req.query;
+      const sessionUser = (req as any).session?.user || null;
+      const queryUserId = typeof req.query.userId === 'string' ? req.query.userId : undefined;
 
       let stores;
-
-      // If user is admin, fetch all stores
-      if (role === 'admin' || role === 'user') {
+      if (sessionUser && sessionUser.role === 'admin') {
         stores = await db.query.pharmacyMedicalStores.findMany({
+          where: queryUserId ? eq(pharmacyMedicalStores.userId, queryUserId) : undefined,
           orderBy: desc(pharmacyMedicalStores.createdAt),
         });
-      } else if (userId) {
-        // For non-admin users, filter by userId at database level
+      } else if (sessionUser && sessionUser.id) {
         stores = await db.query.pharmacyMedicalStores.findMany({
-          where: eq(pharmacyMedicalStores.userId, userId as string),
+          where: eq(pharmacyMedicalStores.userId, sessionUser.id as string),
           orderBy: desc(pharmacyMedicalStores.createdAt),
         });
       } else {
-        // If no userId provided and not admin, return all stores (for backward compatibility)
-        stores = await db.query.pharmacyMedicalStores.findMany({
-          orderBy: desc(pharmacyMedicalStores.createdAt),
-        });
+        stores = [];
       }
-
-      console.log(`Fetched ${stores.length} pharmacy stores for user ${userId} with role ${role}`);
       res.json(stores);
     } catch (error: any) {
       console.error('Error fetching pharmacy stores:', error);

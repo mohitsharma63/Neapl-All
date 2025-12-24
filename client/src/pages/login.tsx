@@ -55,8 +55,6 @@ export default function Login() {
         } else if (data.user.role === "user") {
           // Users with 'user' role go to home page
           window.location.href = "/";
-        } else if (data.user.accountType === "buyer") {
-          window.location.href = "/buyer-dashboard";
         } else if (data.user.accountType === "seller") {
           window.location.href = "/seller-dashboard";
         } else {

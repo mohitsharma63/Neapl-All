@@ -1,5 +1,5 @@
-
 import React, { useState, useEffect, useRef } from 'react';
+import { useLocation } from 'wouter';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -5845,10 +5845,18 @@ export default function AdminDashboard() {
     return saved || "dashboard";
   });
   const [loading] = useState(false);
+  const { user } = useUser();
+  const [, setLocation] = useLocation();
 
   useEffect(() => {
     localStorage.setItem('activeSection', activeSection);
   }, [activeSection]);
+
+  useEffect(() => {
+    if (user && user.role !== 'admin') {
+      setLocation('/');
+    }
+  }, [user, setLocation]);
 
   const renderSection = () => {
     // Normalize the active section to handle different slug formats
@@ -6576,6 +6584,11 @@ function DanceKarateGymYogaSection() {
     setShowForm(false);
     setEditingClass(null);
     fetchClasses();
+  };
+
+  const handleEdit = (classItem: any) => {
+    setEditingClass(classItem);
+    setShowForm(true);
   };
 
   const handleDelete = async (id: string) => {

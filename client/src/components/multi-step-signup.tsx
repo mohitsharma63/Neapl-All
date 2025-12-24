@@ -81,6 +81,8 @@ export default function MultiStepSignup() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [selectedSubcategories, setSelectedSubcategories] = useState<string[]>([]);
+  const [categorySearch, setCategorySearch] = useState("");
+  const [subcategorySearch, setSubcategorySearch] = useState("");
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const { toast } = useToast();
   const [, setLocation] = useLocation();
@@ -247,6 +249,16 @@ export default function MultiStepSignup() {
       .filter(cat => selectedCategories.includes(cat.id))
       .flatMap(cat => cat.subcategories.filter(sub => sub.isActive));
   };
+
+  const filteredCategories = categories.filter((category) => {
+    if (!categorySearch.trim()) return true;
+    return category.name.toLowerCase().includes(categorySearch.trim().toLowerCase());
+  });
+
+  const filteredSubcategories = getAvailableSubcategories().filter((subcategory) => {
+    if (!subcategorySearch.trim()) return true;
+    return subcategory.name.toLowerCase().includes(subcategorySearch.trim().toLowerCase());
+  });
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
@@ -464,8 +476,15 @@ export default function MultiStepSignup() {
                     </span>
                   </div>
 
+                  <Input
+                    value={categorySearch}
+                    onChange={(e) => setCategorySearch(e.target.value)}
+                    placeholder="Search categories..."
+                    className="h-11 border-2 focus:border-blue-500 transition-colors"
+                  />
+
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-h-96 overflow-y-auto p-2">
-                    {categories.map((category) => {
+                    {filteredCategories.map((category) => {
                       const isSelected = selectedCategories.includes(category.id);
                       const CategoryIcon = Building;
 
@@ -475,8 +494,8 @@ export default function MultiStepSignup() {
                           onClick={() => toggleCategory(category.id)}
                           className={`
                             relative cursor-pointer rounded-xl border-2 p-4 transition-all duration-200
-                            ${isSelected 
-                              ? 'border-blue-600 bg-blue-50 shadow-md scale-105' 
+                            ${isSelected
+                              ? 'border-blue-600 bg-blue-50 shadow-md scale-105'
                               : 'border-gray-200 hover:border-blue-300 hover:bg-gray-50'
                             }
                           `}
@@ -487,7 +506,7 @@ export default function MultiStepSignup() {
                                 flex-shrink-0 w-12 h-12 rounded-lg flex items-center justify-center transition-all
                                 ${isSelected ? 'scale-110' : ''}
                               `}
-                              style={{ 
+                              style={{
                                 backgroundColor: isSelected ? category.color : `${category.color}20`,
                                 color: isSelected ? 'white' : category.color
                               }}
@@ -518,7 +537,7 @@ export default function MultiStepSignup() {
                   )}
                 </div>
 
-                {getAvailableSubcategories().length > 0 && (
+                {filteredSubcategories.length > 0 && (
                   <div className="space-y-4">
                     <div className="flex items-center justify-between">
                       <Label className="text-xl font-bold">Select Subcategories *</Label>
@@ -527,12 +546,23 @@ export default function MultiStepSignup() {
                       </span>
                     </div>
 
+                    <Input
+                      value={subcategorySearch}
+                      onChange={(e) => setSubcategorySearch(e.target.value)}
+                      placeholder="Search subcategories..."
+                      className="h-11 border-2 focus:border-blue-500 transition-colors"
+                    />
+
                     <div className="space-y-3 max-h-80 overflow-y-auto p-2">
                       {selectedCategories.map(categoryId => {
                         const category = categories.find(c => c.id === categoryId);
                         if (!category) return null;
 
-                        const activeSubcategories = category.subcategories.filter(s => s.isActive);
+                        const activeSubcategories = category.subcategories.filter((s) => {
+                          if (!s.isActive) return false;
+                          if (!subcategorySearch.trim()) return true;
+                          return s.name.toLowerCase().includes(subcategorySearch.trim().toLowerCase());
+                        });
                         if (activeSubcategories.length === 0) return null;
 
                         return (

@@ -39,7 +39,7 @@ import {
   ArrowRight,
   Download,
   Eye,
-  Badge
+  Badge as BadgeIcon
 } from "lucide-react";
 import { Link } from "wouter";
 import Header from "@/components/header";
@@ -49,6 +49,7 @@ import StatsSection from "@/components/stats-section";
 import FAQSection from "@/components/faq-section";
 import Footer from "@/components/footer";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import {
   Carousel,
@@ -61,6 +62,8 @@ import Autoplay from "embla-carousel-autoplay";
 import type { Property } from "@shared/schema";
 import type { SearchFilters as SearchFiltersType } from "@/lib/types";
 import { useQuery } from "@tanstack/react-query";
+
+const buildCategoryItemHref = (categoryLabel: string, id: string) => `/${encodeURIComponent(categoryLabel)}/${id}`;
 
 const iconMap: Record<string, any> = {
   'home': HomeIcon,
@@ -93,12 +96,12 @@ const iconMap: Record<string, any> = {
   'globe2': Globe2,
   'brain': Brain,
   'truck': Truck,
-  'badge': Badge,
+  'badge': BadgeIcon,
 };
 
 // Neutral fallback icon component using lucide `Badge` for consistent visuals
-const DefaultIcon: React.FC<{ className?: string }> = ({ className = '' }) => (
-  <Badge className={`${className} text-gray-400`} />
+const DefaultIcon = ({ className = '' }: { className?: string }) => (
+  <BadgeIcon className={`${className} text-gray-400`} />
 );
 
 // Resolve icon from various possible data values (normalize strings)
@@ -190,7 +193,6 @@ const subcategoryIconMapping: Record<string, string> = {
   'fashion-beauty-products': 'shirt',
   'jewelry-accessories': 'award',
   'furniture-interior-decor': 'sofa',
-  'commercial-properties': 'building2',
   'cars-bikes': 'car',
   'second-hand-cars-bikes': 'car',
   'car-bike-rentals': 'car',
@@ -436,12 +438,31 @@ export default function Home() {
     queryKey: ["category-products"],
     queryFn: async () => {
       try {
+        const toSlug = (value: unknown) => {
+          const s = (value ?? "").toString().trim().toLowerCase();
+          return s
+            .replace(/&/g, "and")
+            .replace(/[^a-z0-9]+/g, "-")
+            .replace(/^-+|-+$/g, "");
+        };
+
+        const safeJson = async (res: Response) => {
+          const contentType = res.headers.get("content-type") || "";
+          if (!contentType.toLowerCase().includes("application/json")) {
+            const text = await res.text();
+            throw new Error(
+              `Expected JSON but received ${contentType || "unknown"}. First bytes: ${text.slice(0, 60)}`
+            );
+          }
+          return res.json();
+        };
+
         // Fetch all active categories
         const categoriesRes = await fetch('/api/admin/categories');
         if (!categoriesRes.ok) return {};
         const allCategories = await categoriesRes.json();
         
-        const grouped: Record<string, any[]> = {};
+        const grouped: Record<string, any> = {};
         
         // Map subcategory names/slugs to their API table endpoints
         const subcategoryToTable: Record<string, string> = {
@@ -463,10 +484,10 @@ export default function Home() {
           'furniture-interior-decor': 'furniture-interior-decor',
           // Real Estate
           'residential-properties': 'properties',
-          'commercial-properties': 'commercial-properties',
-          'office-spaces': 'office-spaces',
-          'industrial-land': 'industrial-land',
-          'property-deals': 'property-deals',
+          'commercial-properties': 'commercial-properties-public',
+          'office-spaces': 'office-spaces-public',
+          'industrial-land': 'industrial-land-public',
+          'property-deals': 'property-deals-public',
           'rental-listings': 'rental-listings',
           'hostel-pg': 'hostel-listings',
           // Vehicles
@@ -480,14 +501,55 @@ export default function Home() {
           'pharmacy-medical-stores': 'pharmacy',
           'event-decoration-services': 'event-decoration',
           'service-centre-warranty': 'service-centre',
-          'showrooms': 'showrooms',
+          'showrooms': 'showrooms-public',
           'ebooks-online-courses': 'ebooks-courses',
           'educational-consultancy-study-abroad': 'educational-consultancy',
           'skill-training-certification': 'skill-training',
           'blog': 'blog',
           'second-hand-phones-tablets-accessories': 'second-hand-phones',
-          'heavy-equipment': 'heavy-equipment',
+          'heavy-equipment': 'heavy-equipment-public',
+          'transportation-moving-services': 'transportation-services',
         };
+
+        const allowedApiTables = new Set<string>([
+          'properties',
+          'commercial-properties-public',
+          'office-spaces-public',
+          'industrial-land-public',
+          'property-deals-public',
+          'rental-listings',
+          'hostel-listings',
+          'cars-bikes',
+          'second-hand-cars-bikes',
+          'car-bike-rentals',
+          'construction-materials',
+          'heavy-equipment-public',
+          'showrooms-public',
+          'vehicle-license-classes',
+          'transportation-services',
+          'electronics-gadgets',
+          'phones-tablets-accessories',
+          'fashion-beauty',
+          'jewelry-accessories',
+          'furniture-interior-decor',
+          'household-services',
+          'health-wellness',
+          'pharmacy',
+          'event-decoration',
+          'service-centre',
+          'skill-training',
+          'tuition-classes',
+          'dance-gym-yoga',
+          'language-classes',
+          'academies',
+          'ebooks-courses',
+          'educational-consultancy',
+          'second-hand-phones',
+          'computer-repair',
+          'cyber-cafe',
+          'telecommunication',
+          'saree-clothing',
+        ]);
         
         // For each category, try to fetch products
         for (const category of allCategories) {
@@ -496,15 +558,17 @@ export default function Home() {
           for (const subcategory of category.subcategories) {
             if (!subcategory.isActive) continue;
             
-            const subSlug = subcategory.slug || '';
+            const subSlug = toSlug(subcategory.slug || subcategory.name || '');
             const tableName = subcategoryToTable[subSlug] || subSlug;
             let products: any[] = [];
+
+            if (!tableName || !allowedApiTables.has(tableName)) continue;
             
             try {
               // Try to fetch from the mapped table endpoint
-              const res = await fetch(`/api/${tableName}?limit=10`);
+              const res = await fetch(`/api/${encodeURIComponent(tableName)}?limit=10`);
               if (res.ok) {
-                const data = await res.json();
+                const data = await safeJson(res);
                 // Handle various response formats
                 if (Array.isArray(data)) {
                   products = data;
@@ -1040,7 +1104,7 @@ export default function Home() {
                     {fashionProducts.map((product: any) => (
                       <CarouselItem key={product.id} className="md:basis-1/2 lg:basis-1/4">
                         <div className="group/card overflow-hidden rounded-xl border border-gray-200/50 bg-white shadow-sm hover:shadow-xl transition-all duration-300 h-full flex flex-col">
-                          <Link to={`/fashion/${product.id}`} className="flex-1 flex flex-col">
+                          <Link to={`#`} className="flex-1 flex flex-col">
                             <div className="relative h-48 bg-gradient-to-br from-gray-100 to-gray-200 overflow-hidden">
                               {product.images && product.images[0] ? (
                                 <img src={product.images[0]} alt={product.title} className="w-full h-full object-cover group-hover/card:scale-125 transition-transform duration-500" />
@@ -1069,7 +1133,7 @@ export default function Home() {
                             </div>
                           </Link>
                           <div className="px-4 pb-4">
-                            <Link to="/service-details/7b8cc32d-6901-4ee8-b7f3-620dd484e0b8" className="w-full block">
+                            <Link to={buildCategoryItemHref('Fashion & Beauty Products', product.id)} className="w-full block">
                               <button className="w-full bg-gradient-to-r from-[#0B8457] to-[#059669] hover:from-[#059669] hover:to-[#0B8457] text-white font-semibold py-2.5 px-4 rounded-lg transition-all duration-300 flex items-center justify-center gap-2 group/btn">
                                 <Eye className="w-4 h-4 group-hover/btn:scale-110 transition-transform" />
                                 View Details
@@ -1101,7 +1165,7 @@ export default function Home() {
                     {carsBikes.map((vehicle: any) => (
                       <CarouselItem key={vehicle.id} className="md:basis-1/2 lg:basis-1/4">
                         <div className="group/card overflow-hidden rounded-xl border border-gray-200/50 bg-white shadow-sm hover:shadow-xl transition-all duration-300 h-full flex flex-col">
-                          <Link to={`/vehicles/${vehicle.id}`} className="flex-1 flex flex-col">
+                          <Link to={`#`} className="flex-1 flex flex-col">
                             <div className="relative h-48 bg-gradient-to-br from-gray-100 to-gray-200 overflow-hidden">
                               {vehicle.images && vehicle.images[0] ? (
                                 <img src={vehicle.images[0]} alt={vehicle.title} className="w-full h-full object-cover group-hover/card:scale-125 transition-transform duration-500" />
@@ -1124,7 +1188,7 @@ export default function Home() {
                             </div>
                           </Link>
                           <div className="px-4 pb-4">
-                            <Link to="/service-details/7b8cc32d-6901-4ee8-b7f3-620dd484e0b8" className="w-full block">
+                            <Link to={buildCategoryItemHref('Cars & Bikes', vehicle.id)} className="w-full block">
                               <button className="w-full bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white font-semibold py-2.5 px-4 rounded-lg transition-all duration-300 flex items-center justify-center gap-2 group/btn">
                                 <Eye className="w-4 h-4 group-hover/btn:scale-110 transition-transform" />
                                 View Details
@@ -1150,7 +1214,7 @@ export default function Home() {
                     {constructionMaterials.map((material: any) => (
                       <CarouselItem key={material.id} className="md:basis-1/2 lg:basis-1/4">
                         <div className="flex flex-col h-full">
-                          <Link to={`/construction/${material.id}`} className="flex-1">
+                          <Link to={`#`} className="flex-1">
                             <Card className="overflow-hidden hover:shadow-lg transition-all duration-300 h-full cursor-pointer">
                               <div className="relative h-40 bg-gray-100 flex items-center justify-center overflow-hidden group">
                                 {material.images && material.images[0] ? (
@@ -1167,7 +1231,7 @@ export default function Home() {
                             </Card>
                           </Link>
                           <div className="mt-3 px-0">
-                            <Link to="/service-details/7b8cc32d-6901-4ee8-b7f3-620dd484e0b8" className="block w-full">
+                            <Link to={buildCategoryItemHref('Construction Materials', material.id)} className="block w-full">
                               <button className="w-full bg-gradient-to-r from-[#0B8457] to-[#059669] hover:from-[#059669] hover:to-[#0B8457] text-white font-semibold py-2.5 px-4 rounded-lg transition-all duration-300 flex items-center justify-center gap-2 group/btn">
                                 <Eye className="w-4 h-4 group-hover/btn:scale-110 transition-transform" />
                                 View Details
@@ -1199,7 +1263,7 @@ export default function Home() {
                     {electronicsGadgets.map((product: any) => (
                       <CarouselItem key={product.id} className="md:basis-1/2 lg:basis-1/4">
                         <div className="group/card overflow-hidden rounded-xl border border-gray-200/50 bg-white shadow-sm hover:shadow-xl transition-all duration-300 h-full flex flex-col">
-                          <Link to={`/electronics/${product.id}`} className="flex-1 flex flex-col">
+                          <Link to={`#`} className="flex-1 flex flex-col">
                             <div className="relative h-48 bg-gradient-to-br from-gray-100 to-gray-200 overflow-hidden">
                               {product.images && product.images[0] ? (
                                 <img src={product.images[0]} alt={product.title} className="w-full h-full object-cover group-hover/card:scale-125 transition-transform duration-500" />
@@ -1222,7 +1286,7 @@ export default function Home() {
                             </div>
                           </Link>
                           <div className="px-4 pb-4">
-                            <Link to="/service-details/7b8cc32d-6901-4ee8-b7f3-620dd484e0b8" className="w-full block">
+                            <Link to={buildCategoryItemHref('Electronics & Gadgets', product.id)} className="w-full block">
                               <button className="w-full bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white font-semibold py-2.5 px-4 rounded-lg transition-all duration-300 flex items-center justify-center gap-2 group/btn">
                                 <Eye className="w-4 h-4 group-hover/btn:scale-110 transition-transform" />
                                 View Details
@@ -1254,7 +1318,7 @@ export default function Home() {
                     {phonesTablets.map((product: any) => (
                       <CarouselItem key={product.id} className="md:basis-1/2 lg:basis-1/4">
                         <div className="group/card overflow-hidden rounded-xl border border-gray-200/50 bg-white shadow-sm hover:shadow-xl transition-all duration-300 h-full flex flex-col">
-                          <Link to={`/phones/${product.id}`} className="flex-1 flex flex-col">
+                          <Link to={`#`} className="flex-1 flex flex-col">
                             <div className="relative h-48 bg-gradient-to-br from-gray-100 to-gray-200 overflow-hidden">
                               {product.images && product.images[0] ? (
                                 <img src={product.images[0]} alt={product.title} className="w-full h-full object-cover group-hover/card:scale-125 transition-transform duration-500" />
@@ -1277,7 +1341,7 @@ export default function Home() {
                             </div>
                           </Link>
                           <div className="px-4 pb-4">
-                            <Link to="/service-details/7b8cc32d-6901-4ee8-b7f3-620dd484e0b8" className="w-full block">
+                            <Link to={buildCategoryItemHref('Phones, Tablets & Accessories', product.id)} className="w-full block">
                               <button className="w-full bg-gradient-to-r from-pink-500 to-pink-600 hover:from-pink-600 hover:to-pink-700 text-white font-semibold py-2.5 px-4 rounded-lg transition-all duration-300 flex items-center justify-center gap-2 group/btn">
                                 <Eye className="w-4 h-4 group-hover/btn:scale-110 transition-transform" />
                                 View Details
@@ -1309,7 +1373,7 @@ export default function Home() {
                     {rentalData.map((property: any) => (
                       <CarouselItem key={property.id} className="md:basis-1/2 lg:basis-1/4">
                         <div className="group/card overflow-hidden rounded-xl border border-gray-200/50 bg-white shadow-sm hover:shadow-xl transition-all duration-300 h-full flex flex-col">
-                          <Link to={`/rental/${property.id}`} className="flex-1 flex flex-col">
+                          <Link to={`#`} className="flex-1 flex flex-col">
                             <div className="relative h-48 bg-gradient-to-br from-gray-100 to-gray-200 overflow-hidden">
                               {property.images && property.images[0] ? (
                                 <img src={property.images[0]} alt={property.title} className="w-full h-full object-cover group-hover/card:scale-125 transition-transform duration-500" />
@@ -1332,7 +1396,7 @@ export default function Home() {
                             </div>
                           </Link>
                           <div className="px-4 pb-4">
-                            <Link to="/service-details/7b8cc32d-6901-4ee8-b7f3-620dd484e0b8" className="w-full block">
+                            <Link to={buildCategoryItemHref('Rental Listings', property.id)} className="w-full block">
                               <button className="w-full bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white font-semibold py-2.5 px-4 rounded-lg transition-all duration-300 flex items-center justify-center gap-2 group/btn">
                                 <Eye className="w-4 h-4 group-hover/btn:scale-110 transition-transform" />
                                 View Details
@@ -1364,7 +1428,7 @@ export default function Home() {
                     {furnitureData.map((product: any) => (
                       <CarouselItem key={product.id} className="md:basis-1/2 lg:basis-1/4">
                         <div className="group/card overflow-hidden rounded-xl border border-gray-200/50 bg-white shadow-sm hover:shadow-xl transition-all duration-300 h-full flex flex-col">
-                          <Link to={`/furniture/${product.id}`} className="flex-1 flex flex-col">
+                          <Link to={"#"} className="flex-1 flex flex-col">
                             <div className="relative h-48 bg-gradient-to-br from-gray-100 to-gray-200 overflow-hidden">
                               {product.images && product.images[0] ? (
                                 <img src={product.images[0]} alt={product.title} className="w-full h-full object-cover group-hover/card:scale-125 transition-transform duration-500" />
@@ -1387,7 +1451,7 @@ export default function Home() {
                             </div>
                           </Link>
                           <div className="px-4 pb-4">
-                            <Link to="/service-details/7b8cc32d-6901-4ee8-b7f3-620dd484e0b8" className="w-full block">
+                            <Link to={buildCategoryItemHref('Furniture & Interior Decor', product.id)} className="w-full block">
                               <button className="w-full bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white font-semibold py-2.5 px-4 rounded-lg transition-all duration-300 flex items-center justify-center gap-2 group/btn">
                                 <Eye className="w-4 h-4 group-hover/btn:scale-110 transition-transform" />
                                 View Details
@@ -1419,7 +1483,7 @@ export default function Home() {
                     {jewelryData.map((product: any) => (
                       <CarouselItem key={product.id} className="md:basis-1/2 lg:basis-1/4">
                         <div className="group/card overflow-hidden rounded-xl border border-gray-200/50 bg-white shadow-sm hover:shadow-xl transition-all duration-300 h-full flex flex-col">
-                          <Link to={`/jewelry/${product.id}`} className="flex-1 flex flex-col">
+                          <Link to={`#`} className="flex-1 flex flex-col">
                             <div className="relative h-48 bg-gradient-to-br from-gray-100 to-gray-200 overflow-hidden">
                               {product.images && product.images[0] ? (
                                 <img src={product.images[0]} alt={product.title} className="w-full h-full object-cover group-hover/card:scale-125 transition-transform duration-500" />
@@ -1442,7 +1506,7 @@ export default function Home() {
                             </div>
                           </Link>
                           <div className="px-4 pb-4">
-                            <Link to="/service-details/7b8cc32d-6901-4ee8-b7f3-620dd484e0b8" className="w-full block">
+                            <Link to={buildCategoryItemHref('Jewelry & Accessories', product.id)} className="w-full block">
                               <button className="w-full bg-gradient-to-r from-rose-500 to-rose-600 hover:from-rose-600 hover:to-rose-700 text-white font-semibold py-2.5 px-4 rounded-lg transition-all duration-300 flex items-center justify-center gap-2 group/btn">
                                 <Eye className="w-4 h-4 group-hover/btn:scale-110 transition-transform" />
                                 View Details
@@ -1474,7 +1538,7 @@ export default function Home() {
                     {skillTraining.map((course: any) => (
                       <CarouselItem key={course.id} className="md:basis-1/2 lg:basis-1/4">
                         <div className="group/card overflow-hidden rounded-xl border border-gray-200/50 bg-white shadow-sm hover:shadow-xl transition-all duration-300 h-full flex flex-col">
-                          <Link to={`/skill-training/${course.id}`} className="flex-1 flex flex-col">
+                          <Link to={`#`} className="flex-1 flex flex-col">
                             <div className="relative h-48 bg-gradient-to-br from-gray-100 to-gray-200 overflow-hidden">
                               {course.images && course.images[0] ? (
                                 <img src={course.images[0]} alt={course.title} className="w-full h-full object-cover group-hover/card:scale-125 transition-transform duration-500" />
@@ -1497,7 +1561,7 @@ export default function Home() {
                             </div>
                           </Link>
                           <div className="px-4 pb-4">
-                            <Link to="/service-details/7b8cc32d-6901-4ee8-b7f3-620dd484e0b8" className="w-full block">
+                            <Link to={buildCategoryItemHref('Skill Training & Certification', course.id)} className="w-full block">
                               <button className="w-full bg-gradient-to-r from-indigo-500 to-indigo-600 hover:from-indigo-600 hover:to-indigo-700 text-white font-semibold py-2.5 px-4 rounded-lg transition-all duration-300 flex items-center justify-center gap-2 group/btn">
                                 <Eye className="w-4 h-4 group-hover/btn:scale-110 transition-transform" />
                                 View Details
@@ -1529,7 +1593,7 @@ export default function Home() {
                     {tuitionClasses.map((course: any) => (
                       <CarouselItem key={course.id} className="md:basis-1/2 lg:basis-1/4">
                         <div className="group/card overflow-hidden rounded-xl border border-gray-200/50 bg-white shadow-sm hover:shadow-xl transition-all duration-300 h-full flex flex-col">
-                          <Link to={`/tuition/${course.id}`} className="flex-1 flex flex-col">
+                          <Link to={`#`} className="flex-1 flex flex-col">
                             <div className="relative h-48 bg-gradient-to-br from-gray-100 to-gray-200 overflow-hidden">
                               {course.images && course.images[0] ? (
                                 <img src={course.images[0]} alt={course.title} className="w-full h-full object-cover group-hover/card:scale-125 transition-transform duration-500" />
@@ -1552,7 +1616,7 @@ export default function Home() {
                             </div>
                           </Link>
                           <div className="px-4 pb-4">
-                            <Link to="/service-details/7b8cc32d-6901-4ee8-b7f3-620dd484e0b8" className="w-full block">
+                            <Link to={buildCategoryItemHref('Tuition & Private Classes', course.id)} className="w-full block">
                               <button className="w-full bg-gradient-to-r from-cyan-500 to-cyan-600 hover:from-cyan-600 hover:to-cyan-700 text-white font-semibold py-2.5 px-4 rounded-lg transition-all duration-300 flex items-center justify-center gap-2 group/btn">
                                 <Eye className="w-4 h-4 group-hover/btn:scale-110 transition-transform" />
                                 View Details
@@ -1584,7 +1648,7 @@ export default function Home() {
                     {danceGymYoga.map((service: any) => (
                       <CarouselItem key={service.id} className="md:basis-1/2 lg:basis-1/4">
                         <div className="group/card overflow-hidden rounded-xl border border-gray-200/50 bg-white shadow-sm hover:shadow-xl transition-all duration-300 h-full flex flex-col">
-                          <Link to={`/dance-gym-yoga/${service.id}`} className="flex-1 flex flex-col">
+                          <Link to={`#`} className="flex-1 flex flex-col">
                             <div className="relative h-48 bg-gradient-to-br from-gray-100 to-gray-200 overflow-hidden">
                               {service.images && service.images[0] ? (
                                 <img src={service.images[0]} alt={service.title} className="w-full h-full object-cover group-hover/card:scale-125 transition-transform duration-500" />
@@ -1607,7 +1671,7 @@ export default function Home() {
                             </div>
                           </Link>
                           <div className="px-4 pb-4">
-                            <Link to="/service-details/7b8cc32d-6901-4ee8-b7f3-620dd484e0b8" className="w-full block">
+                            <Link to={buildCategoryItemHref('Dance, Karate, Gym & Yoga', service.id)} className="w-full block">
                               <button className="w-full bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white font-semibold py-2.5 px-4 rounded-lg transition-all duration-300 flex items-center justify-center gap-2 group/btn">
                                 <Eye className="w-4 h-4 group-hover/btn:scale-110 transition-transform" />
                                 View Details
@@ -1639,7 +1703,7 @@ export default function Home() {
                     {languageClasses.map((course: any) => (
                       <CarouselItem key={course.id} className="md:basis-1/2 lg:basis-1/4">
                         <div className="group/card overflow-hidden rounded-xl border border-gray-200/50 bg-white shadow-sm hover:shadow-xl transition-all duration-300 h-full flex flex-col">
-                          <Link to={`/language/${course.id}`} className="flex-1 flex flex-col">
+                          <Link to={`#`} className="flex-1 flex flex-col">
                             <div className="relative h-48 bg-gradient-to-br from-gray-100 to-gray-200 overflow-hidden">
                               {course.images && course.images[0] ? (
                                 <img src={course.images[0]} alt={course.title} className="w-full h-full object-cover group-hover/card:scale-125 transition-transform duration-500" />
@@ -1662,7 +1726,7 @@ export default function Home() {
                             </div>
                           </Link>
                           <div className="px-4 pb-4">
-                            <Link to="/service-details/7b8cc32d-6901-4ee8-b7f3-620dd484e0b8" className="w-full block">
+                            <Link to={buildCategoryItemHref('Language Classes', course.id)} className="w-full block">
                               <button className="w-full bg-gradient-to-r from-teal-500 to-teal-600 hover:from-teal-600 hover:to-teal-700 text-white font-semibold py-2.5 px-4 rounded-lg transition-all duration-300 flex items-center justify-center gap-2 group/btn">
                                 <Eye className="w-4 h-4 group-hover/btn:scale-110 transition-transform" />
                                 View Details
@@ -1694,7 +1758,7 @@ export default function Home() {
                     {healthWellness.map((service: any) => (
                       <CarouselItem key={service.id} className="md:basis-1/2 lg:basis-1/4">
                         <div className="group/card overflow-hidden rounded-xl border border-gray-200/50 bg-white shadow-sm hover:shadow-xl transition-all duration-300 h-full flex flex-col">
-                          <Link to={`/health-wellness/${service.id}`} className="flex-1 flex flex-col">
+                          <Link to={`#`} className="flex-1 flex flex-col">
                             <div className="relative h-48 bg-gradient-to-br from-gray-100 to-gray-200 overflow-hidden">
                               {service.images && service.images[0] ? (
                                 <img src={service.images[0]} alt={service.title} className="w-full h-full object-cover group-hover/card:scale-125 transition-transform duration-500" />
@@ -1717,7 +1781,7 @@ export default function Home() {
                             </div>
                           </Link>
                           <div className="px-4 pb-4">
-                            <Link to="/service-details/7b8cc32d-6901-4ee8-b7f3-620dd484e0b8" className="w-full block">
+                            <Link to={buildCategoryItemHref('Health & Wellness Services', service.id)} className="w-full block">
                               <button className="w-full bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white font-semibold py-2.5 px-4 rounded-lg transition-all duration-300 flex items-center justify-center gap-2 group/btn">
                                 <Eye className="w-4 h-4 group-hover/btn:scale-110 transition-transform" />
                                 View Details
@@ -1772,7 +1836,7 @@ export default function Home() {
                             </div>
                           </Link>
                           <div className="px-4 pb-4">
-                            <Link to="/service-details/7b8cc32d-6901-4ee8-b7f3-620dd484e0b8" className="w-full block">
+                            <Link to={"#"} className="w-full block">
                               <button className="w-full bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 text-white font-semibold py-2.5 px-4 rounded-lg transition-all duration-300 flex items-center justify-center gap-2 group/btn">
                                 <Eye className="w-4 h-4 group-hover/btn:scale-110 transition-transform" />
                                 View Details
@@ -1804,7 +1868,7 @@ export default function Home() {
                     {eventDecoration.map((service: any) => (
                       <CarouselItem key={service.id} className="md:basis-1/2 lg:basis-1/4">
                         <div className="group/card overflow-hidden rounded-xl border border-gray-200/50 bg-white shadow-sm hover:shadow-xl transition-all duration-300 h-full flex flex-col">
-                          <Link to={`/event-decoration/${service.id}`} className="flex-1 flex flex-col">
+                          <Link to={`#`} className="flex-1 flex flex-col">
                             <div className="relative h-48 bg-gradient-to-br from-gray-100 to-gray-200 overflow-hidden">
                               {service.images && service.images[0] ? (
                                 <img src={service.images[0]} alt={service.title} className="w-full h-full object-cover group-hover/card:scale-125 transition-transform duration-500" />
@@ -1827,7 +1891,7 @@ export default function Home() {
                             </div>
                           </Link>
                           <div className="px-4 pb-4">
-                            <Link to="/service-details/7b8cc32d-6901-4ee8-b7f3-620dd484e0b8" className="w-full block">
+                            <Link to={buildCategoryItemHref('Event & Decoration Services', service.id)} className="w-full block">
                               <button className="w-full bg-gradient-to-r from-fuchsia-500 to-fuchsia-600 hover:from-fuchsia-600 hover:to-fuchsia-700 text-white font-semibold py-2.5 px-4 rounded-lg transition-all duration-300 flex items-center justify-center gap-2 group/btn">
                                 <Eye className="w-4 h-4 group-hover/btn:scale-110 transition-transform" />
                                 View Details
@@ -1859,7 +1923,7 @@ export default function Home() {
                     {computerRepair.map((service: any) => (
                       <CarouselItem key={service.id} className="md:basis-1/2 lg:basis-1/4">
                         <div className="group/card overflow-hidden rounded-xl border border-gray-200/50 bg-white shadow-sm hover:shadow-xl transition-all duration-300 h-full flex flex-col">
-                          <Link to={`/computer-repair/${service.id}`} className="flex-1 flex flex-col">
+                          <Link to={`#`} className="flex-1 flex flex-col">
                             <div className="relative h-48 bg-gradient-to-br from-gray-100 to-gray-200 overflow-hidden">
                               {service.images && service.images[0] ? (
                                 <img src={service.images[0]} alt={service.title} className="w-full h-full object-cover group-hover/card:scale-125 transition-transform duration-500" />
@@ -1882,7 +1946,7 @@ export default function Home() {
                             </div>
                           </Link>
                           <div className="px-4 pb-4">
-                            <Link to="/service-details/7b8cc32d-6901-4ee8-b7f3-620dd484e0b8" className="w-full block">
+                            <Link to={buildCategoryItemHref('Computer, Mobile & Laptop Repair Services', service.id)} className="w-full block">
                               <button className="w-full bg-gradient-to-r from-slate-500 to-slate-600 hover:from-slate-600 hover:to-slate-700 text-white font-semibold py-2.5 px-4 rounded-lg transition-all duration-300 flex items-center justify-center gap-2 group/btn">
                                 <Eye className="w-4 h-4 group-hover/btn:scale-110 transition-transform" />
                                 View Details
@@ -1914,7 +1978,7 @@ export default function Home() {
                     {secondHandPhones.map((product: any) => (
                       <CarouselItem key={product.id} className="md:basis-1/2 lg:basis-1/4">
                         <div className="group/card overflow-hidden rounded-xl border border-gray-200/50 bg-white shadow-sm hover:shadow-xl transition-all duration-300 h-full flex flex-col">
-                          <Link to={`/second-hand-phones/${product.id}`} className="flex-1 flex flex-col">
+                          <Link to={`#`} className="flex-1 flex flex-col">
                             <div className="relative h-48 bg-gradient-to-br from-gray-100 to-gray-200 overflow-hidden">
                               {product.images && product.images[0] ? (
                                 <img src={product.images[0]} alt={product.title} className="w-full h-full object-cover group-hover/card:scale-125 transition-transform duration-500" />
@@ -1937,7 +2001,7 @@ export default function Home() {
                             </div>
                           </Link>
                           <div className="px-4 pb-4">
-                            <Link to="/service-details/7b8cc32d-6901-4ee8-b7f3-620dd484e0b8" className="w-full block">
+                            <Link to={buildCategoryItemHref('Second Hand Phones & Accessories', product.id)} className="w-full block">
                               <button className="w-full bg-gradient-to-r from-lime-500 to-lime-600 hover:from-lime-600 hover:to-lime-700 text-white font-semibold py-2.5 px-4 rounded-lg transition-all duration-300 flex items-center justify-center gap-2 group/btn">
                                 <Eye className="w-4 h-4 group-hover/btn:scale-110 transition-transform" />
                                 View Details
@@ -1969,7 +2033,7 @@ export default function Home() {
                     {sareeClothing.map((product: any) => (
                       <CarouselItem key={product.id} className="md:basis-1/2 lg:basis-1/4">
                         <div className="group/card overflow-hidden rounded-xl border border-gray-200/50 bg-white shadow-sm hover:shadow-xl transition-all duration-300 h-full flex flex-col">
-                          <Link to={`/saree-clothing/${product.id}`} className="flex-1 flex flex-col">
+                          <Link to={`#`} className="flex-1 flex flex-col">
                             <div className="relative h-48 bg-gradient-to-br from-gray-100 to-gray-200 overflow-hidden">
                               {product.images && product.images[0] ? (
                                 <img src={product.images[0]} alt={product.title} className="w-full h-full object-cover group-hover/card:scale-125 transition-transform duration-500" />
@@ -1992,7 +2056,7 @@ export default function Home() {
                             </div>
                           </Link>
                           <div className="px-4 pb-4">
-                            <Link to="/service-details/7b8cc32d-6901-4ee8-b7f3-620dd484e0b8" className="w-full block">
+                            <Link to={buildCategoryItemHref('Saree & Clothing Shopping', product.id)} className="w-full block">
                               <button className="w-full bg-gradient-to-r from-violet-500 to-violet-600 hover:from-violet-600 hover:to-violet-700 text-white font-semibold py-2.5 px-4 rounded-lg transition-all duration-300 flex items-center justify-center gap-2 group/btn">
                                 <Eye className="w-4 h-4 group-hover/btn:scale-110 transition-transform" />
                                 View Details
@@ -2024,7 +2088,7 @@ export default function Home() {
                     {ebooksCourses.map((course: any) => (
                       <CarouselItem key={course.id} className="md:basis-1/2 lg:basis-1/4">
                         <div className="group/card overflow-hidden rounded-xl border border-gray-200/50 bg-white shadow-sm hover:shadow-xl transition-all duration-300 h-full flex flex-col">
-                          <Link to={`/ebooks/${course.id}`} className="flex-1 flex flex-col">
+                          <Link to={`#`} className="flex-1 flex flex-col">
                             <div className="relative h-48 bg-gradient-to-br from-gray-100 to-gray-200 overflow-hidden">
                               {course.images && course.images[0] ? (
                                 <img src={course.images[0]} alt={course.title} className="w-full h-full object-cover group-hover/card:scale-125 transition-transform duration-500" />
@@ -2047,7 +2111,7 @@ export default function Home() {
                             </div>
                           </Link>
                           <div className="px-4 pb-4">
-                            <Link to="/service-details/7b8cc32d-6901-4ee8-b7f3-620dd484e0b8" className="w-full block">
+                            <Link to={buildCategoryItemHref('E-Books & Online Courses', course.id)} className="w-full block">
                               <button className="w-full bg-gradient-to-r from-sky-500 to-sky-600 hover:from-sky-600 hover:to-sky-700 text-white font-semibold py-2.5 px-4 rounded-lg transition-all duration-300 flex items-center justify-center gap-2 group/btn">
                                 <Eye className="w-4 h-4 group-hover/btn:scale-110 transition-transform" />
                                 View Details

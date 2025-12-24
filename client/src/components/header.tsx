@@ -131,7 +131,43 @@ export default function Header() {
   function getItemLink(group: string, item: any) {
     const r = item.raw || item;
     if (!r) return '#';
-    const fixedServiceUrl = '/service-details/7b8cc32d-6901-4ee8-b7f3-620dd484e0b8';
+
+    const buildCategoryItemHref = (categoryLabel: string, id: string) => `/${encodeURIComponent(categoryLabel)}/${id}`;
+
+    const groupToCategoryLabel: Record<string, string> = {
+      fashion: 'Fashion & Beauty Products',
+      jewelry: 'Jewelry & Accessories',
+      sareeClothing: 'Saree & Clothing Shopping',
+      furniture: 'Furniture & Interior Decor',
+      electronics: 'Electronics & Gadgets',
+      phones: 'Phones, Tablets & Accessories',
+      secondHandPhones: 'Second Hand Phones & Accessories',
+      computerRepair: 'Computer, Mobile & Laptop Repair Services',
+      cyberCafe: 'Cyber Café / Internet Services',
+      telecommunication: 'Telecommunication Services',
+      serviceCentre: 'Service Centre / Warranty',
+      household: 'Household Services',
+      eventDecoration: 'Event & Decoration Services',
+      healthWellness: 'Health & Wellness Services',
+      pharmacy: 'Pharmacy & Medical Stores',
+      tuition: 'Tuition & Private Classes',
+      languageClasses: 'Language Classes',
+      dance: 'Dance, Karate, Gym & Yoga',
+      academies: 'Academies - Music, Arts, Sports',
+      skillTraining: 'Skill Training & Certification',
+      schools: 'Schools, Colleges & Coaching',
+      educationalConsultancy: 'Educational Consultancy & Study Abroad',
+      ebooks: 'E-Books & Online Courses',
+      cricketTraining: 'Cricket & Sports Training',
+      secondHandCars: 'Second Hand Cars & Bikes',
+      showrooms: 'Showrooms',
+      carBikeRentals: 'Car & Bike Rentals',
+      vehicleLicense: 'Vehicle License Classes',
+      transportation: 'Transportation & Moving Services',
+      constructionMaterials: 'Construction Materials',
+      hostelPg: 'Hostel & PG',
+      rentalListings: 'Rental Listings',
+    };
 
     switch (group) {
       // Properties & Real Estate
@@ -157,9 +193,12 @@ export default function Header() {
         return `/subcategory/${r.slug || r.id}`;
       case 'users':
         return `/profile/${r.id}`;
-      // All other groups (service-like) -> fixed URL
       default:
-        return fixedServiceUrl;
+        if (r.id) {
+          const label = groupToCategoryLabel[group] || r.category || r.categoryName || r.subcategory || r.subcategoryName || group;
+          return buildCategoryItemHref(label, r.id);
+        }
+        return '#';
     }
   }
 
@@ -642,11 +681,10 @@ export default function Header() {
                 <span className="sm:hidden">Post</span>
               </Button>
 
-              <Link href="/buyer-dashboard" className="relative" data-testid="button-favorites">
-                <button className="p-2 hover:bg-primary/80 rounded-lg transition-colors hidden sm:block">
+              <Link href="/wishlist" className="relative" data-testid="button-wishlist">
+                <button className="p-2 hover:bg-primary/80 rounded-lg transition-colors hidden sm:block" aria-label="Wishlist">
                   <Heart className="w-4 h-4 md:w-5 md:h-5" />
                 </button>
-                {/** show wishlist count */}
                 {(() => {
                   try {
                     const stored = localStorage.getItem('neapl_wishlist_v1');

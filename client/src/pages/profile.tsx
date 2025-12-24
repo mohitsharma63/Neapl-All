@@ -5,6 +5,16 @@ import { User, Mail, Phone, MapPin, Calendar, Edit, LogOut } from "lucide-react"
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import Header from "@/components/header";
 import Footer from "@/components/footer";
 
@@ -32,6 +42,20 @@ export default function Profile() {
   const [, setLocation] = useLocation();
   const [user, setUser] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isEditOpen, setIsEditOpen] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [editForm, setEditForm] = useState({
+    firstName: "",
+    lastName: "",
+    phone: "",
+    country: "",
+    state: "",
+    city: "",
+    area: "",
+    address: "",
+    postalCode: "",
+    avatar: "",
+  });
 
   useEffect(() => {
     // Get user from localStorage
@@ -52,9 +76,66 @@ export default function Profile() {
     }
   }, [setLocation]);
 
+  useEffect(() => {
+    if (!user) return;
+    setEditForm({
+      firstName: user.firstName || "",
+      lastName: user.lastName || "",
+      phone: user.phone || "",
+      country: user.country || "",
+      state: user.state || "",
+      city: user.city || "",
+      area: user.area || "",
+      address: user.address || "",
+      postalCode: user.postalCode || "",
+      avatar: user.avatar || "",
+    });
+  }, [user]);
+
   const handleLogout = () => {
     localStorage.removeItem("user");
     setLocation("/login");
+  };
+
+  const handleSaveProfile = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user) return;
+
+    setIsSaving(true);
+    try {
+      const resp = await fetch(`/api/users/${user.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          firstName: editForm.firstName,
+          lastName: editForm.lastName,
+          phone: editForm.phone,
+          country: editForm.country,
+          state: editForm.state,
+          city: editForm.city,
+          area: editForm.area,
+          address: editForm.address,
+          postalCode: editForm.postalCode,
+          avatar: editForm.avatar,
+        }),
+      });
+
+      const data = await resp.json();
+      if (!resp.ok) {
+        alert(data?.message || "Failed to update profile");
+        return;
+      }
+
+      const merged = { ...user, ...data };
+      setUser(merged);
+      localStorage.setItem("user", JSON.stringify(merged));
+      setIsEditOpen(false);
+    } catch (err) {
+      console.error("Profile update error:", err);
+      alert("Something went wrong. Please try again.");
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   if (loading) {
@@ -108,7 +189,7 @@ export default function Profile() {
                   </div>
                 </div>
                 <div className="flex gap-2">
-                  <Button variant="outline" size="sm">
+                  <Button variant="outline" size="sm" onClick={() => setIsEditOpen(true)}>
                     <Edit className="w-4 h-4 mr-2" />
                     Edit Profile
                   </Button>
@@ -120,6 +201,119 @@ export default function Profile() {
               </div>
             </CardContent>
           </Card>
+
+          <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
+            <DialogContent className="sm:max-w-2xl">
+              <DialogHeader>
+                <DialogTitle>Edit Profile</DialogTitle>
+                <DialogDescription>Update your contact and location details.</DialogDescription>
+              </DialogHeader>
+
+              <form onSubmit={handleSaveProfile} className="space-y-5">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="firstName">First Name</Label>
+                    <Input
+                      id="firstName"
+                      value={editForm.firstName}
+                      onChange={(e) => setEditForm((p) => ({ ...p, firstName: e.target.value }))}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="lastName">Last Name</Label>
+                    <Input
+                      id="lastName"
+                      value={editForm.lastName}
+                      onChange={(e) => setEditForm((p) => ({ ...p, lastName: e.target.value }))}
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="phone">Phone</Label>
+                    <Input
+                      id="phone"
+                      value={editForm.phone}
+                      onChange={(e) => setEditForm((p) => ({ ...p, phone: e.target.value }))}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="postalCode">Postal Code</Label>
+                    <Input
+                      id="postalCode"
+                      value={editForm.postalCode}
+                      onChange={(e) => setEditForm((p) => ({ ...p, postalCode: e.target.value }))}
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="address">Address</Label>
+                  <Input
+                    id="address"
+                    value={editForm.address}
+                    onChange={(e) => setEditForm((p) => ({ ...p, address: e.target.value }))}
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="area">Area</Label>
+                    <Input
+                      id="area"
+                      value={editForm.area}
+                      onChange={(e) => setEditForm((p) => ({ ...p, area: e.target.value }))}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="city">City</Label>
+                    <Input
+                      id="city"
+                      value={editForm.city}
+                      onChange={(e) => setEditForm((p) => ({ ...p, city: e.target.value }))}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="state">State</Label>
+                    <Input
+                      id="state"
+                      value={editForm.state}
+                      onChange={(e) => setEditForm((p) => ({ ...p, state: e.target.value }))}
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="country">Country</Label>
+                    <Input
+                      id="country"
+                      value={editForm.country}
+                      onChange={(e) => setEditForm((p) => ({ ...p, country: e.target.value }))}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="avatar">Avatar URL</Label>
+                    <Input
+                      id="avatar"
+                      value={editForm.avatar}
+                      onChange={(e) => setEditForm((p) => ({ ...p, avatar: e.target.value }))}
+                    />
+                  </div>
+                </div>
+
+                <DialogFooter>
+                  <Button type="button" variant="outline" onClick={() => setIsEditOpen(false)}>
+                    Cancel
+                  </Button>
+                  <Button type="submit" disabled={isSaving}>
+                    {isSaving ? "Saving..." : "Save Changes"}
+                  </Button>
+                </DialogFooter>
+              </form>
+            </DialogContent>
+          </Dialog>
 
           {/* Contact Information */}
           <Card className="mb-6">

@@ -2,7 +2,7 @@
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { MapPin, Bed, Bath, Maximize, Eye } from "lucide-react";
+import { MapPin, Bed, Bath, Maximize, Eye, Image as ImageIcon } from "lucide-react";
 import { Link } from "wouter";
 import type { PropertyWithRelations } from "@/lib/types";
 
@@ -19,17 +19,29 @@ export default function PropertyCard({ property }: PropertyCardProps) {
       maximumFractionDigits: 0,
     }).format(numPrice);
   };
-
-  const primaryImage = property.images?.[0] || 'https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=800&h=600&fit=crop';
+  const hasPrimaryImage = !!property.images?.[0];
+  const locationText = property.location
+    ? [property.location.area, property.location.city, property.location.state, property.location.country]
+        .filter(Boolean)
+        .join(', ')
+    : "";
 
   return (
     <Card className="overflow-hidden hover:shadow-lg transition-shadow duration-300">
-      <div className="relative h-48 overflow-hidden">
-        <img
-          src={primaryImage}
-          alt={property.title}
-          className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
-        />
+      <div className="relative h-48 overflow-hidden flex items-center justify-center bg-muted">
+        {hasPrimaryImage ? (
+          <img
+            src={property.images?.[0]}
+            alt={property.title}
+            className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
+          />
+        ) : (
+          <div className="h-full w-full flex items-center justify-center bg-gray-100">
+            <div className="w-20 h-20 rounded-2xl bg-gray-200/70 flex items-center justify-center">
+              <ImageIcon className="w-10 h-10 text-gray-400" />
+            </div>
+          </div>
+        )}
         {property.isFeatured && (
           <Badge className="absolute top-2 right-2 bg-yellow-500">
             Featured
@@ -45,10 +57,10 @@ export default function PropertyCard({ property }: PropertyCardProps) {
           <h3 className="font-semibold text-lg line-clamp-1 mb-1">
             {property.title}
           </h3>
-          {property.location && (
+          {locationText && (
             <div className="flex items-center text-sm text-muted-foreground">
               <MapPin className="w-3 h-3 mr-1" />
-              <span className="line-clamp-1">{property.location.name}</span>
+              <span className="line-clamp-1">{locationText}</span>
             </div>
           )}
         </div>

@@ -17,19 +17,21 @@ import AdminDashboard from "@/pages/admin-dashboard";
 import AdminSliders from "@/pages/admin-sliders";
 import SliderCardPage from "@/pages/slider-card";
 import SliderCardOnlyPage from "@/pages/slider-card-only";
-import BuyerDashboard from "@/pages/buyer-dashboard";
 import SellerDashboard from "@/pages/seller-dashboard";
 import SubcategoryPage from "@/pages/subcategory";
 import CategoryPage from "@/pages/category";
 import NotFound from "@/pages/not-found";
 import SearchPage from "@/pages/search";
 import TuitionPrivateClasses from "@/pages/tuition-private-classes";
-import TuitionClassDetail from "@/pages/tuition-class-detail"; // Assuming this component exists or will be created
+import TuitionClassDetail from "@/pages/tuition-class-detail"; // Dedicated tuition page
+import CategoryItemDetail from "@/pages/category-item-detail"; // Generic category-item detail page
 import DanceKarateGymYoga from "@/pages/dance-karate-gym-yoga";
 import LanguageClasses from "@/pages/language-classes";
 import ServiceDetails from "@/pages/service-details";
+import WishlistPage from "@/pages/wishlist";
 
 import TuitionPrivateClassesPage from "./pages/tuition-private-classes-page";
+import ListingDetailPage from "./pages/listing-detail-page";
 
 function Router() {
   return (
@@ -39,7 +41,8 @@ function Router() {
       <Route path="/category/:slug" component={CategoryPage} />
       <Route path="/category/:categorySlug/subcategory/:subcategorySlug" component={SubcategoryPage} />
       <Route path="/subcategory/:name" component={SubcategoryPage} />
-      <Route path="/:categorySlug/:id" component={TuitionClassDetail} /> {/* Dynamic route for tuition class detail */}
+      <Route path="/tuition-private-classes/:id" component={TuitionClassDetail} /> {/* Route for tuition class detail (legacy/specific) */}
+      <Route path="/:categorySlug/:id" component={CategoryItemDetail} /> {/* Generic dynamic route for all categories */}
 
       <Route path="/contact" component={Contact} />
       <Route path="/login" component={Login} />
@@ -50,15 +53,17 @@ function Router() {
       <Route path="/slider-card" component={SliderCardPage} />
       <Route path="/slider-card-only" component={SliderCardOnlyPage} />
       <Route path="/admin" component={AdminDashboard} />
-      <Route path="/buyer-dashboard" component={BuyerDashboard} />
       <Route path="/seller-dashboard" component={SellerDashboard} />
       <Route path="/blog" component={Blog} />
       <Route path="/blog/:slug" component={BlogPost} />
       <Route path="/search" component={SearchPage} />
+      <Route path="/wishlist" component={WishlistPage} />
       <Route path="/articles" component={Articles} />
       <Route path="/about" component={About} />
       <Route path="/tuition-private-classes" component={TuitionPrivateClasses} />
-      <Route path="/tuition-private-classes/:id" component={TuitionClassDetail} /> {/* Route for tuition class detail */}
+      {/* Generic listing detail route: /listing/:type/:id - type should match config e.g. tuition-private-classes, cars-bikes */}
+      <Route path="/listing/:type/:id" component={ListingDetailPage} />
+      {/* kept for backward compatibility */}
       {/* <Route path="/category/:categorySlug/subcategory/TuitionPrivatClasses" component={TuitionPrivateClassesPage} /> */}
       <Route path="/dance-karate-gym-yoga" component={DanceKarateGymYoga} />
       <Route path="/language-classes" component={LanguageClasses} />

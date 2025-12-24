@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useForm } from "react-hook-form";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
@@ -16,6 +16,10 @@ interface HealthWellnessServicesFormProps {
 
 export default function HealthWellnessServicesForm({ onSuccess, editingService }: HealthWellnessServicesFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [images, setImages] = useState<string[]>([]);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const [dragActive, setDragActive] = useState(false);
+  const [imageError, setImageError] = useState<string | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
   const [userRole, setUserRole] = useState<string | null>(null);
   const { toast } = useToast();
@@ -72,6 +76,7 @@ export default function HealthWellnessServicesForm({ onSuccess, editingService }
     try {
       const payload = {
         ...data,
+        images,
         userId,
         role: userRole || 'user',
       };
@@ -110,6 +115,35 @@ export default function HealthWellnessServicesForm({ onSuccess, editingService }
     }
   };
 
+  const processFiles = (files: FileList | null) => {
+    if (!files || files.length === 0) return;
+    const allowed = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+    const maxSize = 5 * 1024 * 1024;
+    const incoming: Promise<string>[] = [];
+    for (let i = 0; i < files.length; i++) {
+      const f = files[i];
+      if (!allowed.includes(f.type)) { setImageError('Only JPG, PNG, WEBP and GIF allowed'); continue; }
+      if (f.size > maxSize) { setImageError('Each image must be <= 5MB'); continue; }
+      incoming.push(new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(String(reader.result));
+        reader.onerror = () => reject(new Error('Failed to read file'));
+        reader.readAsDataURL(f);
+      }));
+    }
+    if (incoming.length === 0) return;
+    Promise.all(incoming).then((dataUrls) => {
+      setImages(prev => [...prev, ...dataUrls].slice(0, 10));
+      setImageError(null);
+    }).catch(e => { console.error(e); setImageError('Failed to process images'); });
+  };
+
+  const handleDrop = (e: React.DragEvent) => { e.preventDefault(); e.stopPropagation(); setDragActive(false); processFiles(e.dataTransfer.files); };
+  const handleDragOver = (e: React.DragEvent) => { e.preventDefault(); e.stopPropagation(); setDragActive(true); };
+  const handleDragLeave = (e: React.DragEvent) => { e.preventDefault(); e.stopPropagation(); setDragActive(false); };
+  const openFileDialog = () => fileInputRef.current?.click();
+  const removeImage = (idx: number) => setImages(prev => prev.filter((_, i) => i !== idx));
+
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
       <Card>
@@ -127,6 +161,27 @@ export default function HealthWellnessServicesForm({ onSuccess, editingService }
           <div>
             <Label htmlFor="description">Description</Label>
             <Textarea id="description" {...register("description")} placeholder="Describe your services..." />
+          </div>
+
+          <div>
+            <Label>Images</Label>
+            <div onDrop={handleDrop} onDragOver={handleDragOver} onDragLeave={handleDragLeave} className={`mt-2 border-2 rounded-md p-4 flex items-center justify-center ${dragActive ? 'border-blue-400 bg-blue-50' : 'border-dashed border-gray-300'}`}>
+              <div className="text-center">
+                <p className="mb-2">Drag & drop images here, or <button type="button" onClick={openFileDialog} className="underline">select images</button></p>
+                <input ref={fileInputRef} type="file" accept="image/*" multiple onChange={(e) => processFiles(e.target.files)} className="hidden" />
+                {imageError && <p className="text-sm text-red-500">{imageError}</p>}
+                {images.length > 0 && (
+                  <div className="mt-3 grid grid-cols-5 gap-2">
+                    {images.map((src, idx) => (
+                      <div key={idx} className="relative">
+                        <img src={src} alt={`preview-${idx}`} className="w-24 h-24 object-cover rounded" />
+                        <button type="button" onClick={() => removeImage(idx)} className="absolute top-1 right-1 bg-white rounded-full p-1">✕</button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
