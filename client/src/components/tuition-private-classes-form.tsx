@@ -43,6 +43,23 @@ export default function TuitionPrivateClassesForm({ onSuccess, editingClass }: T
 
   const [subjects, setSubjects] = useState<string[]>(editingClass?.subjectsOffered || []);
   const [newSubject, setNewSubject] = useState("");
+  const [images, setImages] = useState<string[]>(editingClass?.images || []);
+  const [uploadingImages, setUploadingImages] = useState(false);
+
+  const uploadMultipleImages = async (fileList: FileList) => {
+    const files = Array.from(fileList);
+    if (files.length === 0) return;
+    const fd = new FormData();
+    files.forEach((f) => fd.append('files', f));
+    const res = await fetch('/api/admin/upload-multiple', {
+      method: 'POST',
+      body: fd,
+    });
+    if (!res.ok) throw new Error('Upload failed');
+    const data = await res.json();
+    const urls = Array.isArray(data?.files) ? data.files.map((f: any) => f?.url).filter(Boolean) : [];
+    return urls as string[];
+  };
 
   const onSubmit = async (data: any) => {
     try {
@@ -50,6 +67,7 @@ export default function TuitionPrivateClassesForm({ onSuccess, editingClass }: T
       const cleanedData = {
         ...data,
         subjectsOffered: subjects,
+        images,
         // Convert numeric fields
         batchSize: data.batchSize ? parseInt(data.batchSize) : null,
         minGrade: data.minGrade ? parseInt(data.minGrade) : null,
@@ -198,6 +216,56 @@ export default function TuitionPrivateClassesForm({ onSuccess, editingClass }: T
               ))}
             </div>
           </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Images</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div>
+            <Label>Upload Images</Label>
+            <Input
+              type="file"
+              accept="image/*"
+              multiple
+              disabled={uploadingImages}
+              onChange={async (e) => {
+                const fl = e.target.files;
+                if (!fl || fl.length === 0) return;
+                try {
+                  setUploadingImages(true);
+                  const urls = await uploadMultipleImages(fl);
+                  setImages((prev) => [...prev, ...(urls || [])]);
+                  e.target.value = '';
+                } catch (err: any) {
+                  console.error('Image upload error:', err);
+                  toast({
+                    title: 'Error',
+                    description: err?.message || 'Failed to upload images',
+                    variant: 'destructive',
+                  });
+                } finally {
+                  setUploadingImages(false);
+                }
+              }}
+            />
+          </div>
+
+          {images.length > 0 && (
+            <div className="flex flex-wrap gap-2">
+              {images.map((url, idx) => (
+                <Badge key={`${url}-${idx}`} variant="secondary" className="max-w-full">
+                  <span className="truncate max-w-[240px] inline-block">{url}</span>
+                  <X
+                    className="w-3 h-3 ml-2 cursor-pointer"
+                    onClick={() => setImages(images.filter((_, i) => i !== idx))}
+                  />
+                </Badge>
+              ))}
+            </div>
+          )}
         </CardContent>
       </Card>
 

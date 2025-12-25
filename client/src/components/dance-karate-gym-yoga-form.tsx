@@ -7,6 +7,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
+import { Badge } from "@/components/ui/badge";
+import { X } from "lucide-react";
 import { useUser } from "@/hooks/use-user";
 
 interface DanceKarateGymYogaFormProps {
@@ -24,6 +26,24 @@ export default function DanceKarateGymYogaForm({ onSuccess, editingClass }: Danc
     }
   });
 
+  const [images, setImages] = useState<string[]>(editingClass?.images || []);
+  const [uploadingImages, setUploadingImages] = useState(false);
+
+  const uploadMultipleImages = async (fileList: FileList) => {
+    const files = Array.from(fileList);
+    if (files.length === 0) return;
+    const fd = new FormData();
+    files.forEach((f) => fd.append('files', f));
+    const res = await fetch('/api/admin/upload-multiple', {
+      method: 'POST',
+      body: fd,
+    });
+    if (!res.ok) throw new Error('Upload failed');
+    const data = await res.json();
+    const urls = Array.isArray(data?.files) ? data.files.map((f: any) => f?.url).filter(Boolean) : [];
+    return urls as string[];
+  };
+
   const onSubmit = async (data: any) => {
     try {
       // Convert empty strings to null for numeric fields
@@ -31,6 +51,7 @@ export default function DanceKarateGymYogaForm({ onSuccess, editingClass }: Danc
         ...data,
         userId: user?.id,
         role: user?.role,
+        images,
         instructorExperienceYears: data.instructorExperienceYears && data.instructorExperienceYears !== '' ? parseInt(data.instructorExperienceYears) : null,
         feePerMonth: parseFloat(data.feePerMonth), // Required field, should always have a value
         feePerSession: data.feePerSession && data.feePerSession !== '' ? parseFloat(data.feePerSession) : null,
@@ -165,6 +186,52 @@ export default function DanceKarateGymYogaForm({ onSuccess, editingClass }: Danc
               <Input type="number" {...register("batchSize")} />
             </div>
           </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Images</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div>
+            <Label>Upload Images</Label>
+            <Input
+              type="file"
+              accept="image/*"
+              multiple
+              disabled={uploadingImages}
+              onChange={async (e) => {
+                const fl = e.target.files;
+                if (!fl || fl.length === 0) return;
+                try {
+                  setUploadingImages(true);
+                  const urls = await uploadMultipleImages(fl);
+                  setImages((prev) => [...prev, ...(urls || [])]);
+                  e.target.value = '';
+                } catch (err: any) {
+                  console.error('Image upload error:', err);
+                  alert(err?.message || 'Failed to upload images');
+                } finally {
+                  setUploadingImages(false);
+                }
+              }}
+            />
+          </div>
+
+          {images.length > 0 && (
+            <div className="flex flex-wrap gap-2">
+              {images.map((url, idx) => (
+                <Badge key={`${url}-${idx}`} variant="secondary" className="max-w-full">
+                  <span className="truncate max-w-[240px] inline-block">{url}</span>
+                  <X
+                    className="w-3 h-3 ml-2 cursor-pointer"
+                    onClick={() => setImages(images.filter((_, i) => i !== idx))}
+                  />
+                </Badge>
+              ))}
+            </div>
+          )}
         </CardContent>
       </Card>
 

@@ -9,7 +9,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Edit, Trash2, Eye, MapPin, Building } from 'lucide-react';
+import { Plus, Edit, Trash2, Eye, MapPin, Building, X } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 
 const initialFormData = {
@@ -91,7 +91,23 @@ export default function CricketSportsTrainingForm() {
   const [viewingItem, setViewingItem] = useState<any>(null);
   const [showDetailsDialog, setShowDetailsDialog] = useState(false);
   const [formData, setFormData] = useState(initialFormData);
+  const [uploadingImages, setUploadingImages] = useState(false);
   const queryClient = useQueryClient();
+
+  const uploadMultipleImages = async (fileList: FileList) => {
+    const files = Array.from(fileList);
+    if (files.length === 0) return [];
+    const fd = new FormData();
+    files.forEach((f) => fd.append('files', f));
+    const res = await fetch('/api/admin/upload-multiple', {
+      method: 'POST',
+      body: fd,
+    });
+    if (!res.ok) throw new Error('Upload failed');
+    const data = await res.json();
+    const urls = Array.isArray(data?.files) ? data.files.map((f: any) => f?.url).filter(Boolean) : [];
+    return urls as string[];
+  };
 
   const { data: items = [], isLoading } = useQuery({
     queryKey: ['/api/admin/cricket-sports-training'],
@@ -175,7 +191,7 @@ export default function CricketSportsTrainingForm() {
   };
 
   const handleEdit = (item: any) => {
-    setFormData(item);
+    setFormData({ ...initialFormData, ...item, images: Array.isArray(item?.images) ? item.images : [] });
     setEditingItem(item);
     setShowForm(true);
   };
@@ -232,6 +248,51 @@ export default function CricketSportsTrainingForm() {
                   onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
                   rows={4}
                 />
+              </div>
+
+              <div className="col-span-2">
+                <Label>Images</Label>
+                <Input
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  disabled={uploadingImages}
+                  onChange={async (e) => {
+                    const fl = e.target.files;
+                    if (!fl || fl.length === 0) return;
+                    try {
+                      setUploadingImages(true);
+                      const urls = await uploadMultipleImages(fl);
+                      setFormData((prev) => ({
+                        ...prev,
+                        images: [...(Array.isArray(prev.images) ? prev.images : []), ...(urls || [])],
+                      }));
+                      e.target.value = '';
+                    } catch (err: any) {
+                      console.error('Image upload error:', err);
+                      alert(err?.message || 'Failed to upload images');
+                    } finally {
+                      setUploadingImages(false);
+                    }
+                  }}
+                />
+
+                {Array.isArray(formData.images) && formData.images.length > 0 && (
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    {formData.images.map((url, idx) => (
+                      <Badge key={`${url}-${idx}`} variant="secondary" className="max-w-full">
+                        <span className="truncate max-w-[240px] inline-block">{url}</span>
+                        <X
+                          className="w-3 h-3 ml-2 cursor-pointer"
+                          onClick={() => setFormData((prev) => ({
+                            ...prev,
+                            images: (Array.isArray(prev.images) ? prev.images : []).filter((_, i) => i !== idx),
+                          }))}
+                        />
+                      </Badge>
+                    ))}
+                  </div>
+                )}
               </div>
 
               <div>

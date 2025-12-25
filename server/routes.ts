@@ -65,6 +65,22 @@ import {
 import { uploadMedia, handleMediaUpload } from './upload';
 import { eq, sql, desc, or, and } from "drizzle-orm";
 
+const parseBoolean = (value: any, defaultValue = false) => {
+  if (value === undefined || value === null) return defaultValue;
+  if (typeof value === "boolean") return value;
+  if (typeof value === "string") {
+    const v = value.trim().toLowerCase();
+    if (v === "true" || v === "1" || v === "yes" || v === "on") return true;
+    if (v === "false" || v === "0" || v === "no" || v === "off") return false;
+  }
+  return Boolean(value);
+};
+
+const asStringArray = (value: any) => {
+  if (!Array.isArray(value)) return [];
+  return value.filter((x) => typeof x === "string");
+};
+
 export function registerRoutes(app: Express) {
   // Middleware: sanitize incoming JSON payloads for DB writes
   // - remove client-supplied system timestamp fields
@@ -7030,13 +7046,14 @@ export function registerRoutes(app: Express) {
         instructorName: data.instructorName || null,
         instructorQualification: data.instructorQualification || null,
         instructorExperience: data.instructorExperience ? parseInt(data.instructorExperience) : null,
-        nativeSpeaker: data.nativeSpeaker || false,
+        nativeSpeaker: parseBoolean(data.nativeSpeaker, false),
         feePerMonth: parseFloat(data.feePerMonth.toString()),
         registrationFee: data.registrationFee ? parseFloat(data.registrationFee.toString()) : null,
         totalCourseFee: data.totalCourseFee ? parseFloat(data.totalCourseFee.toString()) : null,
-        studyMaterialsProvided: data.studyMaterialsProvided || [],
-        certificationProvided: data.certificationProvided || false,
-        freeDemoClass: data.freeDemoClass || false,
+        studyMaterialsProvided: Array.isArray(data.studyMaterialsProvided) ? data.studyMaterialsProvided : [],
+        certificationProvided: parseBoolean(data.certificationProvided, false),
+        freeDemoClass: parseBoolean(data.freeDemoClass, false),
+        images: asStringArray(data.images),
         contactPerson: data.contactPerson,
         contactPhone: data.contactPhone,
         contactEmail: data.contactEmail || null,
@@ -7045,8 +7062,8 @@ export function registerRoutes(app: Express) {
         city: data.city || null,
         areaName: data.areaName || null,
         fullAddress: data.fullAddress || null,
-        isActive: data.isActive !== undefined ? data.isActive : true,
-        isFeatured: data.isFeatured || false,
+        isActive: parseBoolean(data.isActive, true),
+        isFeatured: parseBoolean(data.isFeatured, false),
         userId: data.userId,
         role: data.role || 'user',
       };
@@ -7076,6 +7093,14 @@ export function registerRoutes(app: Express) {
       if (data.feePerMonth !== undefined) updateData.feePerMonth = data.feePerMonth ? parseFloat(data.feePerMonth.toString()) : null;
       if (data.registrationFee !== undefined) updateData.registrationFee = data.registrationFee ? parseFloat(data.registrationFee.toString()) : null;
       if (data.totalCourseFee !== undefined) updateData.totalCourseFee = data.totalCourseFee ? parseFloat(data.totalCourseFee.toString()) : null;
+
+       if (data.nativeSpeaker !== undefined) updateData.nativeSpeaker = parseBoolean(data.nativeSpeaker, false);
+       if (data.certificationProvided !== undefined) updateData.certificationProvided = parseBoolean(data.certificationProvided, false);
+       if (data.freeDemoClass !== undefined) updateData.freeDemoClass = parseBoolean(data.freeDemoClass, false);
+       if (data.isActive !== undefined) updateData.isActive = parseBoolean(data.isActive, true);
+       if (data.isFeatured !== undefined) updateData.isFeatured = parseBoolean(data.isFeatured, false);
+       if (data.images !== undefined) updateData.images = asStringArray(data.images);
+       if (data.studyMaterialsProvided !== undefined) updateData.studyMaterialsProvided = Array.isArray(data.studyMaterialsProvided) ? data.studyMaterialsProvided : [];
 
       const [updated] = await db.update(languageClasses).set(updateData).where(eq(languageClasses.id, id)).returning();
       if (!updated) return res.status(404).json({ message: "Language class not found" });
@@ -7205,6 +7230,7 @@ app.get("/api/admin/academies-music-arts-sports", async (req, res) => {
         city,
         areaName,
         fullAddress,
+        images,
         isActive,
         isFeatured,
         userId,
@@ -7232,20 +7258,20 @@ app.get("/api/admin/academies-music-arts-sports", async (req, res) => {
           academyCategory,
           specialization: specialization || null,
           establishedYear: establishedYear ? parseInt(establishedYear.toString()) : null,
-          coursesOffered: coursesOffered || [],
+          coursesOffered: Array.isArray(coursesOffered) ? coursesOffered : [],
           classType: classType || null,
           ageGroup: ageGroup || null,
           courseDurationMonths: courseDurationMonths ? parseInt(courseDurationMonths.toString()) : null,
           feePerMonth: parseFloat(feePerMonth.toString()),
           admissionFee: admissionFee ? parseFloat(admissionFee.toString()) : null,
           instrumentRentalFee: instrumentRentalFee ? parseFloat(instrumentRentalFee.toString()) : null,
-          certificationOffered: certificationOffered || false,
-          freeTrialClass: freeTrialClass || false,
-          facilities: facilities || [],
-          airConditioned: airConditioned || false,
-          parkingAvailable: parkingAvailable || false,
-          changingRooms: changingRooms || false,
-          equipmentProvided: equipmentProvided || false,
+          certificationOffered: parseBoolean(certificationOffered, false),
+          freeTrialClass: parseBoolean(freeTrialClass, false),
+          facilities: Array.isArray(facilities) ? facilities : [],
+          airConditioned: parseBoolean(airConditioned, false),
+          parkingAvailable: parseBoolean(parkingAvailable, false),
+          changingRooms: parseBoolean(changingRooms, false),
+          equipmentProvided: parseBoolean(equipmentProvided, false),
           headInstructor: headInstructor || null,
           totalInstructors: totalInstructors ? parseInt(totalInstructors.toString()) : null,
           instructorQualification: instructorQualification || null,
@@ -7259,8 +7285,9 @@ app.get("/api/admin/academies-music-arts-sports", async (req, res) => {
           city: city || null,
           areaName: areaName || null,
           fullAddress,
-          isActive: isActive !== undefined ? isActive : true,
-          isFeatured: isFeatured || false,
+          images: asStringArray(images),
+          isActive: parseBoolean(isActive, true),
+          isFeatured: parseBoolean(isFeatured, false),
           userId: userId,
           role: role || 'user',
         })
@@ -7283,12 +7310,33 @@ app.get("/api/admin/academies-music-arts-sports", async (req, res) => {
         return res.status(400).json({ message: "userId is required" });
       }
 
-      const updateData = {
+      const updateData: any = {
         ...otherData,
         userId: userId,
         role: role || 'user',
         updatedAt: new Date()
       };
+
+      if (otherData.establishedYear !== undefined) updateData.establishedYear = otherData.establishedYear ? parseInt(otherData.establishedYear.toString()) : null;
+      if (otherData.courseDurationMonths !== undefined) updateData.courseDurationMonths = otherData.courseDurationMonths ? parseInt(otherData.courseDurationMonths.toString()) : null;
+      if (otherData.totalInstructors !== undefined) updateData.totalInstructors = otherData.totalInstructors ? parseInt(otherData.totalInstructors.toString()) : null;
+
+      if (otherData.feePerMonth !== undefined) updateData.feePerMonth = otherData.feePerMonth ? parseFloat(otherData.feePerMonth.toString()) : null;
+      if (otherData.admissionFee !== undefined) updateData.admissionFee = otherData.admissionFee ? parseFloat(otherData.admissionFee.toString()) : null;
+      if (otherData.instrumentRentalFee !== undefined) updateData.instrumentRentalFee = otherData.instrumentRentalFee ? parseFloat(otherData.instrumentRentalFee.toString()) : null;
+
+      if (otherData.coursesOffered !== undefined) updateData.coursesOffered = Array.isArray(otherData.coursesOffered) ? otherData.coursesOffered : [];
+      if (otherData.facilities !== undefined) updateData.facilities = Array.isArray(otherData.facilities) ? otherData.facilities : [];
+      if (otherData.images !== undefined) updateData.images = asStringArray(otherData.images);
+
+      if (otherData.certificationOffered !== undefined) updateData.certificationOffered = parseBoolean(otherData.certificationOffered, false);
+      if (otherData.freeTrialClass !== undefined) updateData.freeTrialClass = parseBoolean(otherData.freeTrialClass, false);
+      if (otherData.airConditioned !== undefined) updateData.airConditioned = parseBoolean(otherData.airConditioned, false);
+      if (otherData.parkingAvailable !== undefined) updateData.parkingAvailable = parseBoolean(otherData.parkingAvailable, false);
+      if (otherData.changingRooms !== undefined) updateData.changingRooms = parseBoolean(otherData.changingRooms, false);
+      if (otherData.equipmentProvided !== undefined) updateData.equipmentProvided = parseBoolean(otherData.equipmentProvided, false);
+      if (otherData.isActive !== undefined) updateData.isActive = parseBoolean(otherData.isActive, true);
+      if (otherData.isFeatured !== undefined) updateData.isFeatured = parseBoolean(otherData.isFeatured, false);
 
       const [updatedAcademy] = await db
         .update(academiesMusicArtsSports)
@@ -7675,6 +7723,7 @@ app.post("/api/admin/skill-training-certification", async (req, res) => {
       city,
       areaName,
       fullAddress,
+      images,
       isActive,
       isFeatured,
       userId,
@@ -7731,6 +7780,7 @@ app.post("/api/admin/skill-training-certification", async (req, res) => {
         city,
         areaName,
         fullAddress,
+        images: Array.isArray(images) ? images : [],
         isActive: isActive !== undefined ? isActive : true,
         isFeatured: isFeatured || false,
         userId,

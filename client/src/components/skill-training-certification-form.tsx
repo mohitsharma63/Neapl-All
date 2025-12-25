@@ -31,6 +31,23 @@ export default function SkillTrainingCertificationForm({ onSuccess, editingTrain
   const [newSkill, setNewSkill] = useState("");
   const [careerOptions, setCareerOptions] = useState<string[]>(editingTraining?.careerOpportunities || []);
   const [newCareer, setNewCareer] = useState("");
+  const [images, setImages] = useState<string[]>(editingTraining?.images || []);
+  const [uploadingImages, setUploadingImages] = useState(false);
+
+  const uploadMultipleImages = async (fileList: FileList) => {
+    const files = Array.from(fileList);
+    if (files.length === 0) return;
+    const fd = new FormData();
+    files.forEach((f) => fd.append('files', f));
+    const res = await fetch('/api/admin/upload-multiple', {
+      method: 'POST',
+      body: fd,
+    });
+    if (!res.ok) throw new Error('Upload failed');
+    const data = await res.json();
+    const urls = Array.isArray(data?.files) ? data.files.map((f: any) => f?.url).filter(Boolean) : [];
+    return urls as string[];
+  };
 
   const onSubmit = async (data: any) => {
     try {
@@ -49,6 +66,7 @@ export default function SkillTrainingCertificationForm({ onSuccess, editingTrain
           ...data,
           skillsTaught: skillsTeach,
           careerOpportunities: careerOptions,
+          images,
           userId: user?.id || null,
           role: user?.role || 'user',
         }),
@@ -69,6 +87,7 @@ export default function SkillTrainingCertificationForm({ onSuccess, editingTrain
           <CardTitle>Basic Information</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
+
           <div>
             <Label htmlFor="title">Course Title *</Label>
             <Input id="title" {...register("title", { required: true })} placeholder="e.g., Full Stack Web Development" />
@@ -118,6 +137,7 @@ export default function SkillTrainingCertificationForm({ onSuccess, editingTrain
           <div>
             <Label>Skills Taught</Label>
             <div className="flex gap-2 mb-2">
+
               <Input value={newSkill} onChange={(e) => setNewSkill(e.target.value)} placeholder="Add skill" />
               <Button type="button" onClick={() => { if (newSkill.trim()) { setSkillsTeach([...skillsTeach, newSkill.trim()]); setNewSkill(""); } }}>
                 <Plus className="w-4 h-4" />
@@ -132,6 +152,48 @@ export default function SkillTrainingCertificationForm({ onSuccess, editingTrain
               ))}
             </div>
           </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Images</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div>
+            <Label>Upload Images</Label>
+            <Input
+              type="file"
+              accept="image/*"
+              multiple
+              disabled={uploadingImages}
+              onChange={async (e) => {
+                const fl = e.target.files;
+                if (!fl || fl.length === 0) return;
+                try {
+                  setUploadingImages(true);
+                  const urls = await uploadMultipleImages(fl);
+                  setImages((prev) => [...prev, ...(urls || [])]);
+                  e.target.value = '';
+                } catch (err: any) {
+                  console.error('Image upload error:', err);
+                } finally {
+                  setUploadingImages(false);
+                }
+              }}
+            />
+          </div>
+
+          {images.length > 0 && (
+            <div className="flex flex-wrap gap-2">
+              {images.map((url, idx) => (
+                <Badge key={`${url}-${idx}`} variant="secondary" className="max-w-full">
+                  <span className="truncate max-w-[240px] inline-block">{url}</span>
+                  <X className="w-3 h-3 ml-2 cursor-pointer" onClick={() => setImages(images.filter((_, i) => i !== idx))} />
+                </Badge>
+              ))}
+            </div>
+          )}
         </CardContent>
       </Card>
 

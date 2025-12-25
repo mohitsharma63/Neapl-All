@@ -209,10 +209,9 @@ export async function initDatabase() {
     is_featured BOOLEAN DEFAULT false,
     view_count INTEGER DEFAULT 0,
     created_at TIMESTAMP DEFAULT NOW(),
-    updated_at TIMESTAMP DEFAULT NOW(),
-    user_id VARCHAR REFERENCES users(id),
-    role TEXT
-  )`);
+    updated_at TIMESTAMP DEFAULT NOW()
+  )
+`);
 
   await db.execute(sql`CREATE TABLE IF NOT EXISTS language_classes (
     id VARCHAR PRIMARY KEY DEFAULT gen_random_uuid()::text,
@@ -235,6 +234,7 @@ export async function initDatabase() {
     registration_fee DECIMAL(10,2),
     total_course_fee DECIMAL(10,2),
     study_materials_provided JSONB DEFAULT '[]'::jsonb,
+    images JSONB DEFAULT '[]'::jsonb,
     certification_provided BOOLEAN DEFAULT false,
     free_demo_class BOOLEAN DEFAULT false,
     contact_person TEXT NOT NULL,
@@ -288,6 +288,7 @@ export async function initDatabase() {
     city TEXT,
     area_name TEXT,
     full_address TEXT NOT NULL,
+    images JSONB DEFAULT '[]'::jsonb,
     is_active BOOLEAN DEFAULT true,
     is_featured BOOLEAN DEFAULT false,
     view_count INTEGER DEFAULT 0,
@@ -297,52 +298,8 @@ export async function initDatabase() {
     role TEXT
   )`);
 
-  await db.execute(sql`CREATE TABLE IF NOT EXISTS skill_training_certification (
-    id VARCHAR PRIMARY KEY DEFAULT gen_random_uuid()::text,
-    title TEXT NOT NULL,
-    description TEXT,
-    skill_category TEXT NOT NULL,
-    training_type TEXT NOT NULL,
-    skills_taught JSONB DEFAULT '[]'::jsonb,
-    institute_name TEXT NOT NULL,
-    certification_body TEXT,
-    certification_name TEXT,
-    government_recognized BOOLEAN DEFAULT false,
-    internationally_recognized BOOLEAN DEFAULT false,
-    course_duration_days INTEGER,
-    course_duration_months INTEGER,
-    total_class_hours INTEGER,
-    online_mode BOOLEAN DEFAULT false,
-    offline_mode BOOLEAN DEFAULT false,
-    weekend_batches BOOLEAN DEFAULT false,
-    practical_training BOOLEAN DEFAULT false,
-    study_material_provided BOOLEAN DEFAULT false,
-    internship_included BOOLEAN DEFAULT false,
-    total_fee DECIMAL(10,2) NOT NULL,
-    registration_fee DECIMAL(10,2),
-    exam_fee DECIMAL(10,2),
-    installment_available BOOLEAN DEFAULT false,
-    scholarship_available BOOLEAN DEFAULT false,
-    placement_assistance BOOLEAN DEFAULT false,
-    placement_rate DECIMAL(5,2),
-    career_opportunities JSONB DEFAULT '[]'::jsonb,
-    average_salary_package DECIMAL(12,2),
-    contact_person TEXT NOT NULL,
-    contact_phone TEXT NOT NULL,
-    contact_email TEXT,
-    country TEXT NOT NULL DEFAULT 'India',
-    state_province TEXT,
-    city TEXT,
-    area_name TEXT,
-    full_address TEXT,
-    is_active BOOLEAN DEFAULT true,
-    is_featured BOOLEAN DEFAULT false,
-    view_count INTEGER DEFAULT 0,
-    created_at TIMESTAMP DEFAULT NOW(),
-    updated_at TIMESTAMP DEFAULT NOW(),
-    user_id VARCHAR REFERENCES users(id),
-    role TEXT
-  )`);
+  await db.execute(sql`ALTER TABLE IF EXISTS language_classes ADD COLUMN IF NOT EXISTS images JSONB DEFAULT '[]'::jsonb`);
+  await db.execute(sql`ALTER TABLE IF EXISTS academies_music_arts_sports ADD COLUMN IF NOT EXISTS images JSONB DEFAULT '[]'::jsonb`);
 
   await db.execute(sql`CREATE TABLE IF NOT EXISTS schools_colleges_coaching (
     id VARCHAR PRIMARY KEY DEFAULT gen_random_uuid()::text,
