@@ -11,6 +11,10 @@ import {
   users,
   userCategoryPreferences,
   userDocuments,
+  proProfileTypes,
+  proProfileFields,
+  proProfiles,
+  proProfileValues,
   rentalListings,
   hostelPgListings,
   constructionMaterials,
@@ -63,7 +67,7 @@ import {
   cyberCafeInternetServices, // Added
 } from "../shared/schema";
 import { uploadMedia, handleMediaUpload } from './upload';
-import { eq, sql, desc, or, and } from "drizzle-orm";
+import { eq, sql, desc, or, and, asc } from "drizzle-orm";
 
 const parseBoolean = (value: any, defaultValue = false) => {
   if (value === undefined || value === null) return defaultValue;
@@ -129,6 +133,234 @@ export function registerRoutes(app: Express) {
       console.error('Request sanitizer error:', e);
     }
     next();
+  });
+
+  // Pro-Profile: list types
+  app.get('/api/pro-profile/types', async (_req, res) => {
+    try {
+      const list = await db.query.proProfileTypes.findMany({ orderBy: [asc(proProfileTypes.sortOrder), asc(proProfileTypes.name)] });
+      res.json(list);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Pro-Profile: get fields for a type
+  app.get('/api/pro-profile/types/:typeId/fields', async (req, res) => {
+    try {
+      const typeId = req.params.typeId;
+      const type = await db.query.proProfileTypes.findFirst({ where: eq(proProfileTypes.id, typeId) });
+      if (!type) return res.status(404).json({ message: 'Profile type not found' });
+
+      const fields = await db.query.proProfileFields.findMany({
+        where: eq(proProfileFields.profileTypeId, typeId),
+        orderBy: [asc(proProfileFields.sortOrder), asc(proProfileFields.label)],
+      });
+      res.json({ type, fields });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Pro-Profile: upsert values for the logged-in user (by session)
+  app.post('/api/pro-profile', async (req, res) => {
+    try {
+      const sessionUser = (req as any).session?.user;
+      const userId = sessionUser?.id || req.body?.userId;
+      if (!userId || typeof userId !== 'string') {
+        return res.status(401).json({ message: 'Unauthorized' });
+      }
+
+      const { profileTypeId, values } = req.body || {};
+      if (!profileTypeId || typeof profileTypeId !== 'string') {
+        return res.status(400).json({ message: 'profileTypeId is required' });
+      }
+      const payload = (values && typeof values === 'object') ? values : {};
+
+      // ensure profile exists (one per user)
+      let profile = await db.query.proProfiles.findFirst({ where: eq(proProfiles.userId, userId) });
+      if (!profile) {
+        const [created] = await db.insert(proProfiles).values({ userId, profileTypeId }).returning();
+        profile = created;
+      } else if (profile.profileTypeId !== profileTypeId) {
+        const [updated] = await db.update(proProfiles).set({ profileTypeId, updatedAt: new Date() }).where(eq(proProfiles.id, profile.id)).returning();
+        profile = updated || profile;
+        // If profile type changed, delete old values to avoid mixing fields
+        await db.delete(proProfileValues).where(eq(proProfileValues.profileId, profile.id));
+      }
+
+      const fields = await db.query.proProfileFields.findMany({ where: eq(proProfileFields.profileTypeId, profileTypeId) });
+      const existingVals = await db.query.proProfileValues.findMany({ where: eq(proProfileValues.profileId, profile.id) });
+      const existingByFieldId: Record<string, any> = {};
+      existingVals.forEach((v: any) => { existingByFieldId[v.fieldId] = v; });
+
+      for (const f of fields as any[]) {
+        if (!Object.prototype.hasOwnProperty.call(payload, f.key)) continue;
+        const v = (payload as any)[f.key];
+        const existing = existingByFieldId[f.id];
+        if (existing) {
+          await db.update(proProfileValues).set({ value: v, updatedAt: new Date() }).where(eq(proProfileValues.id, existing.id));
+        } else {
+          await db.insert(proProfileValues).values({ profileId: profile.id, fieldId: f.id, value: v });
+        }
+      }
+
+      const saved = await db.query.proProfileValues.findMany({ where: eq(proProfileValues.profileId, profile.id) });
+      res.json({ profile, values: saved });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Pro-Profile: directory listing (Skilled Labour)
+  // Returns only users with accountType === "pro" and their selected pro profile.
+  app.get('/api/pro-profiles', async (req, res) => {
+    try {
+      const typeId = typeof (req.query as any)?.typeId === 'string' ? String((req.query as any).typeId) : '';
+      const q = typeof (req.query as any)?.q === 'string' ? String((req.query as any).q).trim().toLowerCase() : '';
+      const limitRaw = typeof (req.query as any)?.limit === 'string' ? parseInt(String((req.query as any).limit), 10) : 50;
+      const offsetRaw = typeof (req.query as any)?.offset === 'string' ? parseInt(String((req.query as any).offset), 10) : 0;
+      const limit = Number.isFinite(limitRaw) ? Math.min(Math.max(limitRaw, 1), 200) : 50;
+      const offset = Number.isFinite(offsetRaw) ? Math.max(offsetRaw, 0) : 0;
+
+      const profiles = await db.query.proProfiles.findMany({
+        with: {
+          user: true,
+          profileType: true,
+          values: {
+            with: {
+              field: true,
+            },
+          },
+        },
+        orderBy: [desc(proProfiles.updatedAt), desc(proProfiles.createdAt)],
+      });
+
+      const filtered = profiles
+        .filter((p: any) => p?.user?.accountType === 'pro')
+        .filter((p: any) => {
+          if (!typeId) return true;
+          return p.profileTypeId === typeId;
+        })
+        .filter((p: any) => {
+          if (!q) return true;
+          const u = p.user || {};
+          const base = [u.firstName, u.lastName, u.email, u.phone, p.profileType?.name]
+            .filter(Boolean)
+            .map((s: any) => String(s).toLowerCase());
+
+          if (base.some((s: string) => s.includes(q))) return true;
+
+          const vals = Array.isArray(p.values) ? p.values : [];
+          for (const v of vals) {
+            const fieldKey = v?.field?.key ? String(v.field.key).toLowerCase() : '';
+            const fieldLabel = v?.field?.label ? String(v.field.label).toLowerCase() : '';
+            const raw = v?.value;
+            let s = '';
+            if (raw == null) s = '';
+            else if (typeof raw === 'string') s = raw;
+            else if (typeof raw === 'number' || typeof raw === 'boolean') s = String(raw);
+            else if (Array.isArray(raw)) s = raw.map((x) => (x == null ? '' : String(x))).join(' ');
+            else s = JSON.stringify(raw);
+            s = s.toLowerCase();
+
+            if (fieldKey.includes(q) || fieldLabel.includes(q) || s.includes(q)) return true;
+          }
+          return false;
+        });
+
+      const total = filtered.length;
+      const paged = filtered.slice(offset, offset + limit);
+
+      const items = paged.map((p: any) => {
+        const { password: _pw, ...userWithoutPassword } = p.user || {};
+        const valueMap: Record<string, any> = {};
+        (p.values || []).forEach((v: any) => {
+          const k = v?.field?.key;
+          if (!k) return;
+          valueMap[String(k)] = v?.value;
+        });
+
+        return {
+          profile: {
+            id: p.id,
+            userId: p.userId,
+            profileTypeId: p.profileTypeId,
+            createdAt: p.createdAt,
+            updatedAt: p.updatedAt,
+          },
+          user: userWithoutPassword,
+          profileType: p.profileType,
+          values: valueMap,
+        };
+      });
+
+      res.json({ total, limit, offset, items });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Pro-Profile: details
+  app.get('/api/pro-profiles/:profileId', async (req, res) => {
+    try {
+      const profileId = req.params.profileId;
+      const profile = await db.query.proProfiles.findFirst({
+        where: eq(proProfiles.id, profileId),
+        with: {
+          user: true,
+          profileType: true,
+          values: {
+            with: {
+              field: true,
+            },
+          },
+        },
+      });
+
+      if (!profile) return res.status(404).json({ message: 'Profile not found' });
+      if (profile.user?.accountType !== 'pro') return res.status(404).json({ message: 'Profile not found' });
+
+      const { password: _pw, ...userWithoutPassword } = profile.user || {};
+      const valueMap: Record<string, any> = {};
+      (profile.values || []).forEach((v: any) => {
+        const k = v?.field?.key;
+        if (!k) return;
+        valueMap[String(k)] = v?.value;
+      });
+
+      // For UI: return ordered field list with resolved values
+      const ordered = (profile.values || [])
+        .slice()
+        .sort((a: any, b: any) => {
+          const sa = a?.field?.sortOrder ?? 0;
+          const sb = b?.field?.sortOrder ?? 0;
+          if (sa !== sb) return sa - sb;
+          const la = String(a?.field?.label ?? '');
+          const lb = String(b?.field?.label ?? '');
+          return la.localeCompare(lb);
+        })
+        .map((v: any) => ({
+          field: v.field,
+          value: v.value,
+        }));
+
+      res.json({
+        profile: {
+          id: profile.id,
+          userId: profile.userId,
+          profileTypeId: profile.profileTypeId,
+          createdAt: profile.createdAt,
+          updatedAt: profile.updatedAt,
+        },
+        user: userWithoutPassword,
+        profileType: profile.profileType,
+        values: valueMap,
+        fields: ordered,
+      });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
   });
 
   // Middleware: enforce at least 1 image for listing-like forms
@@ -1669,6 +1901,8 @@ export function registerRoutes(app: Express) {
         phone,
         password,
         accountType,
+        proProfileTypeId,
+        proProfileValues: proProfileValuesPayload,
         categoryIds,
         subcategoryIds,
         location,
@@ -1680,16 +1914,31 @@ export function registerRoutes(app: Express) {
         return res.status(400).json({ message: "Missing required fields" });
       }
 
+      const normalizedEmail = String(email).trim().toLowerCase();
+      const normalizedPhone = String(phone).trim();
+
       // Generate username from email
-      const username = email.split('@')[0];
+      const username = normalizedEmail.split('@')[0];
 
-      // Check if user already exists
-      const existingUser = await db.query.users.findFirst({
-        where: (users, { or, eq }) => or(eq(users.email, email), eq(users.username, username)),
+      const existingByEmail = await db.query.users.findFirst({
+        where: (users, { eq }) => eq(users.email, normalizedEmail),
       });
+      if (existingByEmail) {
+        return res.status(400).json({ message: "Email already exists" });
+      }
 
-      if (existingUser) {
-        return res.status(400).json({ message: "User with this email already exists" });
+      const existingByPhone = await db.query.users.findFirst({
+        where: (users, { eq }) => eq(users.phone, normalizedPhone),
+      });
+      if (existingByPhone) {
+        return res.status(400).json({ message: "Phone number already exists" });
+      }
+
+      const existingByUsername = await db.query.users.findFirst({
+        where: (users, { eq }) => eq(users.username, username),
+      });
+      if (existingByUsername) {
+        return res.status(400).json({ message: "Username already exists" });
       }
 
       // Build selected services array from category and subcategory IDs
@@ -1730,11 +1979,11 @@ export function registerRoutes(app: Express) {
         .insert(users)
         .values({
           username,
-          email,
+          email: normalizedEmail,
           password, // In production, hash this password!
           firstName,
           lastName,
-          phone,
+          phone: normalizedPhone,
           accountType,
           selectedServices: selectedServicesArray,
           country: location?.country,
@@ -1746,6 +1995,38 @@ export function registerRoutes(app: Express) {
           role: "user",
         })
         .returning();
+
+      // Create pro profile (if pro)
+      if (accountType === 'pro') {
+        if (!proProfileTypeId || typeof proProfileTypeId !== 'string') {
+          return res.status(400).json({ message: 'proProfileTypeId is required for pro accounts' });
+        }
+
+        const type = await db.query.proProfileTypes.findFirst({ where: eq(proProfileTypes.id, proProfileTypeId) });
+        if (!type) {
+          return res.status(400).json({ message: 'Invalid proProfileTypeId' });
+        }
+
+        const [profile] = await db
+          .insert(proProfiles)
+          .values({ userId: newUser.id, profileTypeId: proProfileTypeId })
+          .returning();
+
+        const payload = (proProfileValuesPayload && typeof proProfileValuesPayload === 'object') ? proProfileValuesPayload : {};
+        const fields = await db.query.proProfileFields.findMany({ where: eq(proProfileFields.profileTypeId, proProfileTypeId) });
+
+        const valuesToInsert = fields
+          .map((f: any) => {
+            const v = (payload as any)[f.key];
+            if (v === undefined) return null;
+            return { profileId: profile.id, fieldId: f.id, value: v };
+          })
+          .filter(Boolean) as any[];
+
+        if (valuesToInsert.length > 0) {
+          await db.insert(proProfileValues).values(valuesToInsert);
+        }
+      }
 
       // Add category preferences if provided
       if (categoryIds && Array.isArray(categoryIds)) {
@@ -1832,25 +2113,41 @@ export function registerRoutes(app: Express) {
         return res.status(400).json({ message: "Missing required fields" });
       }
 
-      // Check if user already exists
-      const existingUser = await db.query.users.findFirst({
-        where: (users, { or, eq }) => or(eq(users.email, email), eq(users.username, username)),
-      });
+      const normalizedEmail = String(email).trim().toLowerCase();
+      const normalizedPhone = String(phone).trim();
+      const normalizedUsername = String(username).trim();
 
-      if (existingUser) {
-        return res.status(400).json({ message: "User with this email or username already exists" });
+      const existingByEmail = await db.query.users.findFirst({
+        where: (users, { eq }) => eq(users.email, normalizedEmail),
+      });
+      if (existingByEmail) {
+        return res.status(400).json({ message: "Email already exists" });
+      }
+
+      const existingByPhone = await db.query.users.findFirst({
+        where: (users, { eq }) => eq(users.phone, normalizedPhone),
+      });
+      if (existingByPhone) {
+        return res.status(400).json({ message: "Phone number already exists" });
+      }
+
+      const existingByUsername = await db.query.users.findFirst({
+        where: (users, { eq }) => eq(users.username, normalizedUsername),
+      });
+      if (existingByUsername) {
+        return res.status(400).json({ message: "Username already exists" });
       }
 
       // Create user
       const [newUser] = await db
         .insert(users)
         .values({
-          username,
-          email,
+          username: normalizedUsername,
+          email: normalizedEmail,
           password, // In production, hash this password!
           firstName,
           lastName,
-          phone,
+          phone: normalizedPhone,
           accountType,
           country,
           state,

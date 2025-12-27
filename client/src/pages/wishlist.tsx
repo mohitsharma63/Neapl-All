@@ -55,7 +55,7 @@ export default function WishlistPage() {
                 <Card key={it.id} className="overflow-hidden group hover:shadow-lg transition-shadow">
                   <div className="relative h-44 bg-muted flex items-center justify-center overflow-hidden">
                     {photo ? (
-                      <img src={photo} alt={title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                      <img src={photo} alt={title} className="w-full h-full  group-hover:scale-105 transition-transform duration-300" />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center">
                         <div className="w-16 h-16 rounded-2xl bg-gray-200/70 flex items-center justify-center">

@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useRef, Fragment } from "react";
 import { useForm } from "react-hook-form";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -12,7 +12,7 @@ import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Edit, Trash2, Eye, Wrench, Laptop, Smartphone } from "lucide-react";
+import { Plus, Edit, Trash2, Eye, Wrench, Laptop, Smartphone, X } from "lucide-react";
 
 type RepairServiceFormData = {
   title: string;
@@ -49,6 +49,7 @@ type RepairServiceFormData = {
   certifiedTechnician?: boolean;
   isActive?: boolean;
   isFeatured?: boolean;
+  images?: string[];
 };
 
 
@@ -58,6 +59,10 @@ export default function  ComputerMobileLaptopRepairServicesForm() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingService, setEditingService] = useState<any>(null);
   const [viewingService, setViewingService] = useState<any>(null);
+  const [images, setImages] = useState<string[]>([]);
+  const [imageError, setImageError] = useState<string | null>(null);
+  const [uploadingImages, setUploadingImages] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const { register, handleSubmit, reset, setValue, watch } = useForm<RepairServiceFormData>();
 
@@ -137,21 +142,97 @@ export default function  ComputerMobileLaptopRepairServicesForm() {
     setIsDialogOpen(false);
     setEditingService(null);
     reset();
+    setImages([]);
+    setImageError(null);
+    setUploadingImages(false);
+    if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
   const handleEdit = (service: any) => {
     setEditingService(service);
+    setImages(service.images || []);
+    setImageError(null);
     Object.keys(service).forEach((key) => {
       setValue(key as any, service[key]);
     });
     setIsDialogOpen(true);
   };
 
+  const validateImageFile = (file: File) => {
+    const allowed = ["image/jpeg", "image/png", "image/webp", "image/gif"];
+    const maxSize = 5 * 1024 * 1024;
+    if (!allowed.includes(file.type)) return "Only JPG, PNG, WEBP and GIF allowed";
+    if (file.size > maxSize) return "Each image must be <= 5MB";
+    return null;
+  };
+
+  const uploadImageFiles = async (files: File[]) => {
+    setUploadingImages(true);
+    try {
+      const formData = new FormData();
+      files.forEach((f) => formData.append("files", f));
+
+      const res = await fetch("/api/admin/upload-multiple", {
+        method: "POST",
+        body: formData,
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error((json as any)?.message || "Failed to upload images");
+
+      const urls: string[] = Array.isArray((json as any)?.files)
+        ? (json as any).files.map((f: any) => f?.url).filter((u: any) => typeof u === "string")
+        : [];
+      if (urls.length === 0) throw new Error("Failed to upload images");
+
+      setImages((prev) => [...prev, ...urls].slice(0, 10));
+      setImageError(null);
+    } finally {
+      setUploadingImages(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  };
+
+  const processFiles = async (files: FileList | null) => {
+    if (!files || files.length === 0) return;
+    setImageError(null);
+
+    const remaining = 10 - images.length;
+    if (remaining <= 0) {
+      setImageError("Maximum 10 images allowed");
+      if (fileInputRef.current) fileInputRef.current.value = "";
+      return;
+    }
+
+    const picked = Array.from(files).slice(0, remaining);
+    for (const f of picked) {
+      const err = validateImageFile(f);
+      if (err) {
+        setImageError(err);
+        if (fileInputRef.current) fileInputRef.current.value = "";
+        return;
+      }
+    }
+
+    try {
+      await uploadImageFiles(picked);
+    } catch (e: any) {
+      console.error(e);
+      setImageError(e?.message || "Failed to upload images");
+    }
+  };
+
+  const removeImage = (idx: number) => setImages((prev) => prev.filter((_, i) => i !== idx));
+
   const onSubmit = (data: RepairServiceFormData) => {
+    if (images.length === 0) {
+      toast({ title: "Error", description: "At least one image is required", variant: "destructive" });
+      return;
+    }
+    const payload: RepairServiceFormData = { ...data, images };
     if (editingService) {
-      updateMutation.mutate({ id: editingService.id, data });
+      updateMutation.mutate({ id: editingService.id, data: payload });
     } else {
-      createMutation.mutate(data);
+      createMutation.mutate(payload);
     }
   };
 
@@ -185,52 +266,95 @@ export default function  ComputerMobileLaptopRepairServicesForm() {
       ) : (
         <div className="grid gap-4">
           {services.map((service: any) => (
-            <Card key={service.id}>
-              <CardContent className="p-6">
-                <div className="flex justify-between items-start">
-                  <div className="space-y-2 flex-1">
-                    <div className="flex items-start gap-4">
-                      {getServiceIcon(service.serviceType)}
-                      <div className="flex-1">
-                        <h3 className="font-semibold text-lg">{service.title}</h3>
-                        <p className="text-sm text-muted-foreground">{service.businessName}</p>
-                        <div className="flex gap-2 mt-2 flex-wrap">
-                          <Badge variant="outline">{service.serviceType.replace('_', ' ')}</Badge>
-                          {service.certifiedTechnician && <Badge className="bg-green-600">Certified</Badge>}
-                          {service.warrantyProvided && <Badge className="bg-blue-600">Warranty</Badge>}
-                          {service.available24_7 && <Badge className="bg-purple-600">24/7</Badge>}
-                          {service.pickupDeliveryService && <Badge className="bg-orange-600">Pickup/Delivery</Badge>}
+            <Fragment key={service.id}>
+              <Card>
+                <CardContent className="p-6">
+                  <div className="flex justify-between items-start">
+                    <div className="space-y-2 flex-1">
+                      <div className="flex items-start gap-4">
+                        {getServiceIcon(service.serviceType)}
+                        <div className="flex-1">
+                          <h3 className="font-semibold text-lg">{service.title}</h3>
+                          <p className="text-sm text-muted-foreground">{service.businessName}</p>
+                          <div className="flex gap-2 mt-2 flex-wrap">
+                            <Badge variant="outline">{service.serviceType.replace('_', ' ')}</Badge>
+                            {service.certifiedTechnician && <Badge className="bg-green-600">Certified</Badge>}
+                            {service.warrantyProvided && <Badge className="bg-blue-600">Warranty</Badge>}
+                            {service.available24_7 && <Badge className="bg-purple-600">24/7</Badge>}
+                            {service.pickupDeliveryService && <Badge className="bg-orange-600">Pickup/Delivery</Badge>}
+                          </div>
+                          <p className="text-sm text-muted-foreground mt-2">
+                            Base Charge: ₹{Number(service.baseServiceCharge).toLocaleString()}
+                            {service.freeInspection && <span className="ml-2 text-green-600 font-semibold">Free Inspection</span>}
+                          </p>
+                          {service.city && <p className="text-sm text-muted-foreground">{service.city}</p>}
                         </div>
-                        <p className="text-sm text-muted-foreground mt-2">
-                          Base Charge: ₹{Number(service.baseServiceCharge).toLocaleString()}
-                          {service.freeInspection && <span className="ml-2 text-green-600 font-semibold">Free Inspection</span>}
-                        </p>
-                        {service.city && <p className="text-sm text-muted-foreground">{service.city}</p>}
                       </div>
                     </div>
+                    <div className="flex gap-2">
+                      <Button variant="ghost" size="icon" onClick={() => setViewingService(service)}>
+                        <Eye className="h-4 w-4" />
+                      </Button>
+                      <Button variant="ghost" size="icon" onClick={() => handleEdit(service)}>
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => {
+                          if (confirm("Are you sure you want to delete this service?")) {
+                            deleteMutation.mutate(service.id);
+                          }
+                        }}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
                   </div>
-                  <div className="flex gap-2">
-                    <Button variant="ghost" size="icon" onClick={() => setViewingService(service)}>
-                      <Eye className="h-4 w-4" />
-                    </Button>
-                    <Button variant="ghost" size="icon" onClick={() => handleEdit(service)}>
-                      <Edit className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => {
-                        if (confirm("Are you sure you want to delete this service?")) {
-                          deleteMutation.mutate(service.id);
-                        }
-                      }}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>Images</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    className="hidden"
+                    onChange={(e) => void processFiles(e.target.files)}
+                  />
+
+                  <Button type="button" variant="outline" onClick={() => fileInputRef.current?.click()} disabled={uploadingImages}>
+                    {uploadingImages ? "Uploading..." : "Upload Images"}
+                  </Button>
+
+                  {imageError && <div className="text-sm text-destructive">{imageError}</div>}
+
+                  {images.length > 0 && (
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                      {images.map((img, idx) => (
+                        <div key={idx} className="relative">
+                          <img src={img} alt={`repair-upload-${idx}`} className="w-full h-24  rounded" />
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="absolute top-1 right-1 h-6 w-6 bg-black/50 hover:bg-black/60 text-white"
+                            onClick={() => removeImage(idx)}
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </Fragment>
           ))}
         </div>
       )}

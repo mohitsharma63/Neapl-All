@@ -114,6 +114,7 @@ export default function PhonesTabletsAccessoriesForm() {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [dragActive, setDragActive] = useState(false);
   const [imageError, setImageError] = useState<string | null>(null);
+  const [uploadingImages, setUploadingImages] = useState(false);
 
   const { register, handleSubmit, reset, setValue, watch } = useForm<ProductFormData>();
 
@@ -194,29 +195,74 @@ export default function PhonesTabletsAccessoriesForm() {
     setEditingProduct(null);
     reset();
     setImages([]);
+    setImageError(null);
+    setUploadingImages(false);
   };
 
-  const processFiles = (files: FileList | null) => {
-    if (!files || files.length === 0) return;
-    const allowed = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+  const validateImageFile = (file: File) => {
+    const allowed = ["image/jpeg", "image/png", "image/webp", "image/gif"];
     const maxSize = 5 * 1024 * 1024;
-    const incoming: Promise<string>[] = [];
-    for (let i = 0; i < files.length; i++) {
-      const f = files[i];
-      if (!allowed.includes(f.type)) { setImageError('Only JPG, PNG, WEBP and GIF allowed'); continue; }
-      if (f.size > maxSize) { setImageError('Each image must be <= 5MB'); continue; }
-      incoming.push(new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(String(reader.result));
-        reader.onerror = () => reject(new Error('Failed to read file'));
-        reader.readAsDataURL(f);
-      }));
-    }
-    if (incoming.length === 0) return;
-    Promise.all(incoming).then((dataUrls) => {
-      setImages(prev => [...prev, ...dataUrls].slice(0, 10));
+    if (!allowed.includes(file.type)) return "Only JPG, PNG, WEBP and GIF allowed";
+    if (file.size > maxSize) return "Each image must be <= 5MB";
+    return null;
+  };
+
+  const uploadImageFiles = async (files: File[]) => {
+    setUploadingImages(true);
+    try {
+      const formData = new FormData();
+      files.forEach((f) => formData.append("files", f));
+
+      const res = await fetch("/api/admin/upload-multiple", {
+        method: "POST",
+        body: formData,
+      });
+
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error((json as any)?.message || "Failed to upload images");
+      }
+
+      const urls: string[] = Array.isArray((json as any)?.files)
+        ? (json as any).files.map((f: any) => f?.url).filter((u: any) => typeof u === "string")
+        : [];
+
+      if (urls.length === 0) throw new Error("Failed to upload images");
+      setImages((prev) => [...prev, ...urls].slice(0, 10));
       setImageError(null);
-    }).catch(e => { console.error(e); setImageError('Failed to process images'); });
+    } finally {
+      setUploadingImages(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  };
+
+  const processFiles = async (files: FileList | null) => {
+    if (!files || files.length === 0) return;
+    setImageError(null);
+
+    const remaining = 10 - images.length;
+    if (remaining <= 0) {
+      setImageError("Maximum 10 images allowed");
+      if (fileInputRef.current) fileInputRef.current.value = "";
+      return;
+    }
+
+    const picked = Array.from(files).slice(0, remaining);
+    for (const f of picked) {
+      const err = validateImageFile(f);
+      if (err) {
+        setImageError(err);
+        if (fileInputRef.current) fileInputRef.current.value = "";
+        return;
+      }
+    }
+
+    try {
+      await uploadImageFiles(picked);
+    } catch (e: any) {
+      console.error(e);
+      setImageError(e?.message || "Failed to upload images");
+    }
   };
 
   const handleDrop = (e: React.DragEvent) => { e.preventDefault(); e.stopPropagation(); setDragActive(false); processFiles(e.dataTransfer.files); };
@@ -228,6 +274,7 @@ export default function PhonesTabletsAccessoriesForm() {
   const handleEdit = (product: any) => {
     setEditingProduct(product);
     setImages(product.images || []);
+    setImageError(null);
     Object.keys(product).forEach((key) => {
       setValue(key as any, product[key]);
     });
@@ -235,6 +282,10 @@ export default function PhonesTabletsAccessoriesForm() {
   };
 
   const onSubmit = (data: ProductFormData) => {
+    if (images.length === 0) {
+      toast({ title: "Error", description: "At least one image is required", variant: "destructive" });
+      return;
+    }
     const payload = { ...data, images };
     if (editingProduct) {
       updateMutation.mutate({ id: editingProduct.id, data: payload });
@@ -455,6 +506,61 @@ export default function PhonesTabletsAccessoriesForm() {
               </CardContent>
             </Card>
 
+            <Card>
+              <CardHeader>
+                <CardTitle>Images</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  className="hidden"
+                  onChange={(e) => void processFiles(e.target.files)}
+                />
+
+                <div
+                  className={`border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-colors ${dragActive ? "border-primary bg-muted/40" : "border-muted-foreground/30"}`}
+                  onClick={openFileDialog}
+                  onDrop={handleDrop}
+                  onDragOver={handleDragOver}
+                  onDragLeave={handleDragLeave}
+                >
+                  <div className="text-sm text-muted-foreground">
+                    Drag & drop images here, or click to select
+                  </div>
+                  <div className="text-xs text-muted-foreground mt-1">Max 10 images, 5MB each</div>
+                  {uploadingImages && (
+                    <div className="text-xs text-muted-foreground mt-2">Uploading...</div>
+                  )}
+                </div>
+
+                {imageError && (
+                  <div className="text-sm text-destructive">{imageError}</div>
+                )}
+
+                {images.length > 0 && (
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                    {images.map((img, idx) => (
+                      <div key={idx} className="relative">
+                        <img src={img} alt={`upload-${idx}`} className="w-full h-24  rounded" />
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="absolute top-1 right-1 h-6 w-6 bg-black/50 hover:bg-black/60 text-white"
+                          onClick={() => removeImage(idx)}
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
             {/* Contact Information */}
             <Card>
               <CardHeader>
@@ -539,7 +645,7 @@ export default function PhonesTabletsAccessoriesForm() {
               {Array.isArray(viewingProduct.images) && viewingProduct.images.length > 0 && (
                 <div className="flex gap-2 overflow-x-auto">
                   {viewingProduct.images.map((img: string, idx: number) => (
-                    <img key={idx} src={img} alt={`${viewingProduct.title || 'product'}-${idx}`} className="w-32 h-20 object-cover rounded" />
+                    <img key={idx} src={img} alt={`${viewingProduct.title || 'product'}-${idx}`} className="w-32 h-20  rounded" />
                   ))}
                 </div>
               )}

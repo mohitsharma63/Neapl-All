@@ -601,7 +601,7 @@ export default function ServiceDetails() {
                   <img
                     src={currentImage}
                     alt={service.title}
-                    className="w-full h-full object-cover"
+                    className="w-full h-full "
                   />
                 ) : (
                   <div className="flex items-center justify-center h-full bg-gradient-to-br from-gray-100 to-gray-200">
@@ -673,7 +673,7 @@ export default function ServiceDetails() {
                       <img
                         src={img}
                         alt={`${service.title} ${idx + 1}`}
-                        className="w-full h-full object-cover"
+                        className="w-full h-full "
                       />
                     </button>
                   ))}
@@ -810,7 +810,7 @@ export default function ServiceDetails() {
                             <img
                               src={service.seller.logo}
                               alt={service.seller?.name || 'Seller'}
-                              className="w-full h-full object-cover"
+                              className="w-full h-full "
                             />
                           ) : (
                             <div className="text-sm font-semibold text-gray-700">

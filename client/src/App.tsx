@@ -29,6 +29,8 @@ import DanceKarateGymYoga from "@/pages/dance-karate-gym-yoga";
 import LanguageClasses from "@/pages/language-classes";
 import ServiceDetails from "@/pages/service-details";
 import WishlistPage from "@/pages/wishlist";
+import SkilledLabourPage from "@/pages/skilled-labour";
+import SkilledLabourDetailPage from "@/pages/skilled-labour-detail";
 
 import TuitionPrivateClassesPage from "./pages/tuition-private-classes-page";
 import ListingDetailPage from "./pages/listing-detail-page";
@@ -37,6 +39,8 @@ function Router() {
   return (
     <Switch>
       <Route path="/" component={Home} />
+      <Route path="/skilled-labour" component={SkilledLabourPage} />
+      <Route path="/skilled-labour/:profileId" component={SkilledLabourDetailPage} />
       <Route path="/service-details/:id" component={ServiceDetails} />
       <Route path="/category/:slug" component={CategoryPage} />
       <Route path="/category/:categorySlug/subcategory/:subcategorySlug" component={SubcategoryPage} />

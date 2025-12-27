@@ -58,6 +58,59 @@ export async function initDatabase() {
       )
     `);
 
+    await db.execute(sql`
+      CREATE TABLE IF NOT EXISTS pro_profile_types (
+        id VARCHAR PRIMARY KEY DEFAULT gen_random_uuid(),
+        name TEXT NOT NULL,
+        slug TEXT NOT NULL UNIQUE,
+        description TEXT,
+        icon TEXT,
+        is_active BOOLEAN DEFAULT true,
+        sort_order INTEGER DEFAULT 0,
+        created_at TIMESTAMP DEFAULT NOW(),
+        updated_at TIMESTAMP DEFAULT NOW()
+      )
+    `);
+
+    await db.execute(sql`
+      CREATE TABLE IF NOT EXISTS pro_profile_fields (
+        id VARCHAR PRIMARY KEY DEFAULT gen_random_uuid(),
+        profile_type_id VARCHAR NOT NULL REFERENCES pro_profile_types(id) ON DELETE CASCADE,
+        key TEXT NOT NULL,
+        label TEXT NOT NULL,
+        field_type TEXT NOT NULL,
+        is_required BOOLEAN DEFAULT false,
+        placeholder TEXT,
+        help_text TEXT,
+        sort_order INTEGER DEFAULT 0,
+        options JSONB DEFAULT '[]'::jsonb,
+        config JSONB DEFAULT '{}'::jsonb,
+        created_at TIMESTAMP DEFAULT NOW(),
+        updated_at TIMESTAMP DEFAULT NOW()
+      )
+    `);
+
+    await db.execute(sql`
+      CREATE TABLE IF NOT EXISTS pro_profiles (
+        id VARCHAR PRIMARY KEY DEFAULT gen_random_uuid(),
+        user_id VARCHAR NOT NULL UNIQUE REFERENCES users(id) ON DELETE CASCADE,
+        profile_type_id VARCHAR NOT NULL REFERENCES pro_profile_types(id) ON DELETE RESTRICT,
+        created_at TIMESTAMP DEFAULT NOW(),
+        updated_at TIMESTAMP DEFAULT NOW()
+      )
+    `);
+
+    await db.execute(sql`
+      CREATE TABLE IF NOT EXISTS pro_profile_values (
+        id VARCHAR PRIMARY KEY DEFAULT gen_random_uuid(),
+        profile_id VARCHAR NOT NULL REFERENCES pro_profiles(id) ON DELETE CASCADE,
+        field_id VARCHAR NOT NULL REFERENCES pro_profile_fields(id) ON DELETE CASCADE,
+        value JSONB,
+        created_at TIMESTAMP DEFAULT NOW(),
+        updated_at TIMESTAMP DEFAULT NOW()
+      )
+    `);
+
     // Create industrial_land table
     await db.execute(sql`
       CREATE TABLE IF NOT EXISTS industrial_land (
@@ -298,9 +351,6 @@ export async function initDatabase() {
     role TEXT
   )`);
 
-  await db.execute(sql`ALTER TABLE IF EXISTS language_classes ADD COLUMN IF NOT EXISTS images JSONB DEFAULT '[]'::jsonb`);
-  await db.execute(sql`ALTER TABLE IF EXISTS academies_music_arts_sports ADD COLUMN IF NOT EXISTS images JSONB DEFAULT '[]'::jsonb`);
-
   await db.execute(sql`CREATE TABLE IF NOT EXISTS schools_colleges_coaching (
     id VARCHAR PRIMARY KEY DEFAULT gen_random_uuid()::text,
     title TEXT NOT NULL,
@@ -466,13 +516,21 @@ export async function initDatabase() {
     )
   `);
 
-
     // Create indexes
     await db.execute(sql`CREATE INDEX IF NOT EXISTS idx_admin_categories_slug ON admin_categories(slug)`);
     await db.execute(sql`CREATE INDEX IF NOT EXISTS idx_admin_categories_active ON admin_categories(is_active)`);
     await db.execute(sql`CREATE INDEX IF NOT EXISTS idx_admin_subcategories_slug ON admin_subcategories(slug)`);
     await db.execute(sql`CREATE INDEX IF NOT EXISTS idx_admin_subcategories_parent ON admin_subcategories(parent_category_id)`);
     await db.execute(sql`CREATE INDEX IF NOT EXISTS idx_admin_subcategories_active ON admin_subcategories(is_active)`);
+    await db.execute(sql`CREATE INDEX IF NOT EXISTS idx_pro_profile_types_slug ON pro_profile_types(slug)`);
+    await db.execute(sql`CREATE INDEX IF NOT EXISTS idx_pro_profile_types_active ON pro_profile_types(is_active)`);
+    await db.execute(sql`CREATE INDEX IF NOT EXISTS idx_pro_profile_fields_profile_type ON pro_profile_fields(profile_type_id)`);
+    await db.execute(sql`CREATE INDEX IF NOT EXISTS idx_pro_profiles_user ON pro_profiles(user_id)`);
+    await db.execute(sql`CREATE INDEX IF NOT EXISTS idx_pro_profiles_profile_type ON pro_profiles(profile_type_id)`);
+    await db.execute(sql`CREATE INDEX IF NOT EXISTS idx_pro_profile_values_profile ON pro_profile_values(profile_id)`);
+    await db.execute(sql`CREATE INDEX IF NOT EXISTS idx_pro_profile_values_field ON pro_profile_values(field_id)`);
+    await db.execute(sql`CREATE UNIQUE INDEX IF NOT EXISTS idx_pro_profile_fields_type_key ON pro_profile_fields(profile_type_id, key)`);
+    await db.execute(sql`CREATE UNIQUE INDEX IF NOT EXISTS idx_pro_profile_values_profile_field ON pro_profile_values(profile_id, field_id)`);
     await db.execute(sql`CREATE INDEX IF NOT EXISTS idx_industrial_land_city ON industrial_land(city)`);
     await db.execute(sql`CREATE INDEX IF NOT EXISTS idx_industrial_land_is_active ON industrial_land(is_active)`);
     await db.execute(sql`CREATE INDEX IF NOT EXISTS idx_industrial_land_is_featured ON industrial_land(is_featured)`);
@@ -502,10 +560,6 @@ export async function initDatabase() {
     await db.execute(sql`CREATE INDEX IF NOT EXISTS idx_academies_music_arts_sports_is_active ON academies_music_arts_sports(is_active)`);
     await db.execute(sql`CREATE INDEX IF NOT EXISTS idx_academies_music_arts_sports_is_featured ON academies_music_arts_sports(is_featured)`);
 
-    await db.execute(sql`CREATE INDEX IF NOT EXISTS idx_skill_training_certification_city ON skill_training_certification(city)`);
-    await db.execute(sql`CREATE INDEX IF NOT EXISTS idx_skill_training_certification_is_active ON skill_training_certification(is_active)`);
-    await db.execute(sql`CREATE INDEX IF NOT EXISTS idx_skill_training_certification_is_featured ON skill_training_certification(is_featured)`);
-
     await db.execute(sql`CREATE INDEX IF NOT EXISTS idx_schools_colleges_coaching_city ON schools_colleges_coaching(city)`);
     await db.execute(sql`CREATE INDEX IF NOT EXISTS idx_schools_colleges_coaching_is_active ON schools_colleges_coaching(is_active)`);
     await db.execute(sql`CREATE INDEX IF NOT EXISTS idx_schools_colleges_coaching_is_featured ON schools_colleges_coaching(is_featured)`);
@@ -526,6 +580,34 @@ export async function initDatabase() {
     await db.execute(sql`
       CREATE TRIGGER update_admin_subcategories_updated_at 
       BEFORE UPDATE ON admin_subcategories 
+      FOR EACH ROW EXECUTE FUNCTION update_updated_at_column()
+    `);
+
+    await db.execute(sql`DROP TRIGGER IF EXISTS update_pro_profile_types_updated_at ON pro_profile_types`);
+    await db.execute(sql`
+      CREATE TRIGGER update_pro_profile_types_updated_at
+      BEFORE UPDATE ON pro_profile_types
+      FOR EACH ROW EXECUTE FUNCTION update_updated_at_column()
+    `);
+
+    await db.execute(sql`DROP TRIGGER IF EXISTS update_pro_profile_fields_updated_at ON pro_profile_fields`);
+    await db.execute(sql`
+      CREATE TRIGGER update_pro_profile_fields_updated_at
+      BEFORE UPDATE ON pro_profile_fields
+      FOR EACH ROW EXECUTE FUNCTION update_updated_at_column()
+    `);
+
+    await db.execute(sql`DROP TRIGGER IF EXISTS update_pro_profiles_updated_at ON pro_profiles`);
+    await db.execute(sql`
+      CREATE TRIGGER update_pro_profiles_updated_at
+      BEFORE UPDATE ON pro_profiles
+      FOR EACH ROW EXECUTE FUNCTION update_updated_at_column()
+    `);
+
+    await db.execute(sql`DROP TRIGGER IF EXISTS update_pro_profile_values_updated_at ON pro_profile_values`);
+    await db.execute(sql`
+      CREATE TRIGGER update_pro_profile_values_updated_at
+      BEFORE UPDATE ON pro_profile_values
       FOR EACH ROW EXECUTE FUNCTION update_updated_at_column()
     `);
 

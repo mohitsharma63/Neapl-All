@@ -183,7 +183,7 @@ export default function BlogForm({ post, categories, onCancel, onSuccess }: Blog
         </div>
         {coverImageUrl && (
           <div className="mt-3">
-            <img src={coverImageUrl} alt="Cover preview" className="w-full h-40 object-cover rounded-md border" />
+            <img src={coverImageUrl} alt="Cover preview" className="w-full h-40  rounded-md border" />
             <div className="flex gap-2 mt-2">
               <Button variant="ghost" onClick={() => setCoverImageUrl('')}>Remove</Button>
             </div>

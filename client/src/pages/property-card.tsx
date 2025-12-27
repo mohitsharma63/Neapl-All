@@ -33,7 +33,7 @@ export default function PropertyCard({ property }: PropertyCardProps) {
           <img
             src={property.images?.[0]}
             alt={property.title}
-            className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
+            className="w-full h-full  hover:scale-105 transition-transform duration-300"
           />
         ) : (
           <div className="h-full w-full flex items-center justify-center bg-gray-100">

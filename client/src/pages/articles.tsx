@@ -312,7 +312,7 @@ export default function Articles() {
                         <img
                           src={resolveImageSrc(article.thumbnailUrl || article.thumbnail)}
                           alt={article.title}
-                          className="w-full h-full object-cover cursor-pointer"
+                          className="w-full h-full  cursor-pointer"
                           onClick={() => { setViewingArticle(article); setShowDialog(true); }}
                           onError={(e) => { (e.currentTarget as HTMLImageElement).src = placeholderDataUrl; }}
                         />
@@ -417,7 +417,7 @@ export default function Articles() {
           {viewingArticle ? (
             <div className="p-4 space-y-4">
               { (viewingArticle.thumbnailUrl || viewingArticle.thumbnail) && (
-                <img src={resolveImageSrc(viewingArticle.thumbnailUrl || viewingArticle.thumbnail)} alt={viewingArticle.title} className="w-full h-56 object-cover rounded-md" onError={(e) => { (e.currentTarget as HTMLImageElement).src = placeholderDataUrl; }} />
+                <img src={resolveImageSrc(viewingArticle.thumbnailUrl || viewingArticle.thumbnail)} alt={viewingArticle.title} className="w-full h-56  rounded-md" onError={(e) => { (e.currentTarget as HTMLImageElement).src = placeholderDataUrl; }} />
               )}
               <div className="flex items-center gap-4 text-sm text-muted-foreground">
                 <span>By {viewingArticle.authorName || '—'}</span>

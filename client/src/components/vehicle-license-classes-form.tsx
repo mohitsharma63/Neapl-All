@@ -892,7 +892,7 @@ export default function VehicleLicenseClassesForm() {
                   <div className="grid grid-cols-4 gap-4 mt-4">
                     {images.map((img: string, idx: number) => (
                       <div key={idx} className="relative">
-                        <img src={img} alt={`Upload ${idx + 1}`} className="w-full h-24 object-cover rounded" />
+                        <img src={img} alt={`Upload ${idx + 1}`} className="w-full h-24  rounded" />
                         <Button
                           type="button"
                           variant="destructive"
@@ -1031,7 +1031,7 @@ export default function VehicleLicenseClassesForm() {
                   <h3 className="font-semibold mb-2">Images</h3>
                   <div className="grid grid-cols-3 gap-2">
                     {viewingClass.images.map((img, idx) => (
-                      <img key={idx} src={img} alt={`Class Image ${idx + 1}`} className="w-full h-24 object-cover rounded" />
+                      <img key={idx} src={img} alt={`Class Image ${idx + 1}`} className="w-full h-24  rounded" />
                     ))}
                   </div>
                 </div>

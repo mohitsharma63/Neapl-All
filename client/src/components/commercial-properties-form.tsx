@@ -371,7 +371,7 @@ export function CommercialPropertiesForm({ open, onOpenChange, property, onSucce
                         <img
                           src={image}
                           alt={`Preview ${index + 1}`}
-                          className="w-full h-24 object-cover rounded-lg border"
+                          className="w-full h-24  rounded-lg border"
                         />
                         <button
                           type="button"

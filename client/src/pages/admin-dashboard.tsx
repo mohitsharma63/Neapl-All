@@ -869,7 +869,7 @@ function FashionBeautyProductsSection() {
                   <h3 className="font-semibold mb-2">Product Images</h3>
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                     {viewingProduct.images.map((img: string, idx: number) => (
-                      <img key={idx} src={img} alt={`Product ${idx + 1}`} className="w-full h-32 object-cover rounded-lg border-2 border-pink-200" />
+                      <img key={idx} src={img} alt={`Product ${idx + 1}`} className="w-full h-32  rounded-lg border-2 border-pink-200" />
                     ))}
                   </div>
                 </div>
@@ -1216,7 +1216,7 @@ function SareeClothingShoppingSection() {
                   <h3 className="font-semibold mb-2">Product Images</h3>
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                     {viewingProduct.images.map((img: string, idx: number) => (
-                      <img key={idx} src={img} alt={`Product ${idx + 1}`} className="w-full h-32 object-cover rounded-lg border-2 border-pink-200" />
+                      <img key={idx} src={img} alt={`Product ${idx + 1}`} className="w-full h-32  rounded-lg border-2 border-pink-200" />
                     ))}
                   </div>
                 </div>
@@ -3225,23 +3225,6 @@ function AppSidebar({ activeSection, setActiveSection }: { activeSection: string
                   <span className="font-medium">Contact Messages</span>
                 </SidebarMenuButton>
               </SidebarMenuItem>
-              <SidebarMenuItem>
-                <SidebarMenuButton
-                  tooltip="Settings"
-                  isActive={activeSection === "settings"}
-                  className={`
-                    w-full justify-start rounded-lg transition-all duration-200
-                    ${activeSection === "settings"
-                      ? 'bg-gradient-to-r from-blue-600 to-green-600 text-white shadow-md'
-                      : 'hover:bg-muted/80'
-                    }
-                  `}
-                  onClick={() => setActiveSection('settings')}
-                >
-                  <Settings className="w-5 h-5" />
-                  <span className="font-medium">Settings</span>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
@@ -3413,7 +3396,7 @@ function CategoriesSection() {
       const response = await fetch(`/api/admin/categories/${category.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.JSON.stringify({ ...category, isActive: !category.isActive }),
+        body: JSON.stringify({ ...category, isActive: !category.isActive }),
       });
 
       if (response.ok) {
@@ -3445,7 +3428,7 @@ function CategoriesSection() {
       const response = await fetch(`/api/admin/subcategories/${subcategory.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.JSON.stringify({ ...subcategory, isActive: !subcategory.isActive }),
+        body: JSON.stringify({ ...subcategory, isActive: !subcategory.isActive }),
       });
 
       if (response.ok) {
@@ -3696,7 +3679,7 @@ function UsersSection() {
       const response = await fetch('/api/admin/users', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.JSON.stringify(userForm),
+        body: JSON.stringify(userForm),
       });
 
       if (response.ok) {
@@ -3990,58 +3973,6 @@ function AnalyticsSection() {
                 <span>New Registrations</span>
                 <span className="font-bold">42</span>
               </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    </div>
-  );
-}
-
-// Settings Section Component
-function SettingsSection() {
-  return (
-    <div className="space-y-6">
-      <div>
-        <h2 className="text-2xl font-bold">System Settings</h2>
-        <p className="text-muted-foreground">Configure system settings and preferences</p>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card>
-          <CardHeader>
-            <CardTitle>General Settings</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <div>
-                <label className="text-sm font-medium">Site Name</label>
-                <Input defaultValue="Jeevika Properties" />
-              </div>
-              <div>
-                <label className="text-sm font-medium">Site Description</label>
-                <Textarea defaultValue="Your trusted real estate partner" />
-              </div>
-              <Button>Save Settings</Button>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Email Settings</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <div>
-                <label className="text-sm font-medium">SMTP Host</label>
-                <Input placeholder="smtp.example.com" />
-              </div>
-              <div>
-                <label className="text-sm font-medium">SMTP Port</label>
-                <Input placeholder="587" />
-              </div>
-              <Button>Save Settings</Button>
             </div>
           </CardContent>
         </Card>
@@ -4386,7 +4317,7 @@ function HostelsPgSection() {
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                     {viewingHostel.images.map((image: string, idx: number) => (
                       <div key={idx} className="aspect-video bg-muted rounded-lg overflow-hidden">
-                        <img src={image} alt={`Hostel ${idx + 1}`} className="w-full h-full object-cover" />
+                        <img src={image} alt={`Hostel ${idx + 1}`} className="w-full h-full " />
                       </div>
                     ))}
                   </div>
@@ -4395,8 +4326,8 @@ function HostelsPgSection() {
 
               {/* Metadata */}
               <div className="pt-4 border-t text-sm text-muted-foreground">
-                <p>Created: {new Date(viewingHostel.createdAt).toLocaleString()}</p>
-                <p>Last Updated: {new Date(viewingHostel.updatedAt).toLocaleString()}</p>
+                <p>Created: {new Date(viewingHostel.createdAt).toLocaleDateString()}</p>
+                <p>Last Updated: {new Date(viewingHostel.updatedAt).toLocaleDateString()}</p>
                 {viewingHostel.ownerId && <p>Owner ID: {viewingHostel.ownerId}</p>}
               </div>
             </div>
@@ -4669,7 +4600,7 @@ function ConstructionMaterialsSection() {
                   <h3 className="font-semibold mb-2">Images ({viewingMaterial.images.length})</h3>
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                     {viewingMaterial.images.map((image: string, idx: number) => (
-                      <img key={idx} src={image} alt={`Material ${idx + 1}`} className="w-full h-32 object-cover rounded-lg" />
+                      <img key={idx} src={image} alt={`Material ${idx + 1}`} className="w-full h-32  rounded-lg" />
                     ))}
                   </div>
                 </div>
@@ -5333,7 +5264,7 @@ function OfficeSpacesSection() {
           <h2 className="text-2xl font-bold">Company Office Spaces</h2>
           <p className="text-muted-foreground">Manage office space listings</p>
         </div>
-        <Button onClick={() => setShowForm(true)}>
+        <Button onClick={() => { setEditingOffice(null); setShowForm(true); }}>
           <Plus className="w-4 h-4 mr-2" />
           Add Office Space
         </Button>
@@ -5342,8 +5273,11 @@ function OfficeSpacesSection() {
       {showForm && (
         <OfficeSpacesForm
           open={showForm}
-          onOpenChange={setShowForm}
-          property={editingOffice}
+          onOpenChange={(open) => {
+            setShowForm(open);
+            if (!open) setEditingOffice(null);
+          }}
+          office={editingOffice}
           onSuccess={handleSuccess}
         />
       )}
@@ -5429,7 +5363,7 @@ function OfficeSpacesSection() {
             <Building className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
             <h3 className="text-lg font-semibold mb-2">No Office Spaces Found</h3>
             <p className="text-muted-foreground mb-4">Start by adding your first office space listing</p>
-            <Button onClick={() => setShowForm(true)}>
+            <Button onClick={() => { setEditingOffice(null); setShowForm(true); }}>
               <Plus className="w-4 h-4 mr-2" />
               Add Office Space
             </Button>
@@ -5662,7 +5596,9 @@ function VideosSection() {
     if (!confirm('Are you sure you want to delete this video?')) return;
     try {
       const response = await fetch(`/api/admin/videos/${id}`, { method: 'DELETE' });
-      if (response.ok) fetchVideos();
+      if (response.ok) {
+        fetchVideos();
+      }
     } catch (error) {
       console.error('Error deleting video:', error);
     }
@@ -5671,7 +5607,9 @@ function VideosSection() {
   const toggleActive = async (id: string) => {
     try {
       const response = await fetch(`/api/admin/videos/${id}/toggle-active`, { method: 'PATCH' });
-      if (response.ok) fetchVideos();
+      if (response.ok) {
+        fetchVideos();
+      }
     } catch (error) {
       console.error('Error toggling active status:', error);
     }
@@ -5680,7 +5618,9 @@ function VideosSection() {
   const toggleFeatured = async (id: string) => {
     try {
       const response = await fetch(`/api/admin/videos/${id}/toggle-featured`, { method: 'PATCH' });
-      if (response.ok) fetchVideos();
+      if (response.ok) {
+        fetchVideos();
+      }
     } catch (error) {
       console.error('Error toggling featured status:', error);
     }
@@ -5715,7 +5655,7 @@ function VideosSection() {
           <Card key={video.id} className="group hover:shadow-lg transition-shadow">
             {video.thumbnailUrl && (
               <div className="relative h-40 bg-black">
-                <img src={video.thumbnailUrl} alt={video.title} className="w-full h-full object-cover" />
+                <img src={video.thumbnailUrl} alt={video.title} className="w-full h-full " />
               </div>
             )}
             <CardHeader className="pb-3">
@@ -5752,8 +5692,7 @@ function VideosSection() {
         <Card>
           <CardContent className="py-12 text-center">
             <Video className="w-12 h-12 text-muted-foreground mx-auto mb-3" />
-            <h3 className="text-lg font-semibold mb-2">No Videos Found</h3>
-            <p className="text-muted-foreground mb-4">Start by adding your first video</p>
+            <p className="text-muted-foreground">No videos. Start by adding your first video.</p>
           </CardContent>
         </Card>
       )}
@@ -5784,7 +5723,9 @@ function FeaturedVideosSection() {
   const toggleFeatured = async (id: string) => {
     try {
       const response = await fetch(`/api/admin/videos/${id}/toggle-featured`, { method: 'PATCH' });
-      if (response.ok) fetchVideos();
+      if (response.ok) {
+        fetchVideos();
+      }
     } catch (error) {
       console.error('Error toggling featured status:', error);
     }
@@ -5804,7 +5745,7 @@ function FeaturedVideosSection() {
           <Card key={video.id} className="group hover:shadow-lg transition-shadow">
             {video.thumbnailUrl && (
               <div className="relative h-40 bg-black">
-                <img src={video.thumbnailUrl} alt={video.title} className="w-full h-full object-cover" />
+                <img src={video.thumbnailUrl} alt={video.title} className="w-full h-full " />
               </div>
             )}
             <CardHeader className="pb-3">
@@ -5826,15 +5767,6 @@ function FeaturedVideosSection() {
           </Card>
         ))}
       </div>
-
-      {(!videos || videos.length === 0) && (
-        <Card>
-          <CardContent className="py-12 text-center">
-            <Video className="w-12 h-12 text-muted-foreground mx-auto mb-3" />
-            <p className="text-muted-foreground">No featured videos. Mark videos as featured from the Videos section.</p>
-          </CardContent>
-        </Card>
-      )}
     </div>
   );
 }
@@ -5844,24 +5776,54 @@ export default function AdminDashboard() {
     const saved = localStorage.getItem('activeSection');
     return saved || "dashboard";
   });
+
   const [loading] = useState(false);
-  const { user } = useUser();
+  const { user, isLoading: userLoading } = useUser();
   const [, setLocation] = useLocation();
+
+  const isAdmin = !!user && (
+    user.role === 'admin' ||
+    user.role === 'super_admin' ||
+    user.accountType === 'admin' ||
+    user.accountType === 'super_admin'
+  );
 
   useEffect(() => {
     localStorage.setItem('activeSection', activeSection);
   }, [activeSection]);
 
   useEffect(() => {
-    if (user && user.role !== 'admin') {
-      setLocation('/');
+    if (userLoading) return;
+    if (!isAdmin) {
+      setLocation('/login');
     }
-  }, [user, setLocation]);
+  }, [isAdmin, userLoading, setLocation]);
+
+  if (userLoading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-muted-foreground">Loading...</div>
+      </div>
+    );
+  }
+
+  if (!isAdmin) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-muted-foreground">Redirecting...</div>
+      </div>
+    );
+  }
 
   const renderSection = () => {
-    // Normalize the active section to handle different slug formats
-    const normalizedSection = activeSection.toLowerCase().replace(/\s+/g, '-');
-    console.log('LanguageClassesForm loaded',normalizedSection);
+    const slugify = (s: string) =>
+      s
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/(^-|-$)/g, "");
+
+    const normalizedSection = slugify(activeSection);
+    console.log('LanguageClassesForm loaded', normalizedSection);
 
     switch (normalizedSection) {
       case "dashboard":
@@ -5874,75 +5836,120 @@ export default function AdminDashboard() {
         return <AgenciesSection />;
       case "analytics":
         return <AnalyticsSection />;
-      case "settings":
-        return <SettingsSection />;
-      case "hostels-&-pg":
       case "hostels-pg":
       case "hostel-pg":
         return <HostelsPgSection />;
-      case "construction-&-building-materials":
+      case "construction-building-materials":
+      case "construction-building-material":
       case "construction-materials":
         return <ConstructionMaterialsSection />;
       case "property-deals":
         return <PropertyDealsSection />;
-      case "local-market-commercial-property":
       case "commercial-properties":
+      case "local-market-commercial-property":
+      case "local-market-commercial-properties":
         return <CommercialPropertiesSection />;
-      case "factory-industrial-land":
       case "industrial-land":
+      case "factory-industrial-land":
         return <IndustrialLandSection />;
-      case "company-office-space":
       case "office-spaces":
+      case "company-office-space":
         return <OfficeSpacesSection />;
-      case "rental-–-rooms,-flats,-apartments":
       case "rental-listings":
+      case "rental-rooms-flats-apartments":
+      case "rental-rooms-flats-and-apartments":
         return <RentalListingsSection />;
-      case "saree-shopping-clothing":
-        return <SareeClothingShoppingSection />;
-      case "fashion-&-beauty-products":
-      case "fashion-beauty-products":
-        return <FashionBeautyProductsSection />;
-      case "cars-&-bikes":
       case "cars-bikes":
+      case "carsbikes":
         return <CarsBikesSection />;
       case "heavy-equipment-for-sale":
+      case "heavy-equipment":
+      case "heavyequipment":
         return <HeavyEquipmentSection />;
-      case "showrooms-(authorized-second-hand)":
       case "showrooms":
+      case "showrooms-authorized-second-hand":
+      case "authorized-second-hand-showrooms":
         return <ShowroomsSection />;
-      case "second-hand-cars-&-bikes":
       case "second-hand-cars-bikes":
+      case "second-hand-cars-and-bikes":
+      case "secondhandcarsbikes":
         return <SecondHandCarsBikesSection />;
-      case "car-&-bike-rentals":
       case "car-bike-rentals":
+      case "car-and-bike-rentals":
+      case "carbikerentals":
         return <CarBikeRentalsSection />;
-      case "transportation-moving-services":
-        return <TransportationMovingServicesSection />;
       case "vehicle-license-classes":
+      case "vehiclelicenseclasses":
         return <VehicleLicenseClassesSection />;
-      case "electronics-&-gadgets":
+      case "transportation-moving-services":
+      case "transportation-and-moving-services":
+      case "transportationmovingservices":
+        return <TransportationMovingServicesSection />;
       case "electronics-gadgets":
+      case "electronics-and-gadgets":
         return <ElectronicsGadgetsSection />;
-      case "new-phones-&-tablets-&-accessories":
       case "phones-tablets-accessories":
+      case "new-phones-tablets-accessories":
         return <PhonesTabletsAccessoriesSection />;
-      case "second-hand-phones-&-tablets-&-accessories":
       case "second-hand-phones-tablets-accessories":
+      case "second-hand-phones-tablets-and-accessories":
         return <SecondHandPhonesTabletsAccessoriesSection />;
-      case "computer,-mobile-&-laptop-repair-services":
+      case "computer-mobile-laptop-repair-services":
         return <ComputerMobileLaptopRepairServicesSection />;
-      case "furniture-&-interior-decor":
       case "furniture-interior-decor":
+      case "furniture-and-interior-decor":
         return <FurnitureInteriorDecorSection />;
       case "household-services":
         return <HouseholdServicesSection />;
-      case "event-&-decoration-services-(marriage-halls,-parties,-café-setup,-decoration-materials)":
-        return <EventDecorationServicesSection />;
-      case "pharmacy-&-medical-stores":
+      case "pharmacy-medical-stores":
         return <PharmacyMedicalStoresSection />;
-      case "e-books-&-online-courses":
+      case "jewelry-accessories":
+      case "jewelry-and-accessories":
+        return <JewelryAccessoriesSection />;
+      case "fashion-beauty-products":
+      case "fashion-and-beauty-products":
+        return <FashionBeautyProductsSection />;
+      case "event-decoration-services":
+      case "event-decoration":
+        return <EventDecorationServicesSection />;
+      case "health-wellness-services":
+        return <HealthWellnessServicesSection />;
+      case "saree-shopping-clothing":
+      case "saree-clothing-shopping":
+        return <SareeClothingShoppingSection />;
       case "ebooks-online-courses":
+      case "e-books-online-courses":
         return <EbooksOnlineCoursesSection />;
+      case "tuition-private-classes":
+      case "tuitionprivatclasses":
+        return <TuitionPrivateClassesSection />;
+      case "dance-karate-gym-yoga":
+      case "dancekarategymyoga-classes":
+        return <DanceKarateGymYogaSection />;
+      case "language-classes":
+      case "languageclasses":
+        return <LanguageClassesSection />;
+      case "academies-music-arts-sports":
+      case "academies":
+        return <AcademiesMusicArtsSportsSection />;
+      case "skill-training-certification":
+      case "skill-training--certification":
+        return <SkillTrainingCertificationSection />;
+      case "schools-colleges-coaching":
+      case "schools-colleges-coaching-institutes":
+      case "schools-colleges-coaching-institutes":
+        return <SchoolsCollegesCoachingSection />;
+      case "cricket-sports-training":
+        return <CricketSportsTrainingSection />;
+      case "service-centre-warranty":
+      case "servicecentrewarranty":
+        return <ServiceCentreWarrantyForm />;
+      case "telecommunication-services":
+      case "telecommunicationservices":
+        return <TelecommunicationServicesForm />;
+      case "cyber-cafe-internet-services":
+      case "cybercafeinternetservices":
+        return <CyberCafeInternetServicesForm />;
       case "sliders":
         return <SlidersSection />;
       case "slider-card":
@@ -5953,29 +5960,6 @@ export default function AdminDashboard() {
         return <FeaturedVideosSection />;
       case "articles":
         return <ArticlesSection />;
-      case "cricket-sports-training":
-        return <CricketSportsTrainingSection />;
-      case "educational-consultancy-study-abroad":
-        return <EducationalConsultancyStudyAbroadSection />;
-      case "jewelry-&-accessories":
-      case "jewelry-accessories":
-        return <JewelryAccessoriesSection />;
-      case "health-&-wellness-services":
-      case "health-wellness-services":
-        return <HealthWellnessServicesSection />;
-      case "tuitionprivatclasses":
-        return <TuitionPrivateClassesSection />;
-      case "dancekarategymyoga-classes":
-        return <DanceKarateGymYogaSection />;
-      case "schools,-colleges,-coaching-institutes":
-        return <SchoolsCollegesCoachingSection />;
-      case "languageclasses":
-        return <LanguageClassesSection />;
-      case "academies-music-arts-sports":
-      case "academies":
-        return <AcademiesMusicArtsSportsSection />;
-      case "skill-training--certification":
-        return <SkillTrainingCertificationSection />;
       case "blogs":
       case "blog":
         return <BlogsSection />;
@@ -5986,58 +5970,43 @@ export default function AdminDashboard() {
     }
   };
 
-    // Contact Messages Section Component
-    function ContactMessagesSection() {
-      const [messages, setMessages] = useState<any[]>([]);
-      const [loadingMessages, setLoadingMessages] = useState(false);
-      const [selectedMessage, setSelectedMessage] = useState<any>(null);
-      const [showViewDialog, setShowViewDialog] = useState(false);
+  function ContactMessagesSection() {
+    const [messages, setMessages] = useState<any[]>([]);
+    const [loadingMessages, setLoadingMessages] = useState(false);
+    const [selectedMessage, setSelectedMessage] = useState<any>(null);
+    const [showViewDialog, setShowViewDialog] = useState(false);
 
-      useEffect(() => {
-        fetchMessages();
-      }, []);
+    useEffect(() => {
+      fetchMessages();
+    }, []);
 
-      const fetchMessages = async () => {
-        try {
-          setLoadingMessages(true);
-          const res = await fetch('/api/admin/contact-messages', {
-            headers: { 'x-user-role': 'admin' },
-          });
-          if (!res.ok) {
-            setMessages([]);
-            setLoadingMessages(false);
-            return;
-          }
-          const data = await res.json();
-          setMessages(Array.isArray(data) ? data : []);
-        } catch (err) {
-          console.error('Error fetching contact messages:', err);
+    const fetchMessages = async () => {
+      try {
+        setLoadingMessages(true);
+        const res = await fetch('/api/admin/contact-messages', {
+          headers: { 'x-user-role': 'admin' },
+        });
+        if (!res.ok) {
           setMessages([]);
-        } finally {
           setLoadingMessages(false);
+          return;
         }
-      };
+        const data = await res.json();
+        setMessages(Array.isArray(data) ? data : []);
+      } catch (err) {
+        console.error('Error fetching contact messages:', err);
+        setMessages([]);
+      } finally {
+        setLoadingMessages(false);
+      }
+    };
 
-      const handleView = async (msg: any) => {
-        setSelectedMessage(msg);
-        setShowViewDialog(true);
-        if (!msg.isRead) {
-          // mark as read
-          try {
-            const res = await fetch(`/api/admin/contact-messages/${msg.id}/read`, {
-              method: 'PATCH',
-              headers: { 'x-user-role': 'admin' },
-            });
-            if (res.ok) fetchMessages();
-          } catch (e) {
-            console.error('Error marking message read', e);
-          }
-        }
-      };
-
-      const handleMarkRead = async (id: string) => {
+    const handleView = async (msg: any) => {
+      setSelectedMessage(msg);
+      setShowViewDialog(true);
+      if (!msg.isRead) {
         try {
-          const res = await fetch(`/api/admin/contact-messages/${id}/read`, {
+          const res = await fetch(`/api/admin/contact-messages/${msg.id}/read`, {
             method: 'PATCH',
             headers: { 'x-user-role': 'admin' },
           });
@@ -6045,123 +6014,136 @@ export default function AdminDashboard() {
         } catch (e) {
           console.error('Error marking message read', e);
         }
-      };
+      }
+    };
 
-      const handleDelete = async (id: string) => {
-        if (!confirm('Are you sure you want to delete this message?')) return;
-        try {
-          const res = await fetch(`/api/admin/contact-messages/${id}`, {
-            method: 'DELETE',
-            headers: { 'x-user-role': 'admin' },
-          });
-          if (res.ok) fetchMessages();
-        } catch (e) {
-          console.error('Error deleting message', e);
-        }
-      };
+    const handleMarkRead = async (id: string) => {
+      try {
+        const res = await fetch(`/api/admin/contact-messages/${id}/read`, {
+          method: 'PATCH',
+          headers: { 'x-user-role': 'admin' },
+        });
+        if (res.ok) fetchMessages();
+      } catch (e) {
+        console.error('Error marking message read', e);
+      }
+    };
 
-      return (
-        <div className="space-y-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-2xl font-bold">Contact Messages</h2>
-              <p className="text-muted-foreground">Messages submitted via contact form</p>
-            </div>
-            <div className="flex items-center gap-2">
-              <Button onClick={fetchMessages}>
-                Refresh
-              </Button>
-            </div>
+    const handleDelete = async (id: string) => {
+      if (!confirm('Are you sure you want to delete this message?')) return;
+      try {
+        const res = await fetch(`/api/admin/contact-messages/${id}`, {
+          method: 'DELETE',
+          headers: { 'x-user-role': 'admin' },
+        });
+        if (res.ok) fetchMessages();
+      } catch (e) {
+        console.error('Error deleting message', e);
+      }
+    };
+
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-2xl font-bold">Contact Messages</h2>
+            <p className="text-muted-foreground">Messages submitted via contact form</p>
           </div>
-
-          {loadingMessages && (
-            <Card>
-              <CardContent className="py-8 text-center">Loading messages...</CardContent>
-            </Card>
-          )}
-
-          {!loadingMessages && messages.length === 0 && (
-            <Card>
-              <CardContent className="py-12 text-center">
-                <h3 className="text-lg font-semibold mb-2">No messages</h3>
-                <p className="text-muted-foreground">No contact form submissions yet.</p>
-              </CardContent>
-            </Card>
-          )}
-
-          <div className="space-y-4">
-            {messages.map((m) => (
-              <Card key={m.id} className="group hover:shadow-sm transition-shadow">
-                <CardHeader>
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <CardTitle className="text-lg">{m.name || 'Anonymous'}</CardTitle>
-                      <div className="text-sm text-muted-foreground">
-                        {m.subject || 'No subject'} • {m.email || m.phone || 'No contact'}
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      {!m.isRead && <Badge className="bg-yellow-400 text-black">New</Badge>}
-                      <span className="text-sm text-muted-foreground">{new Date(m.createdAt).toLocaleString()}</span>
-                      <Button variant="ghost" size="icon" onClick={() => handleView(m)} title="View">
-                        <Eye className="w-4 h-4" />
-                      </Button>
-                      {!m.isRead && (
-                        <Button variant="ghost" size="icon" onClick={() => handleMarkRead(m.id)} title="Mark Read">
-                          <Check className="w-4 h-4" />
-                        </Button>
-                      )}
-                      <Button variant="ghost" size="icon" className="text-destructive" onClick={() => handleDelete(m.id)} title="Delete">
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
-                    </div>
-                  </div>
-                </CardHeader>
-                {m.message && (
-                  <CardContent>
-                    <p className="text-sm text-muted-foreground line-clamp-2">{m.message}</p>
-                  </CardContent>
-                )}
-              </Card>
-            ))}
+          <div className="flex items-center gap-2">
+            <Button onClick={fetchMessages}>
+              Refresh
+            </Button>
           </div>
+        </div>
 
-          <Dialog open={showViewDialog} onOpenChange={(open) => setShowViewDialog(open)}>
-            <DialogContent className="max-w-3xl">
-              <DialogHeader>
-                <DialogTitle>{selectedMessage?.subject || 'Message'}</DialogTitle>
-                <DialogDescription>Full message details</DialogDescription>
-              </DialogHeader>
-              {selectedMessage && (
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="font-medium">From: {selectedMessage.name || 'Anonymous'}</p>
-                      <p className="text-sm text-muted-foreground">{selectedMessage.email}</p>
-                      {selectedMessage.phone && <p className="text-sm text-muted-foreground">{selectedMessage.phone}</p>}
+        {loadingMessages && (
+          <Card>
+            <CardContent className="py-8 text-center">Loading messages...</CardContent>
+          </Card>
+        )}
+
+        {!loadingMessages && messages.length === 0 && (
+          <Card>
+            <CardContent className="py-12 text-center">
+              <h3 className="text-lg font-semibold mb-2">No messages</h3>
+              <p className="text-muted-foreground">No contact form submissions yet.</p>
+            </CardContent>
+          </Card>
+        )}
+
+        <div className="space-y-4">
+          {messages.map((m) => (
+            <Card key={m.id} className="group hover:shadow-sm transition-shadow">
+              <CardHeader>
+                <div className="flex items-start justify-between">
+                  <div className="flex-1">
+                    <CardTitle className="text-lg">{m.name || 'Anonymous'}</CardTitle>
+                    <div className="text-sm text-muted-foreground">
+                      {m.subject || 'No subject'} • {m.email || m.phone || 'No contact'}
                     </div>
-                    <div className="text-sm text-muted-foreground">{new Date(selectedMessage.createdAt).toLocaleString()}</div>
                   </div>
-
-                  <div>
-                    <h3 className="font-semibold">Message</h3>
-                    <p className="text-muted-foreground whitespace-pre-wrap">{selectedMessage.message}</p>
-                  </div>
-
-                  <div className="flex gap-2 justify-end">
-                    {!selectedMessage.isRead && (
-                      <Button onClick={() => handleMarkRead(selectedMessage.id)}>Mark Read</Button>
+                  <div className="flex items-center gap-2">
+                    {!m.isRead && <Badge className="bg-yellow-400 text-black">New</Badge>}
+                    <span className="text-sm text-muted-foreground">{new Date(m.createdAt).toLocaleString()}</span>
+                    <Button variant="ghost" size="icon" onClick={() => handleView(m)} title="View">
+                      <Eye className="w-4 h-4" />
+                    </Button>
+                    {!m.isRead && (
+                      <Button variant="ghost" size="icon" onClick={() => handleMarkRead(m.id)} title="Mark Read">
+                        <Check className="w-4 h-4" />
+                      </Button>
                     )}
-                    <Button variant="destructive" onClick={() => { handleDelete(selectedMessage.id); setShowViewDialog(false); }}>Delete</Button>
-                    <Button variant="outline" onClick={() => setShowViewDialog(false)}>Close</Button>
+                    <Button variant="ghost" size="icon" className="text-destructive" onClick={() => handleDelete(m.id)} title="Delete">
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
                   </div>
                 </div>
+              </CardHeader>
+              {m.message && (
+                <CardContent>
+                  <p className="text-sm text-muted-foreground line-clamp-2">{m.message}</p>
+                </CardContent>
               )}
-            </DialogContent>
-          </Dialog>
+            </Card>
+          ))}
         </div>
-      );
-    }
+
+        <Dialog open={showViewDialog} onOpenChange={(open) => setShowViewDialog(open)}>
+          <DialogContent className="max-w-3xl">
+            <DialogHeader>
+              <DialogTitle>{selectedMessage?.subject || 'Message'}</DialogTitle>
+              <DialogDescription>Full message details</DialogDescription>
+            </DialogHeader>
+            {selectedMessage && (
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="font-medium">From: {selectedMessage.name || 'Anonymous'}</p>
+                    <p className="text-sm text-muted-foreground">{selectedMessage.email}</p>
+                    {selectedMessage.phone && <p className="text-sm text-muted-foreground">{selectedMessage.phone}</p>}
+                  </div>
+                  <div className="text-sm text-muted-foreground">{new Date(selectedMessage.createdAt).toLocaleString()}</div>
+                </div>
+
+                <div>
+                  <h3 className="font-semibold">Message</h3>
+                  <p className="text-muted-foreground whitespace-pre-wrap">{selectedMessage.message}</p>
+                </div>
+
+                <div className="flex gap-2 justify-end">
+                  {!selectedMessage.isRead && (
+                    <Button onClick={() => handleMarkRead(selectedMessage.id)}>Mark Read</Button>
+                  )}
+                  <Button variant="destructive" onClick={() => { handleDelete(selectedMessage.id); setShowViewDialog(false); }}>Delete</Button>
+                  <Button variant="outline" onClick={() => setShowViewDialog(false)}>Close</Button>
+                </div>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
+      </div>
+    );
+  }
 
   if (loading) {
     return (
@@ -7624,6 +7606,9 @@ function AcademiesMusicArtsSportsSection() {
 function SkillTrainingCertificationSection() {
   const [trainings, setTrainings] = useState<any[]>([]);
   const [showForm, setShowForm] = useState(false);
+  const [editingTraining, setEditingTraining] = useState<any>(null);
+  const [viewingTraining, setViewingTraining] = useState<any>(null);
+  const [showDetailsDialog, setShowDetailsDialog] = useState(false);
 
   useEffect(() => {
     fetchTrainings();
@@ -7642,7 +7627,13 @@ function SkillTrainingCertificationSection() {
 
   const handleSuccess = () => {
     setShowForm(false);
+    setEditingTraining(null);
     fetchTrainings();
+  };
+
+  const handleViewDetails = (training: any) => {
+    setViewingTraining(training);
+    setShowDetailsDialog(true);
   };
 
   const handleDelete = async (id: string) => {
@@ -7692,19 +7683,82 @@ function SkillTrainingCertificationSection() {
           <h2 className="text-2xl font-bold">Skill Training & Certification</h2>
           <p className="text-muted-foreground">Manage skill training and certification programs</p>
         </div>
-        <Button onClick={() => setShowForm(true)}>
+        <Button onClick={() => { setEditingTraining(null); setShowForm(true); }}>
           <Plus className="w-4 h-4 mr-2" />
           Add Training Program
         </Button>
       </div>
 
-      <Dialog open={showForm} onOpenChange={setShowForm}>
+      <Dialog
+        open={showForm}
+        onOpenChange={(open) => {
+          setShowForm(open);
+          if (!open) setEditingTraining(null);
+        }}
+      >
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Add New Training Program</DialogTitle>
-            <DialogDescription>Fill in the details to create a new skill training & certification program</DialogDescription>
+            <DialogTitle>{editingTraining ? 'Edit Training Program' : 'Add New Training Program'}</DialogTitle>
+            <DialogDescription>
+              Fill in the details to {editingTraining ? 'update' : 'create'} a skill training & certification program
+            </DialogDescription>
           </DialogHeader>
-          <SkillTrainingCertificationForm onSuccess={handleSuccess} editingTraining={null} />
+          <SkillTrainingCertificationForm onSuccess={handleSuccess} editingTraining={editingTraining} />
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showDetailsDialog} onOpenChange={setShowDetailsDialog}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-2xl">{viewingTraining?.title}</DialogTitle>
+            <DialogDescription>Complete training program details</DialogDescription>
+          </DialogHeader>
+          {viewingTraining && (
+            <div className="space-y-4">
+              <div className="flex gap-2 flex-wrap">
+                {viewingTraining.skillCategory && <Badge variant="secondary">{viewingTraining.skillCategory}</Badge>}
+                {viewingTraining.trainingType && <Badge variant="outline">{viewingTraining.trainingType}</Badge>}
+                {viewingTraining.isFeatured && <Badge className="bg-yellow-500">Featured</Badge>}
+              </div>
+              {viewingTraining.description && (
+                <div>
+                  <p className="text-muted-foreground whitespace-pre-wrap">{viewingTraining.description}</p>
+                </div>
+              )}
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                {viewingTraining.instituteName && (
+                  <div>
+                    <span className="font-medium">Institute:</span>
+                    <span className="ml-2 text-muted-foreground">{viewingTraining.instituteName}</span>
+                  </div>
+                )}
+                {viewingTraining.totalFee && (
+                  <div>
+                    <span className="font-medium">Total Fee:</span>
+                    <span className="ml-2 text-muted-foreground">₹{viewingTraining.totalFee}</span>
+                  </div>
+                )}
+                {(viewingTraining.city || viewingTraining.stateProvince) && (
+                  <div>
+                    <span className="font-medium">Location:</span>
+                    <span className="ml-2 text-muted-foreground">{[viewingTraining.city, viewingTraining.stateProvince].filter(Boolean).join(', ')}</span>
+                  </div>
+                )}
+                {viewingTraining.contactPhone && (
+                  <div>
+                    <span className="font-medium">Phone:</span>
+                    <span className="ml-2 text-muted-foreground">{viewingTraining.contactPhone}</span>
+                  </div>
+                )}
+                {viewingTraining.contactEmail && (
+                  <div>
+                    <span className="font-medium">Email:</span>
+                    <span className="ml-2 text-muted-foreground">{viewingTraining.contactEmail}</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
 
@@ -7725,6 +7779,23 @@ function SkillTrainingCertificationSection() {
                   <Button
                     variant="ghost"
                     size="icon"
+                    className="h-8 w-8"
+                    onClick={() => handleViewDetails(training)}
+                  >
+                    <Eye className="w-4 h-4" />
+                  </Button>
+
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8"
+                    onClick={() => { setEditingTraining(training); setShowForm(true); }}
+                  >
+                    <Edit className="w-4 h-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
                     className="h-8 w-8 text-destructive"
                     onClick={() => handleDelete(training.id)}
                   >
@@ -7735,6 +7806,7 @@ function SkillTrainingCertificationSection() {
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
+
                 {training.description && (
                   <p className="text-sm text-muted-foreground line-clamp-2">{training.description}</p>
                 )}
@@ -7746,6 +7818,7 @@ function SkillTrainingCertificationSection() {
                 </div>
               </div>
             </CardContent>
+
             <CardFooter className="pt-0 flex gap-2">
               <Button
                 variant={training.isActive ? "outline" : "default"}
@@ -7774,7 +7847,7 @@ function SkillTrainingCertificationSection() {
             <Building className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
             <h3 className="text-lg font-semibold mb-2">No Training Programs Found</h3>
             <p className="text-muted-foreground mb-4">Start by adding your first skill training program</p>
-            <Button onClick={() => setShowForm(true)}>
+            <Button onClick={() => { setEditingTraining(null); setShowForm(true); }}>
               <Plus className="w-4 h-4 mr-2" />
               Add Training Program
             </Button>
@@ -7789,6 +7862,9 @@ function SkillTrainingCertificationSection() {
 function SchoolsCollegesCoachingSection() {
   const [institutions, setInstitutions] = useState<any[]>([]);
   const [showForm, setShowForm] = useState(false);
+  const [editingInstitution, setEditingInstitution] = useState<any>(null);
+  const [viewingInstitution, setViewingInstitution] = useState<any>(null);
+  const [showDetailsDialog, setShowDetailsDialog] = useState(false);
 
   useEffect(() => {
     fetchInstitutions();
@@ -7807,7 +7883,13 @@ function SchoolsCollegesCoachingSection() {
 
   const handleSuccess = () => {
     setShowForm(false);
+    setEditingInstitution(null);
     fetchInstitutions();
+  };
+
+  const handleViewDetails = (institution: any) => {
+    setViewingInstitution(institution);
+    setShowDetailsDialog(true);
   };
 
   const handleDelete = async (id: string) => {
@@ -7857,19 +7939,88 @@ function SchoolsCollegesCoachingSection() {
           <h2 className="text-2xl font-bold">Schools, Colleges & Coaching Institutes</h2>
           <p className="text-muted-foreground">Manage educational institution listings</p>
         </div>
-        <Button onClick={() => setShowForm(true)}>
+        <Button onClick={() => { setEditingInstitution(null); setShowForm(true); }}>
           <Plus className="w-4 h-4 mr-2" />
           Add Institution
         </Button>
       </div>
 
-      <Dialog open={showForm} onOpenChange={setShowForm}>
+      <Dialog
+        open={showForm}
+        onOpenChange={(open) => {
+          setShowForm(open);
+          if (!open) setEditingInstitution(null);
+        }}
+      >
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Add New Educational Institution</DialogTitle>
-            <DialogDescription>Fill in the details to create a new institution listing</DialogDescription>
+            <DialogTitle>{editingInstitution ? 'Edit Institution' : 'Add New Educational Institution'}</DialogTitle>
+            <DialogDescription>
+              Fill in the details to {editingInstitution ? 'update' : 'create'} a new institution listing
+            </DialogDescription>
           </DialogHeader>
-          <SchoolsCollegesCoachingForm onSuccess={handleSuccess} />
+          <SchoolsCollegesCoachingForm onSuccess={handleSuccess} editingInstitution={editingInstitution} />
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showDetailsDialog} onOpenChange={setShowDetailsDialog}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-2xl">{viewingInstitution?.institutionName}</DialogTitle>
+            <DialogDescription>Complete institution details</DialogDescription>
+          </DialogHeader>
+          {viewingInstitution && (
+            <div className="space-y-4">
+              <div className="flex gap-2 flex-wrap">
+                {viewingInstitution.listingType && <Badge variant="secondary">{viewingInstitution.listingType}</Badge>}
+                {viewingInstitution.institutionType && <Badge variant="outline">{viewingInstitution.institutionType}</Badge>}
+                {viewingInstitution.isFeatured && <Badge className="bg-yellow-500">Featured</Badge>}
+              </div>
+              {viewingInstitution.description && (
+                <div>
+                  <p className="text-muted-foreground whitespace-pre-wrap">{viewingInstitution.description}</p>
+                </div>
+              )}
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                {viewingInstitution.title && (
+                  <div>
+                    <span className="font-medium">Title:</span>
+                    <span className="ml-2 text-muted-foreground">{viewingInstitution.title}</span>
+                  </div>
+                )}
+                {viewingInstitution.city && (
+                  <div>
+                    <span className="font-medium">City:</span>
+                    <span className="ml-2 text-muted-foreground">{viewingInstitution.city}</span>
+                  </div>
+                )}
+                {viewingInstitution.fullAddress && (
+                  <div className="col-span-2">
+                    <span className="font-medium">Address:</span>
+                    <span className="ml-2 text-muted-foreground">{viewingInstitution.fullAddress}</span>
+                  </div>
+                )}
+                {viewingInstitution.contactPerson && (
+                  <div>
+                    <span className="font-medium">Contact:</span>
+                    <span className="ml-2 text-muted-foreground">{viewingInstitution.contactPerson}</span>
+                  </div>
+                )}
+                {viewingInstitution.contactPhone && (
+                  <div>
+                    <span className="font-medium">Phone:</span>
+                    <span className="ml-2 text-muted-foreground">{viewingInstitution.contactPhone}</span>
+                  </div>
+                )}
+                {viewingInstitution.contactEmail && (
+                  <div>
+                    <span className="font-medium">Email:</span>
+                    <span className="ml-2 text-muted-foreground">{viewingInstitution.contactEmail}</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
 
@@ -7890,6 +8041,23 @@ function SchoolsCollegesCoachingSection() {
                   <Button
                     variant="ghost"
                     size="icon"
+                    className="h-8 w-8"
+                    onClick={() => handleViewDetails(institution)}
+                  >
+                    <Eye className="w-4 h-4" />
+                  </Button>
+
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8"
+                    onClick={() => { setEditingInstitution(institution); setShowForm(true); }}
+                  >
+                    <Edit className="w-4 h-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
                     className="h-8 w-8 text-destructive"
                     onClick={() => handleDelete(institution.id)}
                   >
@@ -7900,6 +8068,7 @@ function SchoolsCollegesCoachingSection() {
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
+
                 {institution.description && (
                   <p className="text-sm text-muted-foreground line-clamp-2">{institution.description}</p>
                 )}
@@ -7919,6 +8088,7 @@ function SchoolsCollegesCoachingSection() {
                 )}
               </div>
             </CardContent>
+
             <CardFooter className="pt-0 flex gap-2">
               <Button
                 variant={institution.isActive ? "outline" : "default"}
@@ -7947,7 +8117,7 @@ function SchoolsCollegesCoachingSection() {
             <Building className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
             <h3 className="text-lg font-semibold mb-2">No Institutions Found</h3>
             <p className="text-muted-foreground mb-4">Start by adding your first educational institution</p>
-            <Button onClick={() => setShowForm(true)}>
+            <Button onClick={() => { setEditingInstitution(null); setShowForm(true); }}>
               <Plus className="w-4 h-4 mr-2" />
               Add Institution
             </Button>
@@ -7958,7 +8128,7 @@ function SchoolsCollegesCoachingSection() {
   );
 }
 
-// Cars & Bikes Section Component
+// ... (rest of the code remains the same)
 function CarsBikesSection() {
   return (
     <div className="space-y-6">
@@ -8173,7 +8343,7 @@ function FurnitureInteriorDecorSection() {
           <h2 className="text-2xl font-bold">Furniture & Interior Decor</h2>
           <p className="text-muted-foreground">Manage furniture and interior decor listings</p>
         </div>
-        <Button onClick={() => setShowForm(true)}>
+        <Button onClick={() => { setEditingItem(null); setShowForm(true); }}>
           <Plus className="w-4 h-4 mr-2" />
           Add Furniture Item
         </Button>
@@ -8183,7 +8353,7 @@ function FurnitureInteriorDecorSection() {
         setShowForm(open);
         if (!open) setEditingItem(null);
       }}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-visible">
           <DialogHeader>
             <DialogTitle>{editingItem ? 'Edit Furniture/Decor Item' : 'Add New Furniture/Decor Item'}</DialogTitle>
             <DialogDescription>
@@ -8390,7 +8560,7 @@ function FurnitureInteriorDecorSection() {
             <Building className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
             <h3 className="text-lg font-semibold mb-2">No Furniture Items Found</h3>
             <p className="text-muted-foreground mb-4">Start by adding your first furniture/decor item</p>
-            <Button onClick={() => setShowForm(true)}>
+            <Button onClick={() => { setEditingItem(null); setShowForm(true); }}>
               <Plus className="w-4 h-4 mr-2" />
               Add Furniture Item
             </Button>
@@ -8401,7 +8571,6 @@ function FurnitureInteriorDecorSection() {
   );
 }
 
-// Sliders Section Component
 function SlidersSection() {
   const [sliders, setSliders] = useState<any[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
@@ -8518,7 +8687,7 @@ function SlidersSection() {
               </div>
             </CardHeader>
             <CardContent>
-              {s.imageUrl && <img src={s.imageUrl} alt={s.title || 'slider'} className="w-full h-40 object-cover rounded-md" />}
+              {s.imageUrl && <img src={s.imageUrl} alt={s.title || 'slider'} className="w-full h-40  rounded-md" />}
               {s.description && <p className="text-sm text-muted-foreground mt-2 line-clamp-3">{s.description}</p>}
               <div className="mt-3 space-y-2">
                 <div className="flex items-center justify-between">
@@ -8651,7 +8820,7 @@ function BlogsSection() {
               </div>
             </CardHeader>
             <CardContent>
-              {p.coverImageUrl && <img src={p.coverImageUrl} alt={p.title || 'cover'} className="w-full h-40 object-cover rounded-md" />}
+              {p.coverImageUrl && <img src={p.coverImageUrl} alt={p.title || 'cover'} className="w-full h-40  rounded-md" />}
               {p.excerpt && <p className="text-sm text-muted-foreground mt-2 line-clamp-3">{p.excerpt}</p>}
               <div className="mt-3 flex items-center justify-between">
                 <span className="text-sm text-muted-foreground">Category: {p.category || 'Uncategorized'}</span>
@@ -9326,7 +9495,7 @@ function SliderCardSection() {
                             onClick={() => selectIndex(idx)}
                             className={`flex-shrink-0 rounded-md overflow-hidden border ${idx === selectedIndex ? 'ring-2 ring-offset-2 ring-indigo-400' : ''}`}
                           >
-                            <img src={src} className="w-28 h-16 object-cover" />
+                            <img src={src} className="w-28 h-16 " />
                           </button>
                         ))}
                       </div>
@@ -9337,7 +9506,7 @@ function SliderCardSection() {
                     </div>
 
                     <div className="flex-1 relative">
-                      <img src={images[selectedIndex]} alt="Preview" className="w-full h-48 object-cover rounded-lg" />
+                      <img src={images[selectedIndex]} alt="Preview" className="w-full h-48  rounded-lg" />
 
                       <Button
                         type="button"
@@ -9394,7 +9563,7 @@ function SliderCardSection() {
             </CardHeader>
             <CardContent>
               {(c.image_url || c.imageUrl || c.image) && (
-                <img src={c.image_url || c.imageUrl || c.image} alt={c.title || 'card'} className="w-full h-40 object-cover rounded-md" />
+                <img src={c.image_url || c.imageUrl || c.image} alt={c.title || 'card'} className="w-full h-40  rounded-md" />
               )}
               <div className="mt-3 flex items-center justify-between">
                 <span className="text-sm text-muted-foreground">Status: {c.status}</span>

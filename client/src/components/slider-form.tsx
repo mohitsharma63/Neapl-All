@@ -246,7 +246,7 @@ export function SliderForm({ slider, onSuccess, onCancel }: SliderFormProps) {
                         className={`flex-shrink-0 rounded-md overflow-hidden border ${idx === selectedIndex ? "ring-2 ring-offset-2 ring-indigo-400" : ""
                           }`}
                       >
-                        <img src={src} className="w-28 h-16 object-cover" />
+                        <img src={src} className="w-28 h-16 " />
                       </button>
                     ))}
                   </div>
@@ -260,7 +260,7 @@ export function SliderForm({ slider, onSuccess, onCancel }: SliderFormProps) {
                   <img
                     src={images[selectedIndex]}
                     alt="Preview"
-                    className="w-full h-48 object-cover rounded-lg"
+                    className="w-full h-48  rounded-lg"
                   />
 
                   <Button

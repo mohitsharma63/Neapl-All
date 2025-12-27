@@ -65,7 +65,7 @@ export default function SliderCardPage() {
                       <img
                         src={slider.imageUrl.startsWith('http') ? slider.imageUrl : slider.imageUrl}
                         alt={slider.title || 'slider image'}
-                        className="w-28 h-16 object-cover rounded"
+                        className="w-28 h-16  rounded"
                       />
                     ) : (
                       <span className="text-muted">No image</span>

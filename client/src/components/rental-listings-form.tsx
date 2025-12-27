@@ -292,7 +292,7 @@ export function RentalListingsForm({ open, onOpenChange, rental, onSuccess }: Re
                         <img 
                           src={image} 
                           alt={`Preview ${index + 1}`}
-                          className="w-full h-24 object-cover rounded-lg border"
+                          className="w-full h-24  rounded-lg border"
                         />
                         <button
                           type="button"

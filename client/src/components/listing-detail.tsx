@@ -129,7 +129,7 @@ export default function ListingDetail({ listing, titleField = "title", subtitleF
             <div className="bg-white p-4 rounded shadow">
               <div className="relative">
                 {currentImage ? (
-                  <img src={currentImage} alt={listing[titleField] || "listing image"} className="w-full h-72 md:h-96 object-cover rounded" />
+                  <img src={currentImage} alt={listing[titleField] || "listing image"} className="w-full h-72 md:h-96  rounded" />
                 ) : (
                   <div className="w-full h-72 md:h-96 bg-gray-100 flex items-center justify-center rounded">No Image</div>
                 )}
@@ -166,7 +166,7 @@ export default function ListingDetail({ listing, titleField = "title", subtitleF
                         idx === currentImageIndex ? "border-[#0B8457] shadow-md" : "border-gray-200/50 hover:border-gray-300"
                       }`}
                     >
-                      <img src={img} alt={`${listing[titleField] || "listing"} ${idx + 1}`} className="w-full h-full object-cover" />
+                      <img src={img} alt={`${listing[titleField] || "listing"} ${idx + 1}`} className="w-full h-full " />
                     </button>
                   ))}
                 </div>

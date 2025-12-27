@@ -24,7 +24,6 @@ import {
   Heart,
   Search,
   Bell,
-  Settings,
   User,
   Building,
   MapPin,
@@ -52,8 +51,7 @@ function BuyerSidebar({ activeSection, setActiveSection }: { activeSection: stri
     { title: "Saved Searches", icon: BookmarkCheck, key: "saved-searches" },
     { title: "View History", icon: History, key: "history" },
     { title: "Alerts", icon: Bell, key: "alerts" },
-    { title: "Profile", icon: User, key: "profile" },
-    { title: "Settings", icon: Settings, key: "settings" }
+    { title: "Profile", icon: User, key: "profile" }
   ];
 
   return (
@@ -186,7 +184,7 @@ function FavoritesSection() {
             <CardContent className="p-4">
               <div className="flex items-start gap-4">
                 <div className="w-24 h-24 bg-gray-100 rounded overflow-hidden flex items-center justify-center">
-                  {it.photo ? <img src={it.photo} alt={it.title} className="w-full h-full object-cover" /> : <MapPin className="w-6 h-6 text-gray-400" />}
+                  {it.photo ? <img src={it.photo} alt={it.title} className="w-full h-full " /> : <MapPin className="w-6 h-6 text-gray-400" />}
                 </div>
                 <div className="flex-1">
                   <h3 className="font-semibold line-clamp-2">{it.title}</h3>

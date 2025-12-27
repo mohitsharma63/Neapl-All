@@ -25,7 +25,7 @@ const step1Schema = z.object({
 });
 
 const step2Schema = z.object({
-  accountType: z.enum(["user", "buyer", "seller"], {
+  accountType: z.enum(["pro", "buyer", "seller"], {
     required_error: "Please select account type",
   }),
 });
@@ -42,6 +42,8 @@ const step4Schema = z.object({
   area: z.string().optional(),
   address: z.string().min(1, "Address is required"),
   postalCode: z.string().optional(),
+  proProfileTypeId: z.string().optional(),
+  proProfileValues: z.record(z.any()).optional(),
   documents: z.array(z.object({
     name: z.string(),
     url: z.string(),
@@ -71,6 +73,31 @@ interface Subcategory {
   isActive: boolean;
   parentCategoryId: string;
 }
+
+interface ProProfileType {
+  id: string;
+  name: string;
+  slug: string;
+  description?: string;
+  icon?: string;
+  isActive?: boolean;
+  sortOrder?: number;
+}
+
+interface ProProfileField {
+  id: string;
+  profileTypeId: string;
+  key: string;
+  label: string;
+  fieldType: string;
+  isRequired?: boolean;
+  placeholder?: string;
+  helpText?: string;
+  sortOrder?: number;
+  options?: any[];
+  config?: Record<string, any>;
+}
+
 type Step4Data = z.infer<typeof step4Schema>;
 
 export default function MultiStepSignup() {
@@ -84,6 +111,11 @@ export default function MultiStepSignup() {
   const [categorySearch, setCategorySearch] = useState("");
   const [subcategorySearch, setSubcategorySearch] = useState("");
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const [proProfileTypes, setProProfileTypes] = useState<ProProfileType[]>([]);
+  const [proProfileFields, setProProfileFields] = useState<ProProfileField[]>([]);
+  const [selectedProProfileTypeId, setSelectedProProfileTypeId] = useState<string>("");
+  const [proProfileValuesState, setProProfileValuesState] = useState<Record<string, any>>({});
+  const [isLoadingProProfile, setIsLoadingProProfile] = useState(false);
   const { toast } = useToast();
   const [, setLocation] = useLocation();
 
@@ -114,11 +146,10 @@ export default function MultiStepSignup() {
 
   const onStep2Submit = (data: Step2Data) => {
     setFormData({ ...formData, ...data });
-    // Skip category selection for regular users
-    if (data.accountType === 'user') {
-      setCurrentStep(4);
-    } else {
+    if (data.accountType === 'seller') {
       setCurrentStep(3);
+    } else {
+      setCurrentStep(4);
     }
   };
 
@@ -128,7 +159,37 @@ export default function MultiStepSignup() {
   };
 
   const onStep4Submit = async (data: Step4Data) => {
-    const finalData = { ...formData, ...data };
+    const finalData = {
+      ...formData,
+      ...data,
+      proProfileTypeId: selectedProProfileTypeId,
+      proProfileValues: proProfileValuesState,
+    };
+
+    if (finalData.accountType === 'pro') {
+      if (!finalData.proProfileTypeId) {
+        toast({
+          title: "Error",
+          description: "Please select a Pro-Profile type",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      for (const f of proProfileFields) {
+        if (!f.isRequired) continue;
+        const v = proProfileValuesState[f.key];
+        const empty = v === undefined || v === null || (typeof v === 'string' && v.trim() === '') || (Array.isArray(v) && v.length === 0);
+        if (empty) {
+          toast({
+            title: "Error",
+            description: `${f.label} is required`,
+            variant: "destructive",
+          });
+          return;
+        }
+      }
+    }
 
     try {
       const response = await fetch("/api/auth/signup", {
@@ -141,8 +202,10 @@ export default function MultiStepSignup() {
           phone: finalData.phone,
           password: finalData.password,
           accountType: finalData.accountType,
-          categoryIds: finalData.accountType === 'user' ? [] : finalData.categoryIds,
-          subcategoryIds: finalData.accountType === 'user' ? [] : finalData.subcategoryIds,
+          proProfileTypeId: finalData.accountType === 'pro' ? finalData.proProfileTypeId : undefined,
+          proProfileValues: finalData.accountType === 'pro' ? finalData.proProfileValues : undefined,
+          categoryIds: finalData.accountType === 'seller' ? finalData.categoryIds : [],
+          subcategoryIds: finalData.accountType === 'seller' ? finalData.subcategoryIds : [],
           location: {
             country: finalData.country,
             state: finalData.state,
@@ -163,7 +226,13 @@ export default function MultiStepSignup() {
         });
         setLocation("/login");
       } else {
-        const error = await response.text();
+        let error = "";
+        try {
+          const data = await response.json();
+          error = typeof data?.message === 'string' ? data.message : JSON.stringify(data);
+        } catch {
+          error = await response.text();
+        }
         toast({
           title: "Error",
           description: error || "Signup failed",
@@ -180,10 +249,40 @@ export default function MultiStepSignup() {
   };
 
   const accountTypes = [
-    { value: "user", label: "Individual", icon: User, description: "Personal account for browsing" },
+    { value: "pro", label: "Pro-Profile", icon: User, description: "Create a professional profile with dynamic fields" },
     { value: "buyer", label: "Buyer", icon: User, description: "Looking to buy or rent property" },
     { value: "seller", label: "Seller", icon: Briefcase, description: "List and sell properties" },
   ];
+
+  useEffect(() => {
+    const shouldLoad = currentStep === 4 && formData.accountType === 'pro';
+    if (!shouldLoad) return;
+
+    setIsLoadingProProfile(true);
+    fetch('/api/pro-profile/types')
+      .then((res) => res.json())
+      .then((list) => {
+        const active = Array.isArray(list) ? list.filter((t: any) => t?.isActive !== false) : [];
+        setProProfileTypes(active);
+      })
+      .catch((err) => console.error('Error loading pro profile types:', err))
+      .finally(() => setIsLoadingProProfile(false));
+  }, [currentStep, formData.accountType]);
+
+  useEffect(() => {
+    const shouldLoad = currentStep === 4 && formData.accountType === 'pro' && !!selectedProProfileTypeId;
+    if (!shouldLoad) return;
+
+    setIsLoadingProProfile(true);
+    fetch(`/api/pro-profile/types/${selectedProProfileTypeId}/fields`)
+      .then((res) => res.json())
+      .then((data) => {
+        const fields = Array.isArray(data?.fields) ? data.fields : [];
+        setProProfileFields(fields);
+      })
+      .catch((err) => console.error('Error loading pro profile fields:', err))
+      .finally(() => setIsLoadingProProfile(false));
+  }, [currentStep, formData.accountType, selectedProProfileTypeId]);
 
   // Fetch categories when step 3 is reached
   useEffect(() => {
@@ -289,7 +388,7 @@ export default function MultiStepSignup() {
             <CardDescription className="text-center text-blue-50 text-lg mt-2">
               {currentStep === 1 && "Basic Information"}
               {currentStep === 2 && "Account Type"}
-              {currentStep === 3 && formData.accountType === 'user' ? "Skipping Category" : "Category Selection"}
+              {currentStep === 3 && "Category Selection"}
               {currentStep === 4 && "Location & Details"}
             </CardDescription>
 
@@ -446,13 +545,13 @@ export default function MultiStepSignup() {
                             <div className="font-semibold text-lg mb-1">{type.label}</div>
                             <div className="text-sm text-gray-600">{type.description}</div>
                           </div>
+                          {step2Form.formState.errors.accountType && (
+                            <p className="text-sm text-red-500 mt-2">{step2Form.formState.errors.accountType.message}</p>
+                          )}
                         </Label>
                       </div>
                     ))}
                   </RadioGroup>
-                  {step2Form.formState.errors.accountType && (
-                    <p className="text-sm text-red-500 mt-2">{step2Form.formState.errors.accountType.message}</p>
-                  )}
                 </div>
 
                 <div className="flex gap-4 pt-4">
@@ -639,7 +738,7 @@ export default function MultiStepSignup() {
             )}
 
             {/* Show message for user account type */}
-            {currentStep === 3 && formData.accountType === 'user' && (
+            {currentStep === 3 && formData.accountType === 'pro' && (
               <div className="text-center py-8">
                 <p className="text-gray-600">Regular users don't need to select categories. Proceeding to location details...</p>
               </div>
@@ -647,6 +746,141 @@ export default function MultiStepSignup() {
 
             {currentStep === 4 && (
               <form onSubmit={step4Form.handleSubmit(onStep4Submit)} className="space-y-6">
+                {formData.accountType === 'pro' && (
+                  <div className="space-y-6">
+                    <div className="space-y-2">
+                      <Label className="text-sm font-semibold">Pro-Profile Type *</Label>
+                      <Select
+                        value={selectedProProfileTypeId}
+                        onValueChange={(v) => {
+                          setSelectedProProfileTypeId(v);
+                          setProProfileValuesState({});
+                        }}
+                      >
+                        <SelectTrigger className="h-11 border-2">
+                          <SelectValue placeholder={isLoadingProProfile ? "Loading..." : "Select profile type"} />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {proProfileTypes.map((t) => (
+                            <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    {proProfileFields.length > 0 && (
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        {proProfileFields.map((f) => {
+                          const value = proProfileValuesState[f.key];
+                          const required = !!f.isRequired;
+
+                          if (f.fieldType === 'select') {
+                            const opts = Array.isArray(f.options) ? f.options : [];
+                            return (
+                              <div key={f.id} className="space-y-2">
+                                <Label className="text-sm font-semibold">{f.label}{required ? ' *' : ''}</Label>
+                                <Select
+                                  value={typeof value === 'string' ? value : ''}
+                                  onValueChange={(v) => setProProfileValuesState((p) => ({ ...p, [f.key]: v }))}
+                                >
+                                  <SelectTrigger className="h-11 border-2">
+                                    <SelectValue placeholder={f.placeholder || 'Select'} />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    {opts.map((o: any, idx: number) => (
+                                      <SelectItem key={`${f.id}-${idx}`} value={String(o?.value ?? o?.label ?? '')}>
+                                        {String(o?.label ?? o?.value ?? '')}
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                              </div>
+                            );
+                          }
+
+                          if (f.fieldType === 'number') {
+                            return (
+                              <div key={f.id} className="space-y-2">
+                                <Label className="text-sm font-semibold">{f.label}{required ? ' *' : ''}</Label>
+                                <Input
+                                  type="number"
+                                  value={value === undefined || value === null ? '' : String(value)}
+                                  onChange={(e) => {
+                                    const raw = e.target.value;
+                                    if (raw === '') return setProProfileValuesState((p) => ({ ...p, [f.key]: undefined }));
+                                    const n = Number(raw);
+                                    setProProfileValuesState((p) => ({ ...p, [f.key]: Number.isFinite(n) ? n : raw }));
+                                  }}
+                                  placeholder={f.placeholder || ''}
+                                  className="h-11 border-2"
+                                />
+                              </div>
+                            );
+                          }
+
+                          if (f.fieldType === 'textarea') {
+                            return (
+                              <div key={f.id} className="space-y-2 md:col-span-2">
+                                <Label className="text-sm font-semibold">{f.label}{required ? ' *' : ''}</Label>
+                                <textarea
+                                  value={typeof value === 'string' ? value : ''}
+                                  onChange={(e) => setProProfileValuesState((p) => ({ ...p, [f.key]: e.target.value }))}
+                                  className="w-full p-4 border-2 rounded-xl min-h-[120px] focus:border-blue-500 focus:outline-none transition-colors"
+                                  placeholder={f.placeholder || ''}
+                                />
+                              </div>
+                            );
+                          }
+
+                          if (f.fieldType === 'tags') {
+                            return (
+                              <div key={f.id} className="space-y-2">
+                                <Label className="text-sm font-semibold">{f.label}{required ? ' *' : ''}</Label>
+                                <Input
+                                  value={Array.isArray(value) ? value.join(', ') : (typeof value === 'string' ? value : '')}
+                                  onChange={(e) => {
+                                    const raw = e.target.value;
+                                    const arr = raw.split(',').map((x) => x.trim()).filter(Boolean);
+                                    setProProfileValuesState((p) => ({ ...p, [f.key]: arr }));
+                                  }}
+                                  placeholder={f.placeholder || 'Comma separated'}
+                                  className="h-11 border-2"
+                                />
+                              </div>
+                            );
+                          }
+
+                          if (f.fieldType === 'image' || f.fieldType === 'images') {
+                            return (
+                              <div key={f.id} className="space-y-2">
+                                <Label className="text-sm font-semibold">{f.label}{required ? ' *' : ''}</Label>
+                                <Input
+                                  value={typeof value === 'string' ? value : ''}
+                                  onChange={(e) => setProProfileValuesState((p) => ({ ...p, [f.key]: e.target.value }))}
+                                  placeholder={f.placeholder || 'Paste image URL'}
+                                  className="h-11 border-2"
+                                />
+                              </div>
+                            );
+                          }
+
+                          return (
+                            <div key={f.id} className="space-y-2">
+                              <Label className="text-sm font-semibold">{f.label}{required ? ' *' : ''}</Label>
+                              <Input
+                                value={typeof value === 'string' ? value : ''}
+                                onChange={(e) => setProProfileValuesState((p) => ({ ...p, [f.key]: e.target.value }))}
+                                placeholder={f.placeholder || ''}
+                                className="h-11 border-2"
+                              />
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                )}
+
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-2">
                     <Label className="text-sm font-semibold">Country *</Label>
@@ -738,7 +972,7 @@ export default function MultiStepSignup() {
                   <Button 
                     type="button" 
                     variant="outline" 
-                    onClick={() => formData.accountType === 'user' ? setCurrentStep(2) : setCurrentStep(3)} 
+                    onClick={() => formData.accountType === 'seller' ? setCurrentStep(3) : setCurrentStep(2)} 
                     className="flex-1 h-12"
                   >
                     ← Back

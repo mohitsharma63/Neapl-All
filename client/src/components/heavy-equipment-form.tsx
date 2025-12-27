@@ -653,7 +653,7 @@ export function HeavyEquipmentForm() {
                         <div className="flex flex-wrap gap-2">
                           {formData.images.map((imageUrl, index) => (
                             <div key={index} className="relative group">
-                              <img src={imageUrl} alt={`Equipment ${index}`} className="w-20 h-20 object-cover rounded-md" />
+                              <img src={imageUrl} alt={`Equipment ${index}`} className="w-20 h-20  rounded-md" />
                               <Button
                                 variant="destructive"
                                 size="sm"

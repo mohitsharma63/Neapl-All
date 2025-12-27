@@ -14,7 +14,7 @@ export const users = pgTable("users", {
   lastName: text("last_name"),
   phone: text("phone"),
   role: text("role").default("user"), // "admin", "agent", "user"
-  accountType: text("account_type"), // "individual", "buyer", "seller"
+  accountType: text("account_type"), // "pro", "buyer", "seller"
   selectedServices: jsonb("selected_services").$type<string[]>().default([]),
   isActive: boolean("is_active").default(true),
   avatar: text("avatar"),
@@ -44,6 +44,51 @@ export const userDocuments = pgTable("user_documents", {
   documentType: text("document_type"),
   fileSize: integer("file_size"),
   uploadedAt: timestamp("uploaded_at").defaultNow(),
+});
+
+export const proProfileTypes = pgTable("pro_profile_types", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: text("name").notNull(),
+  slug: text("slug").notNull().unique(),
+  description: text("description"),
+  icon: text("icon"),
+  isActive: boolean("is_active").default(true),
+  sortOrder: integer("sort_order").default(0),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const proProfileFields = pgTable("pro_profile_fields", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  profileTypeId: varchar("profile_type_id").notNull().references(() => proProfileTypes.id, { onDelete: "cascade" }),
+  key: text("key").notNull(),
+  label: text("label").notNull(),
+  fieldType: text("field_type").notNull(),
+  isRequired: boolean("is_required").default(false),
+  placeholder: text("placeholder"),
+  helpText: text("help_text"),
+  sortOrder: integer("sort_order").default(0),
+  options: jsonb("options").$type<any[]>().default([]),
+  config: jsonb("config").$type<Record<string, any>>().default({}),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const proProfiles = pgTable("pro_profiles", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().unique().references(() => users.id, { onDelete: "cascade" }),
+  profileTypeId: varchar("profile_type_id").notNull().references(() => proProfileTypes.id, { onDelete: "restrict" }),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const proProfileValues = pgTable("pro_profile_values", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  profileId: varchar("profile_id").notNull().references(() => proProfiles.id, { onDelete: "cascade" }),
+  fieldId: varchar("field_id").notNull().references(() => proProfileFields.id, { onDelete: "cascade" }),
+  value: jsonb("value"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
 });
 
 export const agencies = pgTable("agencies", {
@@ -222,6 +267,42 @@ export const usersRelations = relations(users, ({ many }) => ({
   documents: many(userDocuments),
 }));
 
+export const proProfileTypesRelations = relations(proProfileTypes, ({ many }) => ({
+  fields: many(proProfileFields),
+  profiles: many(proProfiles),
+}));
+
+export const proProfileFieldsRelations = relations(proProfileFields, ({ one, many }) => ({
+  profileType: one(proProfileTypes, {
+    fields: [proProfileFields.profileTypeId],
+    references: [proProfileTypes.id],
+  }),
+  values: many(proProfileValues),
+}));
+
+export const proProfilesRelations = relations(proProfiles, ({ one, many }) => ({
+  user: one(users, {
+    fields: [proProfiles.userId],
+    references: [users.id],
+  }),
+  profileType: one(proProfileTypes, {
+    fields: [proProfiles.profileTypeId],
+    references: [proProfileTypes.id],
+  }),
+  values: many(proProfileValues),
+}));
+
+export const proProfileValuesRelations = relations(proProfileValues, ({ one }) => ({
+  profile: one(proProfiles, {
+    fields: [proProfileValues.profileId],
+    references: [proProfiles.id],
+  }),
+  field: one(proProfileFields, {
+    fields: [proProfileValues.fieldId],
+    references: [proProfileFields.id],
+  }),
+}));
+
 export const userCategoryPreferencesRelations = relations(userCategoryPreferences, ({ one }) => ({
   user: one(users, {
     fields: [userCategoryPreferences.userId],
@@ -264,7 +345,7 @@ export const insertUserSchema = createInsertSchema(users).omit({
   firstName: z.string().min(1),
   lastName: z.string().min(1),
   phone: z.string().min(10),
-  accountType: z.enum(["individual", "buyer", "seller"]),
+  accountType: z.enum(["pro", "buyer", "seller"]),
   selectedServices: z.array(z.string()).optional(),
   country: z.string().optional(),
   state: z.string().optional(),

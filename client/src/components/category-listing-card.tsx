@@ -40,7 +40,7 @@ export function CategoryListingCard({ listing, categorySlug }: CategoryListingCa
             <img
               src={primaryPhoto}
               alt={listing.title}
-              className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
+              className="h-full w-full  transition-transform duration-500 group-hover:scale-110"
               loading="lazy"
             />
           ) : (

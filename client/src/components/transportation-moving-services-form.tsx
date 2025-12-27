@@ -881,7 +881,7 @@ export function TransportationMovingServicesForm() {
                   <div className="grid grid-cols-4 gap-4">
                     {formData.images.map((img: string, idx: number) => (
                       <div key={idx} className="relative">
-                        <img src={img} alt={`Upload ${idx + 1}`} className="w-full h-24 object-cover rounded" />
+                        <img src={img} alt={`Upload ${idx + 1}`} className="w-full h-24  rounded" />
                         <Button
                           type="button"
                           variant="destructive"
@@ -979,7 +979,7 @@ export function TransportationMovingServicesForm() {
                   <h3 className="font-semibold mb-2">Images</h3>
                   <div className="grid grid-cols-3 gap-4">
                     {viewingItem.images.map((img, idx) => (
-                      <img key={idx} src={img} alt={`Service image ${idx + 1}`} className="w-full h-24 object-cover rounded" />
+                      <img key={idx} src={img} alt={`Service image ${idx + 1}`} className="w-full h-24  rounded" />
                     ))}
                   </div>
                 </div>

@@ -394,7 +394,7 @@ export default function SecondHandPhonesTabletsAccessoriesForm() {
                   <div className="grid grid-cols-4 gap-4 mt-4">
                     {images.map((src, i) => (
                       <div key={i} className="relative">
-                        <img src={src} alt={`img-${i}`} className="h-24 w-full object-cover rounded" />
+                        <img src={src} alt={`img-${i}`} className="h-24 w-full  rounded" />
                         <Button
                           variant="ghost"
                           size="icon"
@@ -656,7 +656,7 @@ export default function SecondHandPhonesTabletsAccessoriesForm() {
               {Array.isArray(viewingProduct.images) && viewingProduct.images.length > 0 && (
                 <div className="flex gap-2 overflow-x-auto">
                   {viewingProduct.images.map((img: string, idx: number) => (
-                    <img key={idx} src={img} alt={`${viewingProduct.title || 'product'}-${idx}`} className="w-32 h-20 object-cover rounded" />
+                    <img key={idx} src={img} alt={`${viewingProduct.title || 'product'}-${idx}`} className="w-32 h-20  rounded" />
                   ))}
                 </div>
               )}

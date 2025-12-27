@@ -220,7 +220,7 @@ export default function FashionBeautyProductsForm({ onSuccess, editingProduct }:
                       <div className="mt-3 grid grid-cols-5 gap-2">
                         {images.map((src, idx) => (
                           <div key={idx} className="relative">
-                            <img src={src} alt={`preview-${idx}`} className="w-24 h-24 object-cover rounded" />
+                            <img src={src} alt={`preview-${idx}`} className="w-24 h-24  rounded" />
                             <button type="button" onClick={() => removeImage(idx)} className="absolute top-1 right-1 bg-white rounded-full p-1">✕</button>
                           </div>
                         ))}

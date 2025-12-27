@@ -173,7 +173,7 @@ export default function Blog() {
                         <img
                           src={featured.coverImageUrl || featured.imageUrl || "https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=800&h=400&fit=crop"}
                           alt={featured.title}
-                          className="w-full h-full object-cover"
+                          className="w-full h-full "
                         />
                         {featured.isFeatured && <Badge className="absolute top-4 left-4 bg-orange-500">Featured</Badge>}
                       </div>
@@ -229,7 +229,7 @@ export default function Blog() {
                         <img
                           src={post.coverImageUrl || post.imageUrl || "https://images.unsplash.com/photo-1450101499163-c8848c66ca85?w=400&h=250&fit=crop"}
                           alt={post.title}
-                          className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                          className="w-full h-full  group-hover:scale-110 transition-transform duration-300"
                         />
                         <Badge className="absolute top-4 left-4">{post.category}</Badge>
                       </div>
@@ -272,7 +272,7 @@ export default function Blog() {
 
                 {openPost?.coverImageUrl && (
                   <div className="my-4">
-                    <img src={openPost.coverImageUrl} alt={openPost.title} className="w-full h-80 object-cover rounded-md" />
+                    <img src={openPost.coverImageUrl} alt={openPost.title} className="w-full h-80  rounded-md" />
                   </div>
                 )}
 

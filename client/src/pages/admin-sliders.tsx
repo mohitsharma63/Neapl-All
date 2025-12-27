@@ -1,16 +1,48 @@
 import React, { useEffect, useState } from "react";
+import { useLocation } from "wouter";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { SliderForm } from '@/components/slider-form';
 import { Trash, Edit, Image as ImageIcon } from 'lucide-react';
+import { useUser } from '@/hooks/use-user';
 
 export default function AdminSliders() {
+  const { user, isLoading: userLoading } = useUser();
+  const [, setLocation] = useLocation();
   const [sliders, setSliders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<any | null>(null);
+
+  useEffect(() => {
+    if (userLoading) return;
+    const isAdmin = !!user && (
+      user.role === 'admin' ||
+      user.role === 'super_admin' ||
+      user.accountType === 'admin' ||
+      user.accountType === 'super_admin'
+    );
+    if (!isAdmin) {
+      setLocation('/login');
+    }
+  }, [user, userLoading, setLocation]);
+
+  if (userLoading) {
+    return <div className="p-6">Loading...</div>;
+  }
+
+  const isAdmin = !!user && (
+    user.role === 'admin' ||
+    user.role === 'super_admin' ||
+    user.accountType === 'admin' ||
+    user.accountType === 'super_admin'
+  );
+
+  if (!isAdmin) {
+    return <div className="p-6">Redirecting...</div>;
+  }
 
   const fetchSliders = async () => {
     setLoading(true);
@@ -89,7 +121,7 @@ export default function AdminSliders() {
                 <TableRow key={s.id}>
                   <TableCell>
                     {s.imageUrl ? (
-                      <img src={s.imageUrl} alt={s.title} className="w-24 h-12 object-cover rounded" />
+                      <img src={s.imageUrl} alt={s.title} className="w-24 h-12  rounded" />
                     ) : (
                       <div className="w-24 h-12 flex items-center justify-center bg-muted rounded">
                         <ImageIcon className="w-5 h-5 text-muted-foreground" />

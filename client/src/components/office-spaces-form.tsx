@@ -18,31 +18,34 @@ interface OfficeSpacesFormProps {
 export function OfficeSpacesForm({ open, onOpenChange, office, onSuccess }: OfficeSpacesFormProps) {
   const [userId, setUserId] = useState<string | null>(null);
   const [userRole, setUserRole] = useState<string | null>(null);
-  const [formData, setFormData] = useState({
-    title: office?.title || '',
-    description: office?.description || '',
-    listingType: office?.listingType || 'rent',
-    price: office?.price || '',
-    priceType: office?.priceType || 'monthly',
-    area: office?.area || '',
-    officeType: office?.officeType || 'private',
-    capacity: office?.capacity || '',
-    cabins: office?.cabins || '',
-    workstations: office?.workstations || '',
-    meetingRooms: office?.meetingRooms || '',
-    furnishingStatus: office?.furnishingStatus || 'unfurnished',
-    parkingSpaces: office?.parkingSpaces || '',
-    floor: office?.floor || '',
-    totalFloors: office?.totalFloors || '',
-    country: office?.country || 'India',
-    stateProvince: office?.stateProvince || '',
-    city: office?.city || '',
-    areaName: office?.areaName || '',
-    fullAddress: office?.fullAddress || '',
-    images: office?.images || [],
-    isActive: office?.isActive !== undefined ? office.isActive : true,
-    isFeatured: office?.isFeatured || false,
+
+  const getInitialFormData = (o?: any) => ({
+    title: o?.title || '',
+    description: o?.description || '',
+    listingType: o?.listingType || 'rent',
+    price: o?.price || '',
+    priceType: o?.priceType || 'monthly',
+    area: o?.area || '',
+    officeType: o?.officeType || 'private',
+    capacity: o?.capacity || '',
+    cabins: o?.cabins || '',
+    workstations: o?.workstations || '',
+    meetingRooms: o?.meetingRooms || '',
+    furnishingStatus: o?.furnishingStatus || 'unfurnished',
+    parkingSpaces: o?.parkingSpaces || '',
+    floor: o?.floor || '',
+    totalFloors: o?.totalFloors || '',
+    country: o?.country || 'India',
+    stateProvince: o?.stateProvince || '',
+    city: o?.city || '',
+    areaName: o?.areaName || '',
+    fullAddress: o?.fullAddress || '',
+    images: Array.isArray(o?.images) ? (o.images as string[]) : ([] as string[]),
+    isActive: o?.isActive !== undefined ? o.isActive : true,
+    isFeatured: o?.isFeatured || false,
   });
+
+  const [formData, setFormData] = useState(getInitialFormData(office));
 
   const [loading, setLoading] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
@@ -70,6 +73,23 @@ export function OfficeSpacesForm({ open, onOpenChange, office, onSuccess }: Offi
     setUserRole(storedUserRole);
   }, []);
 
+  useEffect(() => {
+    if (!open) return;
+    setFormData(getInitialFormData(office));
+  }, [office, open]);
+
+  const uploadFile = async (file: File) => {
+    const fd = new FormData();
+    fd.append('file', file);
+    const res = await fetch('/api/admin/upload', {
+      method: 'POST',
+      body: fd,
+    });
+    if (!res.ok) throw new Error('Upload failed');
+    const data = await res.json();
+    return data.url as string;
+  };
+
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
@@ -79,18 +99,14 @@ export function OfficeSpacesForm({ open, onOpenChange, office, onSuccess }: Offi
       const uploadedUrls: string[] = [];
 
       for (const file of Array.from(files)) {
-        const reader = new FileReader();
-        const base64 = await new Promise<string>((resolve) => {
-          reader.onloadend = () => resolve(reader.result as string);
-          reader.readAsDataURL(file);
-        });
-        uploadedUrls.push(base64);
+        const url = await uploadFile(file);
+        uploadedUrls.push(url);
       }
 
-      setFormData({
-        ...formData,
-        images: [...formData.images, ...uploadedUrls],
-      });
+      setFormData((prev) => ({
+        ...prev,
+        images: [...prev.images, ...uploadedUrls],
+      }));
     } catch (error) {
       console.error("Error uploading images:", error);
     } finally {
@@ -100,10 +116,10 @@ export function OfficeSpacesForm({ open, onOpenChange, office, onSuccess }: Offi
   };
 
   const removeImage = (index: number) => {
-    setFormData({
-      ...formData,
-      images: formData.images.filter((_, i) => i !== index),
-    });
+    setFormData((prev) => ({
+      ...prev,
+      images: prev.images.filter((_img: string, i: number) => i !== index),
+    }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -398,12 +414,12 @@ export function OfficeSpacesForm({ open, onOpenChange, office, onSuccess }: Offi
                 </div>
                 {formData.images.length > 0 && (
                   <div className="grid grid-cols-3 gap-3">
-                    {formData.images.map((image, index) => (
+                    {formData.images.map((image: string, index: number) => (
                       <div key={index} className="relative group">
                         <img 
                           src={image} 
                           alt={`Preview ${index + 1}`}
-                          className="w-full h-24 object-cover rounded-lg border"
+                          className="w-full h-24  rounded-lg border"
                         />
                         <button
                           type="button"

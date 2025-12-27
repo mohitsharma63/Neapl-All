@@ -41,7 +41,7 @@ import {
   Eye,
   Badge as BadgeIcon
 } from "lucide-react";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import Header from "@/components/header";
 import SearchFilters from "@/components/search-filters";
 import FeaturedBanner from "@/components/featured-banner";
@@ -359,6 +359,7 @@ function castToProperty(data: any): Property {
 
 
 export default function Home() {
+  const [, setLocation] = useLocation();
   const [filters, setFilters] = useState<SearchFiltersType>({
     priceType: "rent",
   });
@@ -852,7 +853,7 @@ export default function Home() {
                   {/* Static Skilled Labour tile to match other category tiles */}
                   <button
                     key="skilled-labour"
-                    onClick={() => setActiveCategory(activeCategory === 'skilled-labour' ? '' : 'skilled-labour')}
+                    onClick={() => setLocation('/skilled-labour')}
                     style={{ animationDelay: `${categories.length * 0.05}s` }}
                     className={`flex flex-col items-center justify-center px-8 py-4 min-w-[140px] rounded-xl transition-all duration-500 animate-fade-in-up bg-gray-50/80 hover:bg-gray-100 text-gray-700 hover:shadow-lg hover:scale-105 hover:-translate-y-0.5`}
                   >
@@ -1033,7 +1034,7 @@ export default function Home() {
                   <div className="flex flex-col rounded-xl overflow-hidden shadow-md hover:shadow-lg transition-shadow h-full">
                     <div className="flex-1 bg-gray-100">
                       {card.imageUrl ? (
-                        <img src={card.imageUrl} alt={card.title || 'card image'} className="w-full h-48 object-cover" />
+                        <img src={card.imageUrl} alt={card.title || 'card image'} className="w-full h-48 " />
                       ) : (
                         <div className="w-full h-48 bg-gray-100 flex items-center justify-center">No image</div>
                       )}
@@ -1107,7 +1108,7 @@ export default function Home() {
                           <Link to={`#`} className="flex-1 flex flex-col">
                             <div className="relative h-48 bg-gradient-to-br from-gray-100 to-gray-200 overflow-hidden">
                               {product.images && product.images[0] ? (
-                                <img src={product.images[0]} alt={product.title} className="w-full h-full object-cover group-hover/card:scale-125 transition-transform duration-500" />
+                                <img src={product.images[0]} alt={product.title} className="w-full h-full  group-hover/card:scale-125 transition-transform duration-500" />
                               ) : (
                                 <div className="flex items-center justify-center h-full">
                                   <Shirt className="w-12 h-12 text-gray-300" />
@@ -1168,7 +1169,7 @@ export default function Home() {
                           <Link to={`#`} className="flex-1 flex flex-col">
                             <div className="relative h-48 bg-gradient-to-br from-gray-100 to-gray-200 overflow-hidden">
                               {vehicle.images && vehicle.images[0] ? (
-                                <img src={vehicle.images[0]} alt={vehicle.title} className="w-full h-full object-cover group-hover/card:scale-125 transition-transform duration-500" />
+                                <img src={vehicle.images[0]} alt={vehicle.title} className="w-full h-full  group-hover/card:scale-125 transition-transform duration-500" />
                               ) : (
                                 <div className="flex items-center justify-center h-full">
                                   <Car className="w-12 h-12 text-gray-300" />
@@ -1218,7 +1219,7 @@ export default function Home() {
                             <Card className="overflow-hidden hover:shadow-lg transition-all duration-300 h-full cursor-pointer">
                               <div className="relative h-40 bg-gray-100 flex items-center justify-center overflow-hidden group">
                                 {material.images && material.images[0] ? (
-                                  <img src={material.images[0]} alt={material.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300" />
+                                  <img src={material.images[0]} alt={material.name} className="w-full h-full  group-hover:scale-110 transition-transform duration-300" />
                                 ) : (
                                   <Building className="w-8 h-8 text-gray-400" />
                                 )}
@@ -1266,7 +1267,7 @@ export default function Home() {
                           <Link to={`#`} className="flex-1 flex flex-col">
                             <div className="relative h-48 bg-gradient-to-br from-gray-100 to-gray-200 overflow-hidden">
                               {product.images && product.images[0] ? (
-                                <img src={product.images[0]} alt={product.title} className="w-full h-full object-cover group-hover/card:scale-125 transition-transform duration-500" />
+                                <img src={product.images[0]} alt={product.title} className="w-full h-full  group-hover/card:scale-125 transition-transform duration-500" />
                               ) : (
                                 <div className="flex items-center justify-center h-full">
                                   <Monitor className="w-12 h-12 text-gray-300" />
@@ -1321,7 +1322,7 @@ export default function Home() {
                           <Link to={`#`} className="flex-1 flex flex-col">
                             <div className="relative h-48 bg-gradient-to-br from-gray-100 to-gray-200 overflow-hidden">
                               {product.images && product.images[0] ? (
-                                <img src={product.images[0]} alt={product.title} className="w-full h-full object-cover group-hover/card:scale-125 transition-transform duration-500" />
+                                <img src={product.images[0]} alt={product.title} className="w-full h-full  group-hover/card:scale-125 transition-transform duration-500" />
                               ) : (
                                 <div className="flex items-center justify-center h-full">
                                   <Smartphone className="w-12 h-12 text-gray-300" />
@@ -1376,7 +1377,7 @@ export default function Home() {
                           <Link to={`#`} className="flex-1 flex flex-col">
                             <div className="relative h-48 bg-gradient-to-br from-gray-100 to-gray-200 overflow-hidden">
                               {property.images && property.images[0] ? (
-                                <img src={property.images[0]} alt={property.title} className="w-full h-full object-cover group-hover/card:scale-125 transition-transform duration-500" />
+                                <img src={property.images[0]} alt={property.title} className="w-full h-full  group-hover/card:scale-125 transition-transform duration-500" />
                               ) : (
                                 <div className="flex items-center justify-center h-full">
                                   <Building2 className="w-12 h-12 text-gray-300" />
@@ -1431,7 +1432,7 @@ export default function Home() {
                           <Link to={"#"} className="flex-1 flex flex-col">
                             <div className="relative h-48 bg-gradient-to-br from-gray-100 to-gray-200 overflow-hidden">
                               {product.images && product.images[0] ? (
-                                <img src={product.images[0]} alt={product.title} className="w-full h-full object-cover group-hover/card:scale-125 transition-transform duration-500" />
+                                <img src={product.images[0]} alt={product.title} className="w-full h-full  group-hover/card:scale-125 transition-transform duration-500" />
                               ) : (
                                 <div className="flex items-center justify-center h-full">
                                   <Sofa className="w-12 h-12 text-gray-300" />
@@ -1486,7 +1487,7 @@ export default function Home() {
                           <Link to={`#`} className="flex-1 flex flex-col">
                             <div className="relative h-48 bg-gradient-to-br from-gray-100 to-gray-200 overflow-hidden">
                               {product.images && product.images[0] ? (
-                                <img src={product.images[0]} alt={product.title} className="w-full h-full object-cover group-hover/card:scale-125 transition-transform duration-500" />
+                                <img src={product.images[0]} alt={product.title} className="w-full h-full  group-hover/card:scale-125 transition-transform duration-500" />
                               ) : (
                                 <div className="flex items-center justify-center h-full">
                                   <Sparkles className="w-12 h-12 text-gray-300" />
@@ -1541,7 +1542,7 @@ export default function Home() {
                           <Link to={`#`} className="flex-1 flex flex-col">
                             <div className="relative h-48 bg-gradient-to-br from-gray-100 to-gray-200 overflow-hidden">
                               {course.images && course.images[0] ? (
-                                <img src={course.images[0]} alt={course.title} className="w-full h-full object-cover group-hover/card:scale-125 transition-transform duration-500" />
+                                <img src={course.images[0]} alt={course.title} className="w-full h-full  group-hover/card:scale-125 transition-transform duration-500" />
                               ) : (
                                 <div className="flex items-center justify-center h-full">
                                   <Award className="w-12 h-12 text-gray-300" />
@@ -1596,7 +1597,7 @@ export default function Home() {
                           <Link to={`#`} className="flex-1 flex flex-col">
                             <div className="relative h-48 bg-gradient-to-br from-gray-100 to-gray-200 overflow-hidden">
                               {course.images && course.images[0] ? (
-                                <img src={course.images[0]} alt={course.title} className="w-full h-full object-cover group-hover/card:scale-125 transition-transform duration-500" />
+                                <img src={course.images[0]} alt={course.title} className="w-full h-full  group-hover/card:scale-125 transition-transform duration-500" />
                               ) : (
                                 <div className="flex items-center justify-center h-full">
                                   <GraduationCap className="w-12 h-12 text-gray-300" />
@@ -1651,7 +1652,7 @@ export default function Home() {
                           <Link to={`#`} className="flex-1 flex flex-col">
                             <div className="relative h-48 bg-gradient-to-br from-gray-100 to-gray-200 overflow-hidden">
                               {service.images && service.images[0] ? (
-                                <img src={service.images[0]} alt={service.title} className="w-full h-full object-cover group-hover/card:scale-125 transition-transform duration-500" />
+                                <img src={service.images[0]} alt={service.title} className="w-full h-full  group-hover/card:scale-125 transition-transform duration-500" />
                               ) : (
                                 <div className="flex items-center justify-center h-full">
                                   <Dumbbell className="w-12 h-12 text-gray-300" />
@@ -1706,7 +1707,7 @@ export default function Home() {
                           <Link to={`#`} className="flex-1 flex flex-col">
                             <div className="relative h-48 bg-gradient-to-br from-gray-100 to-gray-200 overflow-hidden">
                               {course.images && course.images[0] ? (
-                                <img src={course.images[0]} alt={course.title} className="w-full h-full object-cover group-hover/card:scale-125 transition-transform duration-500" />
+                                <img src={course.images[0]} alt={course.title} className="w-full h-full  group-hover/card:scale-125 transition-transform duration-500" />
                               ) : (
                                 <div className="flex items-center justify-center h-full">
                                   <Languages className="w-12 h-12 text-gray-300" />
@@ -1761,7 +1762,7 @@ export default function Home() {
                           <Link to={`#`} className="flex-1 flex flex-col">
                             <div className="relative h-48 bg-gradient-to-br from-gray-100 to-gray-200 overflow-hidden">
                               {service.images && service.images[0] ? (
-                                <img src={service.images[0]} alt={service.title} className="w-full h-full object-cover group-hover/card:scale-125 transition-transform duration-500" />
+                                <img src={service.images[0]} alt={service.title} className="w-full h-full  group-hover/card:scale-125 transition-transform duration-500" />
                               ) : (
                                 <div className="flex items-center justify-center h-full">
                                   <Shield className="w-12 h-12 text-gray-300" />
@@ -1816,7 +1817,7 @@ export default function Home() {
                           <Link to={`/household-services/${service.id}`} className="flex-1 flex flex-col">
                             <div className="relative h-48 bg-gradient-to-br from-gray-100 to-gray-200 overflow-hidden">
                               {service.images && service.images[0] ? (
-                                <img src={service.images[0]} alt={service.title} className="w-full h-full object-cover group-hover/card:scale-125 transition-transform duration-500" />
+                                <img src={service.images[0]} alt={service.title} className="w-full h-full  group-hover/card:scale-125 transition-transform duration-500" />
                               ) : (
                                 <div className="flex items-center justify-center h-full">
                                   <HomeIcon className="w-12 h-12 text-gray-300" />
@@ -1871,7 +1872,7 @@ export default function Home() {
                           <Link to={`#`} className="flex-1 flex flex-col">
                             <div className="relative h-48 bg-gradient-to-br from-gray-100 to-gray-200 overflow-hidden">
                               {service.images && service.images[0] ? (
-                                <img src={service.images[0]} alt={service.title} className="w-full h-full object-cover group-hover/card:scale-125 transition-transform duration-500" />
+                                <img src={service.images[0]} alt={service.title} className="w-full h-full  group-hover/card:scale-125 transition-transform duration-500" />
                               ) : (
                                 <div className="flex items-center justify-center h-full">
                                   <Sparkles className="w-12 h-12 text-gray-300" />
@@ -1926,7 +1927,7 @@ export default function Home() {
                           <Link to={`#`} className="flex-1 flex flex-col">
                             <div className="relative h-48 bg-gradient-to-br from-gray-100 to-gray-200 overflow-hidden">
                               {service.images && service.images[0] ? (
-                                <img src={service.images[0]} alt={service.title} className="w-full h-full object-cover group-hover/card:scale-125 transition-transform duration-500" />
+                                <img src={service.images[0]} alt={service.title} className="w-full h-full  group-hover/card:scale-125 transition-transform duration-500" />
                               ) : (
                                 <div className="flex items-center justify-center h-full">
                                   <Laptop className="w-12 h-12 text-gray-300" />
@@ -1981,7 +1982,7 @@ export default function Home() {
                           <Link to={`#`} className="flex-1 flex flex-col">
                             <div className="relative h-48 bg-gradient-to-br from-gray-100 to-gray-200 overflow-hidden">
                               {product.images && product.images[0] ? (
-                                <img src={product.images[0]} alt={product.title} className="w-full h-full object-cover group-hover/card:scale-125 transition-transform duration-500" />
+                                <img src={product.images[0]} alt={product.title} className="w-full h-full  group-hover/card:scale-125 transition-transform duration-500" />
                               ) : (
                                 <div className="flex items-center justify-center h-full">
                                   <Smartphone className="w-12 h-12 text-gray-300" />
@@ -2036,7 +2037,7 @@ export default function Home() {
                           <Link to={`#`} className="flex-1 flex flex-col">
                             <div className="relative h-48 bg-gradient-to-br from-gray-100 to-gray-200 overflow-hidden">
                               {product.images && product.images[0] ? (
-                                <img src={product.images[0]} alt={product.title} className="w-full h-full object-cover group-hover/card:scale-125 transition-transform duration-500" />
+                                <img src={product.images[0]} alt={product.title} className="w-full h-full  group-hover/card:scale-125 transition-transform duration-500" />
                               ) : (
                                 <div className="flex items-center justify-center h-full">
                                   <Shirt className="w-12 h-12 text-gray-300" />
@@ -2091,7 +2092,7 @@ export default function Home() {
                           <Link to={`#`} className="flex-1 flex flex-col">
                             <div className="relative h-48 bg-gradient-to-br from-gray-100 to-gray-200 overflow-hidden">
                               {course.images && course.images[0] ? (
-                                <img src={course.images[0]} alt={course.title} className="w-full h-full object-cover group-hover/card:scale-125 transition-transform duration-500" />
+                                <img src={course.images[0]} alt={course.title} className="w-full h-full  group-hover/card:scale-125 transition-transform duration-500" />
                               ) : (
                                 <div className="flex items-center justify-center h-full">
                                   <BookOpen className="w-12 h-12 text-gray-300" />
@@ -2156,7 +2157,7 @@ export default function Home() {
                   <div className="max-w-[420px] w-full flex flex-col rounded-2xl overflow-hidden shadow-lg hover:shadow-2xl transition-shadow bg-white">
                     <div className="relative w-full h-72 md:h-64 lg:h-72 bg-black flex items-center justify-center group overflow-hidden">
                       <video
-                        className="w-full h-full object-cover rounded-t-2xl"
+                        className="w-full h-full  rounded-t-2xl"
                         preload="metadata"
                         controls
                         playsInline
@@ -2232,7 +2233,7 @@ export default function Home() {
                     <img
                       src={p.coverImageUrl || "https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=400&h=250&fit=crop"}
                       alt={p.title || "Blog post"}
-                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                      className="w-full h-full  group-hover:scale-110 transition-transform duration-300"
                     />
                     <Badge className="absolute top-4 left-4 bg-blue-600">{p.category || 'Blog'}</Badge>
                   </div>
@@ -2260,7 +2261,7 @@ export default function Home() {
                   <img
                     src="https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=400&h=250&fit=crop"
                     alt="Blog post"
-                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                    className="w-full h-full  group-hover:scale-110 transition-transform duration-300"
                   />
                   <Badge className="absolute top-4 left-4 bg-blue-600">Market Trends</Badge>
                 </div>
@@ -2286,7 +2287,7 @@ export default function Home() {
                   <img
                     src="https://images.unsplash.com/photo-1582407947304-fd86f028f716?w=400&h=250&fit=crop"
                     alt="Blog post"
-                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                    className="w-full h-full  group-hover:scale-110 transition-transform duration-300"
                   />
                   <Badge className="absolute top-4 left-4 bg-blue-600">Investment</Badge>
                 </div>
@@ -2312,7 +2313,7 @@ export default function Home() {
                   <img
                     src="https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?w=400&h=250&fit=crop"
                     alt="Blog post"
-                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                    className="w-full h-full  group-hover:scale-110 transition-transform duration-300"
                   />
                   <Badge className="absolute top-4 left-4 bg-blue-600">Property Tips</Badge>
                 </div>
@@ -2361,7 +2362,7 @@ export default function Home() {
                 <img
                   src="https://images.unsplash.com/photo-1450101499163-c8848c66ca85?w=400&h=250&fit=crop"
                   alt="Article"
-                  className="w-full h-full object-cover"
+                  className="w-full h-full "
                 />
               </div>
               <CardContent className="md:col-span-2 p-6">
@@ -2395,7 +2396,7 @@ export default function Home() {
                 <img
                   src="https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=400&h=250&fit=crop"
                   alt="Article"
-                  className="w-full h-full object-cover"
+                  className="w-full h-full "
                 />
                 <Badge className="absolute top-4 left-4 bg-amber-500">Premium</Badge>
               </div>

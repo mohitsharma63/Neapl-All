@@ -757,7 +757,7 @@ export default function SareeClothingShoppingForm(props?: {
                               <img
                                 src={img}
                                 alt={`Product ${idx + 1}`}
-                                className="w-full h-24 object-cover rounded-lg border-2 border-pink-200 hover:border-pink-400 transition-colors"
+                                className="w-full h-24  rounded-lg border-2 border-pink-200 hover:border-pink-400 transition-colors"
                               />
                               <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-30 rounded-lg transition-all flex items-center justify-center">
                                 <Button
@@ -1237,7 +1237,7 @@ export default function SareeClothingShoppingForm(props?: {
               {viewingItem.images && viewingItem.images.length > 0 && (
                 <div className="flex gap-2 overflow-x-auto pb-2">
                   {viewingItem.images.map((img, index) => (
-                    <img key={index} src={img} alt={`Product image ${index + 1}`} className="w-24 h-24 object-cover rounded-md border" />
+                    <img key={index} src={img} alt={`Product image ${index + 1}`} className="w-24 h-24  rounded-md border" />
                   ))}
                 </div>
               )}

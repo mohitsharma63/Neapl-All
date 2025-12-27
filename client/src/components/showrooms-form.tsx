@@ -613,7 +613,7 @@ export function ShowroomsForm() {
                         <div className="mt-2 flex flex-wrap gap-2">
                           {formData.images.map((image, index) => (
                             <div key={index} className="relative group">
-                              <img src={image} alt={`Showroom image ${index + 1}`} className="w-24 h-24 object-cover rounded" />
+                              <img src={image} alt={`Showroom image ${index + 1}`} className="w-24 h-24  rounded" />
                               <Button
                                 variant="destructive"
                                 size="sm"

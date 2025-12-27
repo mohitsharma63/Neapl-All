@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -17,7 +17,7 @@ interface SchoolsCollegesCoachingFormProps {
 }
 
 export default function SchoolsCollegesCoachingForm({ onSuccess, editingInstitution, isDialog }: SchoolsCollegesCoachingFormProps) {
-  const [formData, setFormData] = useState(() => editingInstitution || {
+  const createEmptyFormData = () => ({
     title: "",
     description: "",
     listingType: "school",
@@ -48,14 +48,25 @@ export default function SchoolsCollegesCoachingForm({ onSuccess, editingInstitut
     isFeatured: false,
   });
 
+  const [formData, setFormData] = useState(() => editingInstitution || createEmptyFormData());
+
   const [coursesOffered, setCoursesOffered] = useState<string[]>(editingInstitution?.coursesOffered || []);
   const [newCourse, setNewCourse] = useState("");
   const [examPreparation, setExamPreparation] = useState<string[]>(editingInstitution?.examPreparationFor || []);
   const [newExam, setNewExam] = useState("");
   const [images, setImages] = useState<string[]>(editingInstitution?.images || []);
+  const [uploadingImages, setUploadingImages] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [dragActive, setDragActive] = useState(false);
   const [imageError, setImageError] = useState<string | null>(null);
+
+  useEffect(() => {
+    setFormData(editingInstitution || createEmptyFormData());
+    setCoursesOffered(editingInstitution?.coursesOffered || []);
+    setExamPreparation(editingInstitution?.examPreparationFor || []);
+    setImages(editingInstitution?.images || []);
+    setImageError(null);
+  }, [editingInstitution]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -92,30 +103,50 @@ export default function SchoolsCollegesCoachingForm({ onSuccess, editingInstitut
     }
   };
 
-  const processFiles = (files: FileList | null) => {
+  const uploadMultipleImages = async (fileList: FileList) => {
+    const files = Array.from(fileList);
+    if (files.length === 0) return [] as string[];
+    const fd = new FormData();
+    files.forEach((f) => fd.append('files', f));
+    const res = await fetch('/api/admin/upload-multiple', {
+      method: 'POST',
+      body: fd,
+    });
+    if (!res.ok) throw new Error('Upload failed');
+    const data = await res.json();
+    return (Array.isArray(data?.files) ? data.files.map((f: any) => f?.url).filter(Boolean) : []) as string[];
+  };
+
+  const processFiles = async (files: FileList | null) => {
     if (!files || files.length === 0) return;
     const allowed = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
     const maxSize = 5 * 1024 * 1024;
-    const incoming: Promise<string>[] = [];
     for (let i = 0; i < files.length; i++) {
       const f = files[i];
-      if (!allowed.includes(f.type)) { setImageError('Only JPG, PNG, WEBP and GIF allowed'); continue; }
-      if (f.size > maxSize) { setImageError('Each image must be <= 5MB'); continue; }
-      incoming.push(new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(String(reader.result));
-        reader.onerror = () => reject(new Error('Failed to read file'));
-        reader.readAsDataURL(f);
-      }));
+      if (!allowed.includes(f.type)) {
+        setImageError('Only JPG, PNG, WEBP and GIF allowed');
+        return;
+      }
+      if (f.size > maxSize) {
+        setImageError('Each image must be <= 5MB');
+        return;
+      }
     }
-    if (incoming.length === 0) return;
-    Promise.all(incoming).then((dataUrls) => {
-      setImages(prev => [...prev, ...dataUrls].slice(0, 10));
+
+    try {
+      setUploadingImages(true);
+      const urls = await uploadMultipleImages(files);
+      setImages((prev) => [...prev, ...urls].slice(0, 10));
       setImageError(null);
-    }).catch(e => { console.error(e); setImageError('Failed to process images'); });
+    } catch (e) {
+      console.error(e);
+      setImageError('Failed to upload images');
+    } finally {
+      setUploadingImages(false);
+    }
   };
 
-  const handleDrop = (e: React.DragEvent) => { e.preventDefault(); e.stopPropagation(); setDragActive(false); processFiles(e.dataTransfer.files); };
+  const handleDrop = (e: React.DragEvent) => { e.preventDefault(); e.stopPropagation(); setDragActive(false); void processFiles(e.dataTransfer.files); };
   const handleDragOver = (e: React.DragEvent) => { e.preventDefault(); e.stopPropagation(); setDragActive(true); };
   const handleDragLeave = (e: React.DragEvent) => { e.preventDefault(); e.stopPropagation(); setDragActive(false); };
   const openFileDialog = () => fileInputRef.current?.click();
@@ -199,13 +230,13 @@ export default function SchoolsCollegesCoachingForm({ onSuccess, editingInstitut
             <div onDrop={handleDrop} onDragOver={handleDragOver} onDragLeave={handleDragLeave} className={`mt-2 border-2 rounded-md p-4 flex items-center justify-center ${dragActive ? 'border-blue-400 bg-blue-50' : 'border-dashed border-gray-300'}`}>
               <div className="text-center">
                 <p className="mb-2">Drag & drop images here, or <button type="button" onClick={openFileDialog} className="underline">select images</button></p>
-                <input ref={fileInputRef} type="file" accept="image/*" multiple onChange={(e) => processFiles(e.target.files)} className="hidden" />
+                <input ref={fileInputRef} type="file" accept="image/*" multiple disabled={uploadingImages} onChange={(e) => { void processFiles(e.target.files); if (e.target) e.target.value = ''; }} className="hidden" />
                 {imageError && <p className="text-sm text-red-500">{imageError}</p>}
                 {images.length > 0 && (
                   <div className="mt-3 grid grid-cols-5 gap-2">
                     {images.map((src, idx) => (
                       <div key={idx} className="relative">
-                        <img src={src} alt={`preview-${idx}`} className="w-24 h-24 object-cover rounded" />
+                        <img src={src} alt={`preview-${idx}`} className="w-24 h-24  rounded" />
                         <button type="button" onClick={() => removeImage(idx)} className="absolute top-1 right-1 bg-white rounded-full p-1">✕</button>
                       </div>
                     ))}
@@ -531,20 +562,6 @@ export default function SchoolsCollegesCoachingForm({ onSuccess, editingInstitut
       <div className="flex justify-end gap-4">
         <Button type="submit">{editingInstitution ? 'Update' : 'Create'} Institution</Button>
       </div>
-
-      {isDialog && editingInstitution && (
-        <CardFooter className="flex justify-between">
-          <Button variant="outline" onClick={() => { /* Handle view action */ }}>
-            <Eye className="w-4 h-4 mr-2" /> View
-          </Button>
-          <Button onClick={() => { /* Handle edit action */ }}>
-            <Edit className="w-4 h-4 mr-2" /> Edit
-          </Button>
-          <Button variant="destructive" onClick={() => { /* Handle delete action */ }}>
-            <Trash2 className="w-4 h-4 mr-2" /> Delete
-          </Button>
-        </CardFooter>
-      )}
     </form>
   );
 }

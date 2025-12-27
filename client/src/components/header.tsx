@@ -4,6 +4,7 @@ import { Link, useLocation } from "wouter";
 import { useRef, useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import Logo from '../../../attached_assets/Company Logo.png';
 import { useQuery } from "@tanstack/react-query";
 
@@ -89,6 +90,7 @@ export default function Header() {
   const [showSubcategories, setShowSubcategories] = useState(false);
   const [showCategoriesPanel, setShowCategoriesPanel] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [mobileExpandedCategory, setMobileExpandedCategory] = useState<string>("");
   
 
   const [showSearchPopup, setShowSearchPopup] = useState(false);
@@ -319,7 +321,7 @@ export default function Header() {
   return (
     <>
       {/* Top simple nav - static links */}
-      <div className="bg-white border-b">
+      <div className="bg-white border-b hidden md:block">
         <div className="container mx-auto px-4">
           <div className="flex items-center justify-between py-2">
             {/* Social Media Links - Left Side */}
@@ -719,149 +721,155 @@ export default function Header() {
                   <span className="hidden md:inline text-white">Settings</span>
                 </Link>
 
-              {/* Mobile Menu Button */}
-              <button
-                className="lg:hidden p-2 hover:bg-primary/80 rounded-lg transition-colors"
-                onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-                data-testid="button-mobile-menu"
-              >
-                {isMobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-              </button>
+              {/* Mobile Menu (Drawer) */}
+              <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
+                <SheetTrigger asChild>
+                  <button
+                    className="lg:hidden p-2 hover:bg-primary/80 rounded-lg transition-colors"
+                    data-testid="button-mobile-menu"
+                    aria-label="Open menu"
+                  >
+                    <Menu className="w-5 h-5" />
+                  </button>
+                </SheetTrigger>
+
+                <SheetContent side="left" className="p-0 w-[85vw] sm:max-w-sm overflow-y-auto">
+                  <SheetHeader className="p-4 border-b">
+                    <SheetTitle className="flex items-center gap-3">
+                      <img src={Logo} alt="Jeevika logo" className="w-8 h-8 rounded-lg object-contain" />
+                      <span className="font-bold">JEEVIKA</span>
+                    </SheetTitle>
+                  </SheetHeader>
+
+                  <div className="p-4 space-y-4">
+                    <div className="space-y-2">
+                      <div className="text-xs text-muted-foreground">Search</div>
+                      <div className="relative">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
+                        <Input
+                          value={searchQuery}
+                          onChange={(e) => setSearchQuery(e.target.value)}
+                          placeholder="Search..."
+                          className="pl-10"
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              setIsMobileMenuOpen(false);
+                              setLocation(buildSearchUrl(searchQuery));
+                            }
+                          }}
+                        />
+                      </div>
+                      <Button
+                        className="w-full"
+                        onClick={() => {
+                          setIsMobileMenuOpen(false);
+                          setLocation(buildSearchUrl(searchQuery));
+                        }}
+                      >
+                        Search
+                      </Button>
+                    </div>
+
+                    <div className="space-y-2">
+                      <div className="text-xs text-muted-foreground">Pages</div>
+                      <div className="space-y-1">
+                        {topNav.map((item) => (
+                          <Link
+                            key={item.href}
+                            href={item.href}
+                            className="flex items-center justify-between py-3 px-3 rounded-lg text-gray-700 hover:bg-gray-100 transition-colors"
+                            onClick={() => setIsMobileMenuOpen(false)}
+                          >
+                            <span>{item.label}</span>
+                          </Link>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <div className="text-xs text-muted-foreground">Categories</div>
+                      <div className="space-y-2">
+                        {activeCategories.map((category: any) => {
+                          const Icon = iconMap[category.icon] || Settings;
+                          const subs = (category.subcategories || []).filter((sub: any) => sub.isActive);
+                          const hasSubcategories = subs.length > 0;
+                          const isExpanded = mobileExpandedCategory === category.id;
+
+                          return (
+                            <div key={category.id} className="border rounded-lg overflow-hidden">
+                              <div className="flex items-center gap-2">
+                                <Link
+                                  href={`/category/${category.slug}`}
+                                  className="flex-1 flex items-center gap-3 py-3 px-3 text-gray-700 hover:bg-gray-50 transition-colors"
+                                  onClick={() => setIsMobileMenuOpen(false)}
+                                >
+                                  <Icon className="w-5 h-5" />
+                                  <span className="font-medium">{category.name}</span>
+                                </Link>
+                                {hasSubcategories && (
+                                  <button
+                                    onClick={() => setMobileExpandedCategory(isExpanded ? "" : category.id)}
+                                    className="p-3 hover:bg-gray-50"
+                                    aria-label="Toggle subcategories"
+                                  >
+                                    <ChevronDown className={`w-4 h-4 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
+                                  </button>
+                                )}
+                              </div>
+
+                              {hasSubcategories && isExpanded && (
+                                <div className="border-t bg-gray-50">
+                                  {subs.map((subcategory: any) => (
+                                    <Link
+                                      key={subcategory.id}
+                                      href={`/subcategory/${subcategory.slug}`}
+                                      className="block py-2.5 px-4 text-sm text-gray-700 hover:bg-white transition-colors"
+                                      onClick={() => setIsMobileMenuOpen(false)}
+                                    >
+                                      {subcategory.name}
+                                    </Link>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    <div className="pt-2 border-t space-y-2">
+                      <Link
+                        href="/wishlist"
+                        className="flex items-center gap-3 py-3 px-3 rounded-lg text-gray-700 hover:bg-gray-100 transition-colors"
+                        onClick={() => setIsMobileMenuOpen(false)}
+                      >
+                        <Heart className="w-5 h-5" />
+                        <span>Wishlist</span>
+                      </Link>
+                      <Link
+                        href="/profile"
+                        className="flex items-center gap-3 py-3 px-3 rounded-lg text-gray-700 hover:bg-gray-100 transition-colors"
+                        onClick={() => setIsMobileMenuOpen(false)}
+                      >
+                        <User className="w-5 h-5" />
+                        <span>Profile</span>
+                      </Link>
+                      <Link
+                        href="/settings"
+                        className="flex items-center gap-3 py-3 px-3 rounded-lg text-gray-700 hover:bg-gray-100 transition-colors"
+                        onClick={() => setIsMobileMenuOpen(false)}
+                      >
+                        <Settings className="w-5 h-5" />
+                        <span>Settings</span>
+                      </Link>
+                    </div>
+                  </div>
+                </SheetContent>
+              </Sheet>
             </div>
           </div>
         </div>
       </header>
-
-      {/* Mobile Menu Overlay */}
-      {isMobileMenuOpen && (
-        <div className="lg:hidden fixed inset-0 z-40 bg-black/50" onClick={() => setIsMobileMenuOpen(false)} data-testid="mobile-menu-overlay">
-          <div className="fixed top-16 left-0 right-0 bg-white shadow-lg max-h-[80vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
-            <nav className="container mx-auto px-4 py-6" data-testid="nav-mobile">
-              <div className="space-y-2">
-                    {/* Top static pages for mobile */}
-                    {topNav.map((item) => (
-                      <Link
-                        key={item.href}
-                        href={item.href}
-                        className={`flex items-center gap-3 py-3 px-4 rounded-lg ${
-                          item.isActive ? 'text-primary-foreground' : 'text-gray-700 hover:bg-gray-100'
-                        }`}
-                        onClick={() => setIsMobileMenuOpen(false)}
-                        data-testid={`mobile-top-${item.label.toLowerCase().replace(/\s+/g, '-')}`}
-                      >
-                        {item.label}
-                      </Link>
-                    ))}
-
-                    {/* Categories */}
-                    {activeCategories.map((category: any) => {
-                  const Icon = iconMap[category.icon] || Settings;
-                  const hasSubcategories = category.subcategories && category.subcategories.filter((sub: any) => sub.isActive).length > 0;
-                  const isExpanded = activeCategory === category.id;
-
-                  return (
-                    <div key={category.id}>
-                      <div className="flex items-center gap-2">
-                        <Link
-                          href={`/category/${category.slug}`}
-                          className={`flex-1 flex items-center gap-3 py-3 px-4 rounded-lg transition-colors ${
-                            location === `/category/${category.slug}`
-                              ? "text-primary-foreground"
-                              : "text-gray-700 hover:bg-gray-100"
-                          }`}
-                          style={{
-                            backgroundColor: location === `/category/${category.slug}` ? category.color : 'transparent'
-                          }}
-                          onClick={() => setIsMobileMenuOpen(false)}
-                          data-testid={`mobile-link-${category.name.toLowerCase()}`}
-                        >
-                          <Icon className="w-5 h-5" />
-                          <span className="font-medium">{category.name}</span>
-                        </Link>
-                        {hasSubcategories && (
-                          <button
-                            onClick={() => setActiveCategory(isExpanded ? "" : category.id)}
-                            className="p-2 hover:bg-gray-100 rounded-lg"
-                          >
-                            <ChevronDown className={`w-4 h-4 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
-                          </button>
-                        )}
-                      </div>
-
-                      {/* Subcategories */}
-                      {hasSubcategories && isExpanded && (
-                        <div className="ml-8 mt-2 space-y-1">
-                          {category.subcategories
-                            .filter((sub: any) => sub.isActive)
-                              .map((subcategory: any) => {
-                                const SubIcon = iconMap[category.icon] || Settings;
-                              return (
-                                <Link
-                                  key={subcategory.id}
-                                  href={`/subcategory/${subcategory.slug}`}
-                                  className="flex items-center gap-3 py-2 px-3 rounded-lg hover:bg-gray-50 transition-colors"
-                                  onClick={() => setIsMobileMenuOpen(false)}
-                                >
-                                  <div
-                                    className="p-1.5 rounded-lg"
-                                    style={{ backgroundColor: `${category.color}15` }}
-                                  >
-                                    <SubIcon className="w-4 h-4" style={{ color: category.color }} />
-                                  </div>
-                                  <span className="text-sm text-gray-700">{subcategory.name}</span>
-                                </Link>
-                              );
-                            })}
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-
-                <hr className="my-4" />
-                <Link
-                  href="#"
-                  className="flex items-center gap-3 py-3 px-4 rounded-lg text-gray-700 hover:bg-gray-100 transition-colors"
-                  onClick={() => setIsMobileMenuOpen(false)}
-                  data-testid="mobile-link-favorites"
-                >
-                  <Heart className="w-5 h-5" />
-                  <span>Favorites</span>
-                </Link>
-                <Link
-                  href="/profile"
-                  className="flex items-center gap-3 py-3 px-4 rounded-lg text-gray-700 hover:bg-gray-100 transition-colors"
-                  onClick={() => setIsMobileMenuOpen(false)}
-                  data-testid="mobile-link-profile"
-                >
-                  {(() => {
-                    const storedUser = localStorage.getItem("user");
-                    const user = storedUser ? JSON.parse(storedUser) : null;
-                    const initial = user?.firstName?.[0] || user?.username?.[0] || 'U';
-
-                    return (
-                      <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-500 rounded-full flex items-center justify-center text-white font-semibold">
-                        {initial.toUpperCase()}
-                      </div>
-                    );
-                  })()}
-                  <span>Profile</span>
-                </Link>
-                  <Link
-                    href="/settings"
-                    className="flex items-center gap-3 py-3 px-4 rounded-lg text-gray-700 hover:bg-gray-100 transition-colors"
-                    onClick={() => setIsMobileMenuOpen(false)}
-                    data-testid="mobile-link-settings"
-                  >
-                    <Settings className="w-5 h-5" />
-                    <span>Settings</span>
-
-                  </Link>
-              </div>
-            </nav>
-          </div>
-        </div>
-      )}
     </>
   );
 }

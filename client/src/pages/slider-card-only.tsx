@@ -46,7 +46,7 @@ export default function SliderCardOnlyPage() {
           {items.map((c) => (
             <div key={c.id} className="border rounded-xl overflow-hidden shadow-sm bg-white">
               {c.imageUrl ? (
-                <img src={c.imageUrl} alt={c.title || 'slider card'} className="w-full h-40 object-cover" />
+                <img src={c.imageUrl} alt={c.title || 'slider card'} className="w-full h-40 " />
               ) : (
                 <div className="w-full h-40 bg-gray-100 flex items-center justify-center">No image</div>
               )}

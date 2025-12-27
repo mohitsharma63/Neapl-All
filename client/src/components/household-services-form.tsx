@@ -393,7 +393,7 @@ export default function HouseholdServicesForm({ onSuccess, editingService }: Hou
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
                 {form.watch("images").map((img: string, idx: number) => (
                   <div key={idx} className="relative">
-                    <img src={img} alt={`Upload ${idx + 1}`} className="w-full h-24 object-cover rounded" />
+                    <img src={img} alt={`Upload ${idx + 1}`} className="w-full h-24  rounded" />
                     <Button
                       type="button"
                       variant="destructive"

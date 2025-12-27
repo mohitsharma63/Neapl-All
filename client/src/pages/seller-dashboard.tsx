@@ -867,7 +867,7 @@ function FashionBeautyProductsSection() {
                   <h3 className="font-semibold mb-2">Product Images</h3>
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                     {viewingProduct.images.map((img: string, idx: number) => (
-                      <img key={idx} src={img} alt={`Product ${idx + 1}`} className="w-full h-32 object-cover rounded-lg border-2 border-pink-200" />
+                      <img key={idx} src={img} alt={`Product ${idx + 1}`} className="w-full h-32  rounded-lg border-2 border-pink-200" />
                     ))}
                   </div>
                 </div>
@@ -1294,7 +1294,7 @@ function SareeClothingShoppingSection() {
                   <h3 className="font-semibold mb-2">Product Images</h3>
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                     {viewingProduct.images.map((img: string, idx: number) => (
-                      <img key={idx} src={img} alt={`Product ${idx + 1}`} className="w-full h-32 object-cover rounded-lg border-2 border-pink-200" />
+                      <img key={idx} src={img} alt={`Product ${idx + 1}`} className="w-full h-32  rounded-lg border-2 border-pink-200" />
                     ))}
                   </div>
                 </div>
@@ -3108,7 +3108,6 @@ function AppSidebar({ activeSection, setActiveSection }: { activeSection: string
           <div role="menu" aria-label="Profile menu" className="absolute right-0 bottom-14 w-48 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md shadow-lg z-20">
             <div className="py-1">
               <button role="menuitem" onClick={() => { window.location.href = '/profile'; }} className="w-full text-left px-3 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700">Profile</button>
-              <button role="menuitem" onClick={() => { window.location.href = '/settings'; }} className="w-full text-left px-3 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700">Settings</button>
               <div className="border-t border-gray-100 dark:border-gray-700 my-1" />
               <button role="menuitem" onClick={handleLogout} className="w-full text-left px-3 py-2 text-sm text-red-600 hover:bg-gray-100 dark:hover:bg-gray-700">Logout</button>
             </div>
@@ -4587,7 +4586,7 @@ function HostelsPgSection() {
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                     {viewingHostel.images.map((image: string, idx: number) => (
                       <div key={idx} className="aspect-video bg-muted rounded-lg overflow-hidden">
-                        <img src={image} alt={`Hostel ${idx + 1}`} className="w-full h-full object-cover" />
+                        <img src={image} alt={`Hostel ${idx + 1}`} className="w-full h-full " />
                       </div>
                     ))}
                   </div>
@@ -4870,7 +4869,7 @@ function ConstructionMaterialsSection() {
                   <h3 className="font-semibold mb-2">Images ({viewingMaterial.images.length})</h3>
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                     {viewingMaterial.images.map((image: string, idx: number) => (
-                      <img key={idx} src={image} alt={`Material ${idx + 1}`} className="w-full h-32 object-cover rounded-lg" />
+                      <img key={idx} src={image} alt={`Material ${idx + 1}`} className="w-full h-32  rounded-lg" />
                     ))}
                   </div>
                 </div>
@@ -5534,7 +5533,7 @@ function OfficeSpacesSection() {
           <h2 className="text-2xl font-bold">Company Office Spaces</h2>
           <p className="text-muted-foreground">Manage office space listings</p>
         </div>
-        <Button onClick={() => setShowForm(true)}>
+        <Button onClick={() => { setEditingOffice(null); setShowForm(true); }}>
           <Plus className="w-4 h-4 mr-2" />
           Add Office Space
         </Button>
@@ -5543,8 +5542,11 @@ function OfficeSpacesSection() {
       {showForm && (
         <OfficeSpacesForm
           open={showForm}
-          onOpenChange={setShowForm}
-          property={editingOffice}
+          onOpenChange={(open) => {
+            setShowForm(open);
+            if (!open) setEditingOffice(null);
+          }}
+          office={editingOffice}
           onSuccess={handleSuccess}
         />
       )}
@@ -5630,7 +5632,7 @@ function OfficeSpacesSection() {
             <Building className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
             <h3 className="text-lg font-semibold mb-2">No Office Spaces Found</h3>
             <p className="text-muted-foreground mb-4">Start by adding your first office space listing</p>
-            <Button onClick={() => setShowForm(true)}>
+            <Button onClick={() => { setEditingOffice(null); setShowForm(true); }}>
               <Plus className="w-4 h-4 mr-2" />
               Add Office Space
             </Button>
@@ -7476,6 +7478,9 @@ function AcademiesMusicArtsSportsSection() {
 function SkillTrainingCertificationSection() {
   const [trainings, setTrainings] = useState<any[]>([]);
   const [showForm, setShowForm] = useState(false);
+  const [editingTraining, setEditingTraining] = useState<any>(null);
+  const [viewingTraining, setViewingTraining] = useState<any>(null);
+  const [showDetailsDialog, setShowDetailsDialog] = useState(false);
 
   useEffect(() => {
     fetchTrainings();
@@ -7494,7 +7499,13 @@ function SkillTrainingCertificationSection() {
 
   const handleSuccess = () => {
     setShowForm(false);
+    setEditingTraining(null);
     fetchTrainings();
+  };
+
+  const handleViewDetails = (training: any) => {
+    setViewingTraining(training);
+    setShowDetailsDialog(true);
   };
 
   const handleDelete = async (id: string) => {
@@ -7511,30 +7522,9 @@ function SkillTrainingCertificationSection() {
     }
   };
 
-  const toggleActive = async (id: string) => {
-    try {
-      const response = await fetch(`/api/admin/skill-training-certification/${id}/toggle-active`, {
-        method: 'PATCH',
-      });
-      if (response.ok) {
-        fetchTrainings();
-      }
-    } catch (error) {
-      console.error('Error toggling active status:', error);
-    }
-  };
-
-  const toggleFeatured = async (id: string) => {
-    try {
-      const response = await fetch(`/api/admin/skill-training-certification/${id}/toggle-featured`, {
-        method: 'PATCH',
-      });
-      if (response.ok) {
-        fetchTrainings();
-      }
-    } catch (error) {
-      console.error('Error toggling featured status:', error);
-    }
+  const handleEdit = (training: any) => {
+    setEditingTraining(training);
+    setShowForm(true);
   };
 
   return (
@@ -7544,19 +7534,82 @@ function SkillTrainingCertificationSection() {
           <h2 className="text-2xl font-bold">Skill Training & Certification</h2>
           <p className="text-muted-foreground">Manage skill training and certification programs</p>
         </div>
-        <Button onClick={() => setShowForm(true)}>
+        <Button onClick={() => { setEditingTraining(null); setShowForm(true); }}>
           <Plus className="w-4 h-4 mr-2" />
           Add Training Program
         </Button>
       </div>
 
-      <Dialog open={showForm} onOpenChange={setShowForm}>
+      <Dialog
+        open={showForm}
+        onOpenChange={(open) => {
+          setShowForm(open);
+          if (!open) setEditingTraining(null);
+        }}
+      >
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-visible">
           <DialogHeader>
-            <DialogTitle>Add New Training Program</DialogTitle>
-            <DialogDescription>Fill in the details to create a new skill training & certification program</DialogDescription>
+            <DialogTitle>{editingTraining ? 'Edit Training Program' : 'Add New Training Program'}</DialogTitle>
+            <DialogDescription>
+              Fill in the details to {editingTraining ? 'update' : 'create'} a skill training & certification program
+            </DialogDescription>
           </DialogHeader>
-          <SkillTrainingCertificationForm onSuccess={handleSuccess} editingTraining={null} />
+          <SkillTrainingCertificationForm onSuccess={handleSuccess} editingTraining={editingTraining} />
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showDetailsDialog} onOpenChange={setShowDetailsDialog}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-visible">
+          <DialogHeader>
+            <DialogTitle className="text-2xl">{viewingTraining?.title}</DialogTitle>
+            <DialogDescription>Complete training program details</DialogDescription>
+          </DialogHeader>
+          {viewingTraining && (
+            <div className="space-y-4">
+              <div className="flex gap-2 flex-wrap">
+                {viewingTraining.skillCategory && <Badge variant="secondary">{viewingTraining.skillCategory}</Badge>}
+                {viewingTraining.trainingType && <Badge variant="outline">{viewingTraining.trainingType}</Badge>}
+                {viewingTraining.isFeatured && <Badge className="bg-yellow-500">Featured</Badge>}
+              </div>
+              {viewingTraining.description && (
+                <div>
+                  <p className="text-muted-foreground whitespace-pre-wrap">{viewingTraining.description}</p>
+                </div>
+              )}
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                {viewingTraining.instituteName && (
+                  <div>
+                    <span className="font-medium">Institute:</span>
+                    <span className="ml-2 text-muted-foreground">{viewingTraining.instituteName}</span>
+                  </div>
+                )}
+                {viewingTraining.totalFee && (
+                  <div>
+                    <span className="font-medium">Total Fee:</span>
+                    <span className="ml-2 text-muted-foreground">₹{viewingTraining.totalFee}</span>
+                  </div>
+                )}
+                {(viewingTraining.city || viewingTraining.stateProvince) && (
+                  <div>
+                    <span className="font-medium">Location:</span>
+                    <span className="ml-2 text-muted-foreground">{[viewingTraining.city, viewingTraining.stateProvince].filter(Boolean).join(', ')}</span>
+                  </div>
+                )}
+                {viewingTraining.contactPhone && (
+                  <div>
+                    <span className="font-medium">Phone:</span>
+                    <span className="ml-2 text-muted-foreground">{viewingTraining.contactPhone}</span>
+                  </div>
+                )}
+                {viewingTraining.contactEmail && (
+                  <div>
+                    <span className="font-medium">Email:</span>
+                    <span className="ml-2 text-muted-foreground">{viewingTraining.contactEmail}</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
 
@@ -7574,6 +7627,23 @@ function SkillTrainingCertificationSection() {
                   </div>
                 </div>
                 <div className="flex gap-1">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8"
+                    onClick={() => handleViewDetails(training)}
+                  >
+                    <Eye className="w-4 h-4" />
+                  </Button>
+
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8"
+                    onClick={() => { setEditingTraining(training); setShowForm(true); }}
+                  >
+                    <Pencil className="w-4 h-4" />
+                  </Button>
                   <Button
                     variant="ghost"
                     size="icon"
@@ -7598,6 +7668,7 @@ function SkillTrainingCertificationSection() {
                 </div>
               </div>
             </CardContent>
+
             <CardFooter className="pt-0 flex gap-2">
               <Button
                 variant={training.isActive ? "outline" : "default"}
@@ -7626,7 +7697,7 @@ function SkillTrainingCertificationSection() {
             <Building className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
             <h3 className="text-lg font-semibold mb-2">No Training Programs Found</h3>
             <p className="text-muted-foreground mb-4">Start by adding your first skill training program</p>
-            <Button onClick={() => setShowForm(true)}>
+            <Button onClick={() => { setEditingTraining(null); setShowForm(true); }}>
               <Plus className="w-4 h-4 mr-2" />
               Add Training Program
             </Button>
@@ -7641,6 +7712,9 @@ function SkillTrainingCertificationSection() {
 function SchoolsCollegesCoachingSection() {
   const [institutions, setInstitutions] = useState<any[]>([]);
   const [showForm, setShowForm] = useState(false);
+  const [editingInstitution, setEditingInstitution] = useState<any>(null);
+  const [viewingInstitution, setViewingInstitution] = useState<any>(null);
+  const [showDetailsDialog, setShowDetailsDialog] = useState(false);
 
   useEffect(() => {
     fetchInstitutions();
@@ -7659,7 +7733,13 @@ function SchoolsCollegesCoachingSection() {
 
   const handleSuccess = () => {
     setShowForm(false);
+    setEditingInstitution(null);
     fetchInstitutions();
+  };
+
+  const handleViewDetails = (institution: any) => {
+    setViewingInstitution(institution);
+    setShowDetailsDialog(true);
   };
 
   const handleDelete = async (id: string) => {
@@ -7676,30 +7756,9 @@ function SchoolsCollegesCoachingSection() {
     }
   };
 
-  const toggleActive = async (id: string) => {
-    try {
-      const response = await fetch(`/api/admin/schools-colleges-coaching/${id}/toggle-active`, {
-        method: 'PATCH',
-      });
-      if (response.ok) {
-        fetchInstitutions();
-      }
-    } catch (error) {
-      console.error('Error toggling active status:', error);
-    }
-  };
-
-  const toggleFeatured = async (id: string) => {
-    try {
-      const response = await fetch(`/api/admin/schools-colleges-coaching/${id}/toggle-featured`, {
-        method: 'PATCH',
-      });
-      if (response.ok) {
-        fetchInstitutions();
-      }
-    } catch (error) {
-      console.error('Error toggling featured status:', error);
-    }
+  const handleEdit = (institution: any) => {
+    setEditingInstitution(institution);
+    setShowForm(true);
   };
 
   return (
@@ -7709,19 +7768,88 @@ function SchoolsCollegesCoachingSection() {
           <h2 className="text-2xl font-bold">Schools, Colleges & Coaching Institutes</h2>
           <p className="text-muted-foreground">Manage educational institution listings</p>
         </div>
-        <Button onClick={() => setShowForm(true)}>
+        <Button onClick={() => { setEditingInstitution(null); setShowForm(true); }}>
           <Plus className="w-4 h-4 mr-2" />
           Add Institution
         </Button>
       </div>
 
-      <Dialog open={showForm} onOpenChange={setShowForm}>
+      <Dialog
+        open={showForm}
+        onOpenChange={(open) => {
+          setShowForm(open);
+          if (!open) setEditingInstitution(null);
+        }}
+      >
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-visible">
           <DialogHeader>
-            <DialogTitle>Add New Educational Institution</DialogTitle>
-            <DialogDescription>Fill in the details to create a new institution listing</DialogDescription>
+            <DialogTitle>{editingInstitution ? 'Edit Institution' : 'Add New Educational Institution'}</DialogTitle>
+            <DialogDescription>
+              Fill in the details to {editingInstitution ? 'update' : 'create'} a new institution listing
+            </DialogDescription>
           </DialogHeader>
-          <SchoolsCollegesCoachingForm onSuccess={handleSuccess} />
+          <SchoolsCollegesCoachingForm onSuccess={handleSuccess} editingInstitution={editingInstitution} />
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showDetailsDialog} onOpenChange={setShowDetailsDialog}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-visible">
+          <DialogHeader>
+            <DialogTitle className="text-2xl">{viewingInstitution?.institutionName}</DialogTitle>
+            <DialogDescription>Complete institution details</DialogDescription>
+          </DialogHeader>
+          {viewingInstitution && (
+            <div className="space-y-4">
+              <div className="flex gap-2 flex-wrap">
+                {viewingInstitution.listingType && <Badge variant="secondary">{viewingInstitution.listingType}</Badge>}
+                {viewingInstitution.institutionType && <Badge variant="outline">{viewingInstitution.institutionType}</Badge>}
+                {viewingInstitution.isFeatured && <Badge className="bg-yellow-500">Featured</Badge>}
+              </div>
+              {viewingInstitution.description && (
+                <div>
+                  <p className="text-muted-foreground whitespace-pre-wrap">{viewingInstitution.description}</p>
+                </div>
+              )}
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                {viewingInstitution.title && (
+                  <div>
+                    <span className="font-medium">Title:</span>
+                    <span className="ml-2 text-muted-foreground">{viewingInstitution.title}</span>
+                  </div>
+                )}
+                {viewingInstitution.city && (
+                  <div>
+                    <span className="font-medium">City:</span>
+                    <span className="ml-2 text-muted-foreground">{viewingInstitution.city}</span>
+                  </div>
+                )}
+                {viewingInstitution.fullAddress && (
+                  <div className="col-span-2">
+                    <span className="font-medium">Address:</span>
+                    <span className="ml-2 text-muted-foreground">{viewingInstitution.fullAddress}</span>
+                  </div>
+                )}
+                {viewingInstitution.contactPerson && (
+                  <div>
+                    <span className="font-medium">Contact:</span>
+                    <span className="ml-2 text-muted-foreground">{viewingInstitution.contactPerson}</span>
+                  </div>
+                )}
+                {viewingInstitution.contactPhone && (
+                  <div>
+                    <span className="font-medium">Phone:</span>
+                    <span className="ml-2 text-muted-foreground">{viewingInstitution.contactPhone}</span>
+                  </div>
+                )}
+                {viewingInstitution.contactEmail && (
+                  <div>
+                    <span className="font-medium">Email:</span>
+                    <span className="ml-2 text-muted-foreground">{viewingInstitution.contactEmail}</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
 
@@ -7739,6 +7867,23 @@ function SchoolsCollegesCoachingSection() {
                   </div>
                 </div>
                 <div className="flex gap-1">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8"
+                    onClick={() => handleViewDetails(institution)}
+                  >
+                    <Eye className="w-4 h-4" />
+                  </Button>
+
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8"
+                    onClick={() => { setEditingInstitution(institution); setShowForm(true); }}
+                  >
+                    <Pencil className="w-4 h-4" />
+                  </Button>
                   <Button
                     variant="ghost"
                     size="icon"
@@ -7771,6 +7916,7 @@ function SchoolsCollegesCoachingSection() {
                 )}
               </div>
             </CardContent>
+
             <CardFooter className="pt-0 flex gap-2">
               <Button
                 variant={institution.isActive ? "outline" : "default"}
@@ -7799,7 +7945,7 @@ function SchoolsCollegesCoachingSection() {
             <Building className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
             <h3 className="text-lg font-semibold mb-2">No Institutions Found</h3>
             <p className="text-muted-foreground mb-4">Start by adding your first educational institution</p>
-            <Button onClick={() => setShowForm(true)}>
+            <Button onClick={() => { setEditingInstitution(null); setShowForm(true); }}>
               <Plus className="w-4 h-4 mr-2" />
               Add Institution
             </Button>
@@ -7810,7 +7956,7 @@ function SchoolsCollegesCoachingSection() {
   );
 }
 
-// Cars & Bikes Section Component
+// ... (rest of the code remains the same)
 function CarsBikesSection() {
   return (
     <div className="space-y-6">

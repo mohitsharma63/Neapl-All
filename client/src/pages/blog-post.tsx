@@ -56,7 +56,7 @@ export default function BlogPost() {
 
           {post.coverImageUrl && (
             <div className="mb-6">
-              <img src={post.coverImageUrl} alt={post.title} className="w-full h-[420px] object-cover rounded-lg" />
+              <img src={post.coverImageUrl} alt={post.title} className="w-full h-[420px]  rounded-lg" />
             </div>
           )}
 
