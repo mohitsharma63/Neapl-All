@@ -27,7 +27,8 @@ export default function EbooksOnlineCoursesForm() {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [dragActive, setDragActive] = useState(false);
   const [imageError, setImageError] = useState<string | null>(null);
-  
+  const [uploadingImages, setUploadingImages] = useState(false);
+
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { register, handleSubmit, reset, setValue, watch } = useForm();
@@ -110,9 +111,13 @@ export default function EbooksOnlineCoursesForm() {
     setTopicsCovered([]);
     setLearningOutcomes([]);
     setPrerequisites([]);
+    setImages([]);
+    setImageError(null);
+    setUploadingImages(false);
     setNewTopic("");
     setNewOutcome("");
     setNewPrerequisite("");
+    if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
   const onSubmit = (data: any) => {
@@ -161,23 +166,53 @@ export default function EbooksOnlineCoursesForm() {
     if (!files || files.length === 0) return;
     const allowed = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
     const maxSize = 5 * 1024 * 1024;
-    const incoming: Promise<string>[] = [];
     for (let i = 0; i < files.length; i++) {
       const f = files[i];
-      if (!allowed.includes(f.type)) { setImageError('Only JPG, PNG, WEBP and GIF allowed'); continue; }
-      if (f.size > maxSize) { setImageError('Each image must be <= 5MB'); continue; }
-      incoming.push(new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(String(reader.result));
-        reader.onerror = () => reject(new Error('Failed to read file'));
-        reader.readAsDataURL(f);
-      }));
+      if (!allowed.includes(f.type)) {
+        setImageError('Only JPG, PNG, WEBP and GIF allowed');
+        if (fileInputRef.current) fileInputRef.current.value = "";
+        return;
+      }
+      if (f.size > maxSize) {
+        setImageError('Each image must be <= 5MB');
+        if (fileInputRef.current) fileInputRef.current.value = "";
+        return;
+      }
     }
-    if (incoming.length === 0) return;
-    Promise.all(incoming).then((dataUrls) => {
-      setImages(prev => [...prev, ...dataUrls].slice(0, 10));
-      setImageError(null);
-    }).catch(e => { console.error(e); setImageError('Failed to process images'); });
+
+    const remaining = 10 - images.length;
+    if (remaining <= 0) {
+      setImageError('Maximum 10 images allowed');
+      if (fileInputRef.current) fileInputRef.current.value = "";
+      return;
+    }
+
+    const picked = Array.from(files).slice(0, remaining);
+    void (async () => {
+      try {
+        setUploadingImages(true);
+        const fd = new FormData();
+        picked.forEach((f) => fd.append('files', f));
+        const res = await fetch('/api/admin/upload-multiple', {
+          method: 'POST',
+          body: fd,
+        });
+        const json = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error((json as any)?.message || 'Failed to upload images');
+        const urls: string[] = Array.isArray((json as any)?.files)
+          ? (json as any).files.map((f: any) => f?.url).filter((u: any) => typeof u === 'string')
+          : [];
+        if (urls.length === 0) throw new Error('Failed to upload images');
+        setImages((prev) => [...prev, ...urls].slice(0, 10));
+        setImageError(null);
+      } catch (e: any) {
+        console.error(e);
+        setImageError(e?.message || 'Failed to upload images');
+      } finally {
+        setUploadingImages(false);
+        if (fileInputRef.current) fileInputRef.current.value = "";
+      }
+    })();
   };
 
   const handleDrop = (e: React.DragEvent) => { e.preventDefault(); e.stopPropagation(); setDragActive(false); processFiles(e.dataTransfer.files); };
@@ -224,7 +259,8 @@ export default function EbooksOnlineCoursesForm() {
                   <div onDrop={handleDrop} onDragOver={handleDragOver} onDragLeave={handleDragLeave} className={`mt-2 border-2 rounded-md p-4 flex items-center justify-center ${dragActive ? 'border-blue-400 bg-blue-50' : 'border-dashed border-gray-300'}`}>
                     <div className="text-center">
                       <p className="mb-2">Drag & drop images here, or <button type="button" onClick={openFileDialog} className="underline">select images</button></p>
-                      <input ref={fileInputRef} type="file" accept="image/*" multiple onChange={(e) => processFiles(e.target.files)} className="hidden" />
+                      <input ref={fileInputRef} type="file" accept="image/*" multiple disabled={uploadingImages} onChange={(e) => processFiles(e.target.files)} className="hidden" />
+                      {uploadingImages && <p className="text-sm text-muted-foreground">Uploading...</p>}
                       {imageError && <p className="text-sm text-red-500">{imageError}</p>}
                       {images.length > 0 && (
                         <div className="mt-3 grid grid-cols-5 gap-2">

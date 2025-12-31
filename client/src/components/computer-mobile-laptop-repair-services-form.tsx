@@ -224,10 +224,6 @@ export default function  ComputerMobileLaptopRepairServicesForm() {
   const removeImage = (idx: number) => setImages((prev) => prev.filter((_, i) => i !== idx));
 
   const onSubmit = (data: RepairServiceFormData) => {
-    if (images.length === 0) {
-      toast({ title: "Error", description: "At least one image is required", variant: "destructive" });
-      return;
-    }
     const payload: RepairServiceFormData = { ...data, images };
     if (editingService) {
       updateMutation.mutate({ id: editingService.id, data: payload });
@@ -311,47 +307,6 @@ export default function  ComputerMobileLaptopRepairServicesForm() {
                       </Button>
                     </div>
                   </div>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle>Images</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept="image/*"
-                    multiple
-                    className="hidden"
-                    onChange={(e) => void processFiles(e.target.files)}
-                  />
-
-                  <Button type="button" variant="outline" onClick={() => fileInputRef.current?.click()} disabled={uploadingImages}>
-                    {uploadingImages ? "Uploading..." : "Upload Images"}
-                  </Button>
-
-                  {imageError && <div className="text-sm text-destructive">{imageError}</div>}
-
-                  {images.length > 0 && (
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                      {images.map((img, idx) => (
-                        <div key={idx} className="relative">
-                          <img src={img} alt={`repair-upload-${idx}`} className="w-full h-24  rounded" />
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon"
-                            className="absolute top-1 right-1 h-6 w-6 bg-black/50 hover:bg-black/60 text-white"
-                            onClick={() => removeImage(idx)}
-                          >
-                            <X className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      ))}
-                    </div>
-                  )}
                 </CardContent>
               </Card>
             </Fragment>
@@ -614,6 +569,54 @@ export default function  ComputerMobileLaptopRepairServicesForm() {
                     <Label htmlFor="available24_7">Available 24/7</Label>
                   </div>
                 </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Images</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <div className="flex items-end justify-between gap-4">
+                    <div className="space-y-2 flex-1">
+                      <Label>Upload Images (max 10)</Label>
+                      <Input
+                        type="file"
+                        accept="image/*"
+                        multiple
+                        ref={fileInputRef}
+                        disabled={uploadingImages}
+                        onChange={(e) => processFiles(e.target.files)}
+                      />
+                    </div>
+                    <div className="text-sm text-muted-foreground whitespace-nowrap">
+                      {images.length}/10
+                    </div>
+                  </div>
+
+                  {uploadingImages && <div className="text-sm text-muted-foreground">Uploading...</div>}
+                  {imageError && <div className="text-sm text-red-600">{imageError}</div>}
+                </div>
+
+                {images.length > 0 && (
+                  <div className="grid grid-cols-5 gap-3">
+                    {images.map((url, idx) => (
+                      <div key={`${url}-${idx}`} className="relative">
+                        <img src={url} alt={`Repair service image ${idx + 1}`} className="h-20 w-full rounded-md border object-cover" />
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="absolute right-1 top-1 bg-white/80 hover:bg-white"
+                          onClick={() => removeImage(idx)}
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </CardContent>
             </Card>
 

@@ -199,7 +199,11 @@ export default function SareeClothingShoppingForm(props?: {
   const { editingItem: externalEditingItem, onSuccess: externalOnSuccess, open: externalOpen, onOpenChange } = props || {};
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const [showForm, setShowForm] = useState(false);
+  const [showForm, setShowForm] = useState(() => {
+    if (externalOpen !== undefined) return !!externalOpen;
+    if (externalEditingItem) return true;
+    return false;
+  });
   const [editingItem, setEditingItem] = useState<SareeProductApi | null>(null);
   const [viewingItem, setViewingItem] = useState<SareeProductApi | null>(null);
   const [uploadingImages, setUploadingImages] = useState(false);
@@ -596,8 +600,20 @@ export default function SareeClothingShoppingForm(props?: {
           <div className="flex items-center justify-between">
             <div>
               <CardTitle>Saree, Clothing & Shopping</CardTitle>
-              <CardDescription>Manage authorized second-hand vehicle showrooms</CardDescription>
+              <CardDescription>Manage saree, clothing, and shopping products</CardDescription>
             </div>
+            {!showForm && (
+              <Button
+                onClick={() => {
+                  setEditingItem(null);
+                  reset();
+                  setShowForm(true);
+                }}
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Add Product
+              </Button>
+            )}
           </div>
         </CardHeader>
 
@@ -970,7 +986,7 @@ export default function SareeClothingShoppingForm(props?: {
                         <Switch
                           id="inStock"
                           onCheckedChange={(checked) => setValue("inStock", checked)}
-                          defaultChecked={!!editingItem?.inStock ?? true}
+                          defaultChecked={editingItem ? (editingItem.inStock !== undefined ? editingItem.inStock : true) : true}
                         />
                         <Label htmlFor="inStock">In Stock</Label>
                       </div>
@@ -986,7 +1002,7 @@ export default function SareeClothingShoppingForm(props?: {
                         <Switch
                           id="isOriginal"
                           onCheckedChange={(checked) => setValue("isOriginal", checked)}
-                          defaultChecked={!!editingItem?.isOriginal ?? true}
+                          defaultChecked={editingItem ? (editingItem.isOriginal !== undefined ? editingItem.isOriginal : true) : true}
                         />
                         <Label htmlFor="isOriginal">Original Product</Label>
                       </div>
@@ -995,7 +1011,7 @@ export default function SareeClothingShoppingForm(props?: {
                         <Switch
                           id="handloomCertified"
                           onCheckedChange={(checked) => setValue("handloomCertified", checked)}
-                          defaultChecked={!!editingItem?.handloomCertified}
+                          defaultChecked={editingItem ? (editingItem.handloomCertified !== undefined ? editingItem.handloomCertified : false) : false}
                         />
                         <Label htmlFor="handloomCertified">Handloom Certified</Label>
                       </div>
@@ -1004,7 +1020,7 @@ export default function SareeClothingShoppingForm(props?: {
                         <Switch
                           id="customizationAvailable"
                           onCheckedChange={(checked) => setValue("customizationAvailable", checked)}
-                          defaultChecked={!!editingItem?.customizationAvailable}
+                          defaultChecked={editingItem ? (editingItem.customizationAvailable !== undefined ? editingItem.customizationAvailable : false) : false}
                         />
                         <Label htmlFor="customizationAvailable">Customization Available</Label>
                       </div>
@@ -1013,7 +1029,7 @@ export default function SareeClothingShoppingForm(props?: {
                         <Switch
                           id="exchangeAvailable"
                           onCheckedChange={(checked) => setValue("exchangeAvailable", checked)}
-                          defaultChecked={!!editingItem?.exchangeAvailable ?? true}
+                          defaultChecked={editingItem ? (editingItem.exchangeAvailable !== undefined ? editingItem.exchangeAvailable : true) : true}
                         />
                         <Label htmlFor="exchangeAvailable">Exchange Available</Label>
                       </div>
@@ -1077,7 +1093,7 @@ export default function SareeClothingShoppingForm(props?: {
                         <Switch
                           id="deliveryAvailable"
                           onCheckedChange={(checked) => setValue("deliveryAvailable", checked)}
-                          defaultChecked={!!editingItem?.deliveryAvailable}
+                          defaultChecked={editingItem ? (editingItem.deliveryAvailable !== undefined ? editingItem.deliveryAvailable : false) : false}
                         />
                         <Label htmlFor="deliveryAvailable">Delivery Available</Label>
                       </div>
@@ -1086,7 +1102,7 @@ export default function SareeClothingShoppingForm(props?: {
                         <Switch
                           id="freeDelivery"
                           onCheckedChange={(checked) => setValue("freeDelivery", checked)}
-                          defaultChecked={!!editingItem?.freeDelivery}
+                          defaultChecked={editingItem ? (editingItem.freeDelivery !== undefined ? editingItem.freeDelivery : false) : false}
                         />
                         <Label htmlFor="freeDelivery">Free Delivery</Label>
                       </div>
@@ -1095,7 +1111,7 @@ export default function SareeClothingShoppingForm(props?: {
                         <Switch
                           id="sameDayDelivery"
                           onCheckedChange={(checked) => setValue("sameDayDelivery", checked)}
-                          defaultChecked={!!editingItem?.sameDayDelivery}
+                          defaultChecked={editingItem ? (editingItem.sameDayDelivery !== undefined ? editingItem.sameDayDelivery : false) : false}
                         />
                         <Label htmlFor="sameDayDelivery">Same Day Delivery</Label>
                       </div>
@@ -1104,7 +1120,7 @@ export default function SareeClothingShoppingForm(props?: {
                         <Switch
                           id="codAvailable"
                           onCheckedChange={(checked) => setValue("codAvailable", checked)}
-                          defaultChecked={!!editingItem?.codAvailable ?? true}
+                          defaultChecked={editingItem ? (editingItem.codAvailable !== undefined ? editingItem.codAvailable : true) : true}
                         />
                         <Label htmlFor="codAvailable">COD Available</Label>
                       </div>

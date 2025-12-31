@@ -1439,6 +1439,7 @@ export const telecommunicationServices = pgTable("telecommunication_services", {
   city: text("city"),
   areaName: text("area_name"),
   fullAddress: text("full_address"),
+  images: jsonb("images").$type<string[]>().default([]),
   serviceAreas: jsonb("service_areas").$type<string[]>().default([]),
   isActive: boolean("is_active").default(true),
   isFeatured: boolean("is_featured").default(false),
@@ -1497,6 +1498,7 @@ export const serviceCentreWarranty = pgTable("service_centre_warranty", {
   city: text("city"),
   areaName: text("area_name"),
   fullAddress: text("full_address").notNull(),
+  images: jsonb("images").$type<string[]>().default([]),
   isActive: boolean("is_active").default(true),
   isFeatured: boolean("is_featured").default(false),
   viewCount: integer("view_count").default(0),
@@ -1541,6 +1543,7 @@ export const schoolsCollegesCoaching = pgTable("schools_colleges_coaching", {
   city: text("city"),
   areaName: text("area_name"),
   fullAddress: text("full_address").notNull(),
+  images: jsonb("images").$type<string[]>().default([]),
   isActive: boolean("is_active").default(true),
   isFeatured: boolean("is_featured").default(false),
   viewCount: integer("view_count").default(0),
@@ -1550,7 +1553,7 @@ export const schoolsCollegesCoaching = pgTable("schools_colleges_coaching", {
   role: text("role"),
 });
 
-export const insertschoolsCollegesCoachingSchema = createInsertSchema(schoolsCollegesCoaching).omit({ id: true, createdAt: true, updatedAt: true });
+export const insertSchoolsCollegesCoachingSchema = createInsertSchema(schoolsCollegesCoaching).omit({ id: true, createdAt: true, updatedAt: true });
 export type InsertSchoolsCollegesCoaching = z.infer<typeof insertSchoolsCollegesCoachingSchema>;
 export type SchoolsCollegesCoaching = typeof schoolsCollegesCoaching.$inferSelect;
 
@@ -3275,6 +3278,7 @@ export const ebooksOnlineCourses = pgTable("ebooks_online_courses", {
   bonusContent: jsonb("bonus_content").$type<string[]>().default([]),
 
   // Media
+  images: jsonb("images").$type<string[]>().default([]),
   coverImage: text("cover_image"),
   previewImages: jsonb("preview_images").$type<string[]>().default([]),
   previewVideoUrl: text("preview_video_url"),

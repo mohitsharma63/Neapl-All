@@ -324,7 +324,7 @@ export function SliderForm({ slider, onSuccess, onCancel }: SliderFormProps) {
         <Button type="button" variant="outline" onClick={onCancel}>
           Cancel
         </Button>
-        <Button type="submit" disabled={uploading || images.length === 0}>
+        <Button type="submit" disabled={uploading}>
           {slider ? "Update" : "Create"} Slider
         </Button>
       </div>

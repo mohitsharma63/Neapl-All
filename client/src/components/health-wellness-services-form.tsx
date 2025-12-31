@@ -45,7 +45,7 @@ export default function HealthWellnessServicesForm({ onSuccess, editingService }
     setUserRole(storedUserRole);
   }, []);
 
-  const { register, handleSubmit, setValue, watch, formState: { errors } } = useForm({
+  const { register, handleSubmit, setValue, watch, reset, formState: { errors } } = useForm({
     defaultValues: editingService || {
       serviceType: 'clinic',
       consultationType: 'in_person',
@@ -61,6 +61,25 @@ export default function HealthWellnessServicesForm({ onSuccess, editingService }
       available24_7: false,
     }
   });
+
+  useEffect(() => {
+    reset(editingService || {
+      serviceType: 'clinic',
+      consultationType: 'in_person',
+      isActive: true,
+      isFeatured: false,
+      emergencyService: false,
+      homeVisit: false,
+      onlineConsultation: false,
+      appointmentRequired: true,
+      insuranceAccepted: false,
+      wheelchairAccessible: false,
+      parkingAvailable: false,
+      available24_7: false,
+    });
+    setImages(Array.isArray(editingService?.images) ? editingService.images : []);
+    setImageError(null);
+  }, [editingService, reset]);
 
   const onSubmit = async (data: any) => {
     if (!userId) {

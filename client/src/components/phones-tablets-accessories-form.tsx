@@ -282,10 +282,6 @@ export default function PhonesTabletsAccessoriesForm() {
   };
 
   const onSubmit = (data: ProductFormData) => {
-    if (images.length === 0) {
-      toast({ title: "Error", description: "At least one image is required", variant: "destructive" });
-      return;
-    }
     const payload = { ...data, images };
     if (editingProduct) {
       updateMutation.mutate({ id: editingProduct.id, data: payload });

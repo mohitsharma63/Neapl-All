@@ -7811,6 +7811,7 @@ app.post("/api/admin/schools-colleges-coaching", async (req, res) => {
       city: data.city || null,
       areaName: data.areaName || null,
       fullAddress: data.fullAddress,
+      images: Array.isArray(data.images) ? data.images : [],
       isActive: data.isActive ?? true,
       isFeatured: data.isFeatured ?? false,
       viewCount: data.viewCount ?? 0,
@@ -7837,6 +7838,7 @@ app.put("/api/admin/schools-colleges-coaching/:id", async (req, res) => {
 
     const updateData = {
       ...data,
+      images: Array.isArray(data.images) ? data.images : [],
       updatedAt: new Date(),
     };
 
@@ -8780,9 +8782,23 @@ app.patch("/api/admin/skill-training-certification/:id/toggle-featured", async (
 
   app.post("/api/admin/service-centre-warranty", async (req, res) => {
     try {
+      // sanitize numeric fields coming as empty strings
+      const body = { ...req.body } as any;
+      const toDecimal = (v: any) => {
+        if (v === undefined || v === null || v === "") return null;
+        const n = Number(String(v).replace(/,/g, ''));
+        return Number.isFinite(n) ? n : null;
+      };
+
+      body.inspectionCharge = toDecimal(body.inspectionCharge);
+      body.minimumServiceCharge = toDecimal(body.minimumServiceCharge);
+      body.homeServiceCharge = toDecimal(body.homeServiceCharge);
+      body.pickupDropCharge = toDecimal(body.pickupDropCharge);
+      body.amcPrice = toDecimal(body.amcPrice);
+
       const [newService] = await db
         .insert(serviceCentreWarranty)
-        .values({ ...req.body, country: req.body.country || "India" })
+        .values({ ...body, country: body.country || "India" })
         .returning();
       res.status(201).json(newService);
     } catch (error: any) {
@@ -8792,9 +8808,23 @@ app.patch("/api/admin/skill-training-certification/:id/toggle-featured", async (
 
   app.put("/api/admin/service-centre-warranty/:id", async (req, res) => {
     try {
+      // sanitize numeric fields coming as empty strings
+      const body = { ...req.body } as any;
+      const toDecimal = (v: any) => {
+        if (v === undefined || v === null || v === "") return null;
+        const n = Number(String(v).replace(/,/g, ''));
+        return Number.isFinite(n) ? n : null;
+      };
+
+      body.inspectionCharge = toDecimal(body.inspectionCharge);
+      body.minimumServiceCharge = toDecimal(body.minimumServiceCharge);
+      body.homeServiceCharge = toDecimal(body.homeServiceCharge);
+      body.pickupDropCharge = toDecimal(body.pickupDropCharge);
+      body.amcPrice = toDecimal(body.amcPrice);
+
       const [updated] = await db
         .update(serviceCentreWarranty)
-        .set({ ...req.body, updatedAt: new Date() })
+        .set({ ...body, updatedAt: new Date() })
         .where(eq(serviceCentreWarranty.id, req.params.id))
         .returning();
       if (!updated) return res.status(404).json({ message: "Service not found" });
