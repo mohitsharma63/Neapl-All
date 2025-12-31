@@ -10,6 +10,6 @@ export default defineConfig({
   schema: "./shared/schema.ts",
   dialect: "postgresql",
   dbCredentials: {
-    url: process.env.DATABASE_URL || "postgresql://postgres:postgres@localhost:5432/nepalDatabase",
+    url: process.env.DATABASE_URL || "postgresql://nepal_user:StrongPassword123@72.61.245.133:5432/nepaldatabase",
   },
-});
+})
