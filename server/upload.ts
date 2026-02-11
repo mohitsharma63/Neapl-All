@@ -113,7 +113,7 @@ const mediaFileFilter = (req: any, file: Express.Multer.File, cb: multer.FileFil
   else cb(new Error('Invalid file type for media upload'));
 };
 
-export const uploadMedia = multer({ storage: mediaStorage, fileFilter: mediaFileFilter, limits: { fileSize: 200 * 1024 * 1024 } });
+export const uploadMedia = multer({ storage: mediaStorage, fileFilter: mediaFileFilter, limits: { fileSize: 500 * 1024 * 1024 } });
 
 export const handleMediaUpload = (req: Request, res: Response) => {
   try {
