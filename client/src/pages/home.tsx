@@ -2188,7 +2188,7 @@ export default function Home() {
                         muted
                         autoPlay
                       >
-                        <source src={v.videoUrl || v.video_url} type="video/mp4" />
+                        <source src={v.videoUrl || v.video_url} />
                         Your browser does not support the video tag.
                       </video>
                     </div>

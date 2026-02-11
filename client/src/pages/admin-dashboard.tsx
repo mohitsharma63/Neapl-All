@@ -5345,7 +5345,7 @@ function VideosSection() {
               <div className="relative h-40 bg-black">
                 {video.videoUrl ? (
                   <video className="w-full h-full" preload="metadata" controls playsInline muted>
-                    <source src={video.videoUrl} type="video/mp4" />
+                    <source src={video.videoUrl} />
                     Your browser does not support the video tag.
                   </video>
                 ) : (
@@ -5442,7 +5442,7 @@ function FeaturedVideosSection() {
               <div className="relative h-40 bg-black">
                 {video.videoUrl ? (
                   <video className="w-full h-full" preload="metadata" controls playsInline muted>
-                    <source src={video.videoUrl} type="video/mp4" />
+                    <source src={video.videoUrl} />
                     Your browser does not support the video tag.
                   </video>
                 ) : (
