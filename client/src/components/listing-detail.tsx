@@ -129,7 +129,11 @@ export default function ListingDetail({ listing, titleField = "title", subtitleF
             <div className="bg-white p-4 rounded shadow">
               <div className="relative">
                 {currentImage ? (
-                  <img src={currentImage} alt={listing[titleField] || "listing image"} className="w-full h-72 md:h-96  rounded" />
+                  <img
+                    src={currentImage}
+                    alt={listing[titleField] || "listing image"}
+                    className="w-full h-64 md:h-80 rounded object-cover object-center"
+                  />
                 ) : (
                   <div className="w-full h-72 md:h-96 bg-gray-100 flex items-center justify-center rounded">No Image</div>
                 )}
@@ -166,7 +170,11 @@ export default function ListingDetail({ listing, titleField = "title", subtitleF
                         idx === currentImageIndex ? "border-[#0B8457] shadow-md" : "border-gray-200/50 hover:border-gray-300"
                       }`}
                     >
-                      <img src={img} alt={`${listing[titleField] || "listing"} ${idx + 1}`} className="w-full h-full " />
+                      <img
+                        src={img}
+                        alt={`${listing[titleField] || "listing"} ${idx + 1}`}
+                        className="w-full h-full object-cover object-center"
+                      />
                     </button>
                   ))}
                 </div>
@@ -231,17 +239,7 @@ export default function ListingDetail({ listing, titleField = "title", subtitleF
 
           <aside className="space-y-4">
             <div className="bg-white p-4 rounded shadow">
-              <div className="flex items-center justify-between">
-                <div className="font-semibold">Raw Data</div>
-                <div className="text-sm text-muted-foreground">Toggle to view full JSON</div>
-              </div>
-              <details className="mt-3 text-sm">
-                <summary className="cursor-pointer text-sm text-muted-foreground">Show raw JSON</summary>
-                <pre className="text-xs mt-2 bg-gray-100 rounded p-2 overflow-auto max-h-60">{JSON.stringify(listing, null, 2)}</pre>
-              </details>
-
-              <hr className="my-4" />
-
+             
               <div className="font-semibold">Contact</div>
               <div className="mt-2 text-sm text-muted-foreground">{listing.contactPerson || "—"}</div>
               {listing.contactPhone ? (

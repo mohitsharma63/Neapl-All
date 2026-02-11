@@ -5645,6 +5645,10 @@ export default function AdminDashboard() {
         return <SchoolsCollegesCoachingSection />;
       case "cricket-sports-training":
         return <CricketSportsTrainingSection />;
+      case "educational-consultancy-study-abroad":
+      case "educational-consultancy-study-abroad-section":
+      case "educational-consultancy":
+        return <EducationalConsultancyStudyAbroadSection />;
       case "service-centre-warranty":
       case "servicecentrewarranty":
         return <ServiceCentreWarrantyForm />;
