@@ -1114,12 +1114,21 @@ export function registerRoutes(app: Express) {
   app.post('/api/admin/videos', async (req, res) => {
     try {
       const payload: any = { ...(req.body || {}) };
+      const normalizedVideoUrl = (payload.videoUrl ?? payload.video_url) as string | undefined;
+      const normalizedTitle = (payload.title ?? payload.name) as string | undefined;
+
+      if (!normalizedTitle || String(normalizedTitle).trim().length === 0) {
+        return res.status(400).json({ message: 'title is required' });
+      }
+      if (!normalizedVideoUrl || String(normalizedVideoUrl).trim().length === 0) {
+        return res.status(400).json({ message: 'videoUrl is required' });
+      }
       // Normalize keys from frontend to DB column names
       const insertData: any = {
-        title: payload.title,
+        title: String(normalizedTitle).trim(),
         description: payload.description,
-        videoUrl: payload.videoUrl || payload.video_url || payload.video_url,
-        thumbnailUrl: payload.thumbnailUrl || payload.thumbnail_url || payload.thumbnailUrl,
+        videoUrl: String(normalizedVideoUrl).trim(),
+        thumbnailUrl: payload.thumbnailUrl ?? payload.thumbnail_url,
         durationMinutes: payload.durationMinutes ?? payload.duration ?? undefined,
         isActive: payload.isActive !== undefined ? !!payload.isActive : true,
         isFeatured: payload.isFeatured !== undefined ? !!payload.isFeatured : false,
