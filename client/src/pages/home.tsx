@@ -2177,8 +2177,11 @@ export default function Home() {
               </CarouselItem>
             ) : videos && videos.length > 0 ? (
               videos.map((v: any) => (
-                <CarouselItem key={v.id} className="w-full flex  px-2">
-                  <div className="max-w-[420px] w-full flex flex-col rounded-2xl overflow-hidden shadow-lg hover:shadow-2xl transition-shadow bg-white">
+                <CarouselItem
+                  key={v.id}
+                  className="basis-full md:basis-1/2 lg:basis-1/3 px-2"
+                >
+                  <div className="w-full flex flex-col rounded-2xl overflow-hidden shadow-lg hover:shadow-2xl transition-shadow bg-white">
                     <div className="relative w-full h-72 md:h-64 lg:h-72 bg-black flex items-center justify-center group overflow-hidden">
                       <video
                         className="w-full h-full  rounded-t-2xl"
