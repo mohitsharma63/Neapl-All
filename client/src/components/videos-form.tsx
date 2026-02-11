@@ -22,6 +22,7 @@ export function VideosForm({ onSuccess, video }: VideoFormProps) {
   const [uploadingVideo, setUploadingVideo] = useState(false);
   const [uploadingThumbnail, setUploadingThumbnail] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
+  const [submitError, setSubmitError] = useState<string | null>(null);
   const videoInputRef = useRef<HTMLInputElement | null>(null);
   const thumbnailInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -41,6 +42,11 @@ export function VideosForm({ onSuccess, video }: VideoFormProps) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
+      setSubmitError(null);
+      if (!formData.videoUrl || String(formData.videoUrl).trim().length === 0) {
+        setSubmitError('Video URL is required');
+        return;
+      }
       const method = video ? 'PUT' : 'POST';
       const url = video ? `/api/admin/videos/${video.id}` : '/api/admin/videos';
       const response = await fetch(url, {
@@ -59,9 +65,17 @@ export function VideosForm({ onSuccess, video }: VideoFormProps) {
           duration: '',
           isActive: true,
         });
+      } else {
+        try {
+          const data = await response.json();
+          setSubmitError(data?.message || 'Failed to save video');
+        } catch (_e) {
+          setSubmitError('Failed to save video');
+        }
       }
     } catch (error) {
       console.error('Error saving video:', error);
+      setSubmitError('Failed to save video');
     }
   };
 
@@ -148,7 +162,7 @@ export function VideosForm({ onSuccess, video }: VideoFormProps) {
             value={formData.videoUrl}
             onChange={(e) => setFormData({ ...formData, videoUrl: e.target.value })}
             placeholder="https://example.com/video.mp4"
-            
+            required
           />
           <input ref={videoInputRef} type="file" accept="video/*" onChange={handleVideoFileChange} className="hidden" />
           <Button type="button" size="sm" onClick={() => videoInputRef.current?.click()}>{uploadingVideo ? 'Uploading…' : 'Upload'}</Button>
@@ -188,6 +202,7 @@ export function VideosForm({ onSuccess, video }: VideoFormProps) {
       </div>
 
       {uploadError && <div className="text-destructive text-sm">{uploadError}</div>}
+      {submitError && <div className="text-destructive text-sm">{submitError}</div>}
 
       <Button type="submit" className="w-full">
         {video ? 'Update Video' : 'Create Video'}
