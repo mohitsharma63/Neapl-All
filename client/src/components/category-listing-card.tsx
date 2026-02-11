@@ -42,6 +42,14 @@ export function CategoryListingCard({ listing, categorySlug }: CategoryListingCa
               alt={listing.title}
               className="h-full w-full  transition-transform duration-500 group-hover:scale-110"
               loading="lazy"
+              onError={(e) => {
+                const img = e.target as HTMLImageElement;
+                if (img.src && !img.src.startsWith('http') && !img.src.includes('localhost') && !img.src.includes('72.61.245.133')) {
+                  const baseUrl = window.location.origin;
+                  const newSrc = img.src.startsWith('/') ? baseUrl + img.src : baseUrl + '/' + img.src;
+                  img.src = newSrc;
+                }
+              }}
             />
           ) : (
             <div className="h-full w-full flex items-center justify-center bg-gray-100">

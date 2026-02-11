@@ -2528,6 +2528,8 @@ export function registerRoutes(app: Express) {
       const payload = req.body || {};
       // Normalize
       if (payload.status !== undefined) payload.status = String(payload.status || 'Active');
+      // Remove id if provided to let DB generate it
+      delete payload.id;
 
       const [created] = await db.insert(sliderCard).values({ ...payload }).returning();
       res.status(201).json(created);

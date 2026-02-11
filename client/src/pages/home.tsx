@@ -961,7 +961,19 @@ export default function Home() {
               sliders.map((s: any) => (
                 <CarouselItem key={s.id}>
                   <div className="relative h-[500px] rounded-3xl overflow-hidden bg-black/5">
-                    <img src={s.imageUrl} alt={s.title || "slider"} className="w-full h-full  object-center" />
+                    <img 
+                      src={s.imageUrl} 
+                      alt={s.title || "slider"} 
+                      className="w-full h-full  object-center"
+                      onError={(e) => {
+                        const img = e.target as HTMLImageElement;
+                        if (img.src && !img.src.startsWith('http') && !img.src.includes('localhost') && !img.src.includes('72.61.245.133')) {
+                          const baseUrl = window.location.origin;
+                          const newSrc = img.src.startsWith('/') ? baseUrl + img.src : baseUrl + '/' + img.src;
+                          img.src = newSrc;
+                        }
+                      }}
+                    />
                     {(s.title || s.description || s.buttonText) && (
                       <div className="absolute inset-0 flex items-end">
                         <div className="bg-gradient-to-t from-black/60 to-transparent w-full p-8">
@@ -1034,7 +1046,19 @@ export default function Home() {
                   <div className="flex flex-col rounded-xl overflow-hidden shadow-md hover:shadow-lg transition-shadow h-full">
                     <div className="flex-1 bg-gray-100">
                       {card.imageUrl ? (
-                        <img src={card.imageUrl} alt={card.title || 'card image'} className="w-full h-48 " />
+                        <img 
+                          src={card.imageUrl} 
+                          alt={card.title || 'card image'} 
+                          className="w-full h-48 "
+                          onError={(e) => {
+                            const img = e.target as HTMLImageElement;
+                            if (img.src && !img.src.startsWith('http') && !img.src.includes('localhost') && !img.src.includes('72.61.245.133')) {
+                              const baseUrl = window.location.origin;
+                              const newSrc = img.src.startsWith('/') ? baseUrl + img.src : baseUrl + '/' + img.src;
+                              img.src = newSrc;
+                            }
+                          }}
+                        />
                       ) : (
                         <div className="w-full h-48 bg-gray-100 flex items-center justify-center">No image</div>
                       )}

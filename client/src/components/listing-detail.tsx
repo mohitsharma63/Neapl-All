@@ -129,7 +129,19 @@ export default function ListingDetail({ listing, titleField = "title", subtitleF
             <div className="bg-white p-4 rounded shadow">
               <div className="relative">
                 {currentImage ? (
-                  <img src={currentImage} alt={listing[titleField] || "listing image"} className="w-full h-72 md:h-96  rounded" />
+                  <img 
+                    src={currentImage} 
+                    alt={listing[titleField] || "listing image"} 
+                    className="w-full h-72 md:h-96  rounded"
+                    onError={(e) => {
+                      const img = e.target as HTMLImageElement;
+                      if (img.src && !img.src.startsWith('http') && !img.src.includes('localhost') && !img.src.includes('72.61.245.133')) {
+                        const baseUrl = window.location.origin;
+                        const newSrc = img.src.startsWith('/') ? baseUrl + img.src : baseUrl + '/' + img.src;
+                        img.src = newSrc;
+                      }
+                    }}
+                  />
                 ) : (
                   <div className="w-full h-72 md:h-96 bg-gray-100 flex items-center justify-center rounded">No Image</div>
                 )}

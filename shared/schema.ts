@@ -3399,7 +3399,7 @@ export type NewSlider = typeof sliders.$inferInsert;
 
 // Slider Card table for smaller slider cards (separate from main sliders)
 export const sliderCard = pgTable("slider_card", {
-  id: integer("id").primaryKey(),
+  id: serial("id").primaryKey(),
   title: text("title").notNull(),
   imageUrl: text("image_url").notNull(),
   status: text("status").default("Active"),

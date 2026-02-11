@@ -137,11 +137,17 @@ export default function TuitionPrivateClassesPage() {
               <Card key={listing.id} className="overflow-hidden hover:shadow-xl transition-all duration-300 group">
                 {/* Image Section */}
                 <div className="relative h-56 bg-gradient-to-br from-blue-100 to-teal-100 overflow-hidden">
-                  {listing.photos && listing.photos.length > 0 ? (
+                  {(listing.photos?.length > 0 || listing.images?.length > 0) ? (
                     <img
-                      src={listing.photos[0]}
+                      src={listing.photos?.[0] || listing.images?.[0]}
                       alt={listing.title}
                       className="w-full h-full  group-hover:scale-110 transition-transform duration-500"
+                      onError={(e) => {
+                        const img = e.target as HTMLImageElement;
+                        if (img.src && !img.src.startsWith('http')) {
+                          img.src = window.location.origin + (img.src.startsWith('/') ? '' : '/') + img.src;
+                        }
+                      }}
                     />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center">
@@ -245,7 +251,7 @@ function FavoriteButton({ listing }: { listing: any }) {
   return (
     <button
       aria-label={active ? "Remove from wishlist" : "Add to wishlist"}
-      onClick={() => toggleWishlist({ id: listing.id, title: listing.title, href: `/tuition-private-classes/${listing.id}`, photo: listing.photos?.[0] })}
+      onClick={() => toggleWishlist({ id: listing.id, title: listing.title, href: `/tuition-private-classes/${listing.id}`, photo: listing.photos?.[0] || listing.images?.[0] })}
       className={`absolute top-3 right-3 z-10 w-10 h-10 rounded-full flex items-center justify-center shadow transition-colors ${active ? 'bg-red-50' : 'bg-white'}`}
     >
       <Heart className={`w-5 h-5 ${active ? 'text-red-500' : 'text-gray-600'}`} />
