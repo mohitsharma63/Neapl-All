@@ -1081,6 +1081,7 @@ export function registerRoutes(app: Express) {
     try {
       const featured = req.query.featured;
       let rows = await db.query.videos.findMany({ orderBy: [desc(videos.createdAt)] });
+      rows = rows.filter(r => !!r.isActive);
       if (featured !== undefined) {
         rows = rows.filter(r => !!r.isFeatured === (featured === 'true' || featured === true));
       }
@@ -3155,21 +3156,37 @@ export function registerRoutes(app: Express) {
       const { isActive, isFeatured, category, city } = req.query;
       const sessionUser = (req as any).session?.user || null;
       const queryUserId = typeof req.query.userId === 'string' ? req.query.userId : undefined;
+      const queryRole = typeof req.query.role === 'string' ? req.query.role : undefined;
+
+      // Build conditions array
+      const conditions = [];
 
       let materials;
-      if (sessionUser && sessionUser.role === 'admin') {
-        materials = await db.query.constructionMaterials.findMany({
-          where: queryUserId ? eq(constructionMaterials.userId, queryUserId) : undefined,
-          orderBy: desc(constructionMaterials.createdAt),
-        });
-      } else if (sessionUser && sessionUser.id) {
-        materials = await db.query.constructionMaterials.findMany({
-          where: eq(constructionMaterials.userId, sessionUser.id as string),
-          orderBy: desc(constructionMaterials.createdAt),
-        });
-      } else {
-        return res.json([]);
+      // Role-based filtering
+      if (sessionUser?.role === 'admin' || sessionUser?.role === 'super_admin') {
+        conditions.push(eq(constructionMaterials.role, sessionUser.role));
+        const adminId = sessionUser.id as string;
+        conditions.push(or(eq(constructionMaterials.userId, adminId), eq(constructionMaterials.ownerId, adminId)));
+        if (queryUserId && queryUserId !== adminId) {
+          return res.status(403).json({ message: "Forbidden: cannot access other users' listings" });
+        }
+      } else if (sessionUser?.role === 'user') {
+        conditions.push(eq(constructionMaterials.role, 'user'));
+        if (sessionUser?.id) {
+          const uid = sessionUser.id as string;
+          conditions.push(or(eq(constructionMaterials.userId, uid), eq(constructionMaterials.ownerId, uid)));
+        }
+      } else if (queryUserId) {
+        conditions.push(or(eq(constructionMaterials.userId, queryUserId), eq(constructionMaterials.ownerId, queryUserId)));
+        if (queryRole) {
+          conditions.push(eq(constructionMaterials.role, queryRole));
+        }
       }
+
+      materials = await db.query.constructionMaterials.findMany({
+        where: conditions.length > 0 ? and(...conditions) : undefined,
+        orderBy: desc(constructionMaterials.createdAt),
+      });
 
       // Apply additional filters
       let filtered = materials;
@@ -3396,16 +3413,28 @@ export function registerRoutes(app: Express) {
     try {
       const sessionUser = (req as any).session?.user || null;
       const queryUserId = typeof req.query.userId === 'string' ? req.query.userId : undefined;
+      const queryRole = typeof req.query.role === 'string' ? req.query.role : undefined;
 
       let deals;
-      if (sessionUser && sessionUser.role === 'admin') {
+      if (sessionUser && (sessionUser.role === 'admin' || sessionUser.role === 'super_admin')) {
+        const adminId = sessionUser.id as string;
+        if (queryUserId && queryUserId !== adminId) {
+          return res.status(403).json({ message: "Forbidden: cannot access other users' listings" });
+        }
         deals = await db.query.propertyDeals.findMany({
-          where: queryUserId ? eq(propertyDeals.userId, queryUserId) : undefined,
+          where: and(eq(propertyDeals.userId, adminId), eq(propertyDeals.role, sessionUser.role as string)),
           orderBy: desc(propertyDeals.createdAt),
         });
       } else if (sessionUser && sessionUser.id) {
         deals = await db.query.propertyDeals.findMany({
           where: eq(propertyDeals.userId, sessionUser.id as string),
+          orderBy: desc(propertyDeals.createdAt),
+        });
+      } else if (queryUserId) {
+        deals = await db.query.propertyDeals.findMany({
+          where: queryRole
+            ? and(eq(propertyDeals.userId, queryUserId), eq(propertyDeals.role, queryRole))
+            : eq(propertyDeals.userId, queryUserId),
           orderBy: desc(propertyDeals.createdAt),
         });
       } else {
@@ -3542,11 +3571,16 @@ export function registerRoutes(app: Express) {
     try {
       const sessionUser = (req as any).session?.user || null;
       const queryUserId = typeof req.query.userId === 'string' ? req.query.userId : undefined;
+      const queryRole = typeof req.query.role === 'string' ? req.query.role : undefined;
 
       let properties;
-      if (sessionUser && sessionUser.role === 'admin') {
+      if (sessionUser && (sessionUser.role === 'admin' || sessionUser.role === 'super_admin')) {
+        const adminId = sessionUser.id as string;
+        if (queryUserId && queryUserId !== adminId) {
+          return res.status(403).json({ message: "Forbidden: cannot access other users' listings" });
+        }
         properties = await db.query.commercialProperties.findMany({
-          where: queryUserId ? eq(commercialProperties.userId, queryUserId) : undefined,
+          where: and(eq(commercialProperties.userId, adminId), eq(commercialProperties.role, sessionUser.role as string)),
           orderBy: desc(commercialProperties.createdAt),
         });
       } else if (sessionUser && sessionUser.id) {
@@ -3554,10 +3588,17 @@ export function registerRoutes(app: Express) {
           where: eq(commercialProperties.userId, sessionUser.id as string),
           orderBy: desc(commercialProperties.createdAt),
         });
+      } else if (queryUserId) {
+        properties = await db.query.commercialProperties.findMany({
+          where: queryRole
+            ? and(eq(commercialProperties.userId, queryUserId), eq(commercialProperties.role, queryRole))
+            : eq(commercialProperties.userId, queryUserId),
+          orderBy: desc(commercialProperties.createdAt),
+        });
       } else {
         properties = [];
       }
-      
+
       res.json(properties);
     } catch (error: any) {
       res.status(500).json({ message: error.message });
@@ -3688,16 +3729,28 @@ export function registerRoutes(app: Express) {
     try {
       const sessionUser = (req as any).session?.user || null;
       const queryUserId = typeof req.query.userId === 'string' ? req.query.userId : undefined;
+      const queryRole = typeof req.query.role === 'string' ? req.query.role : undefined;
 
       let lands;
-      if (sessionUser && sessionUser.role === 'admin') {
+      if (sessionUser && (sessionUser.role === 'admin' || sessionUser.role === 'super_admin')) {
+        const adminId = sessionUser.id as string;
+        if (queryUserId && queryUserId !== adminId) {
+          return res.status(403).json({ message: "Forbidden: cannot access other users' listings" });
+        }
         lands = await db.query.industrialLand.findMany({
-          where: queryUserId ? eq(industrialLand.userId, queryUserId) : undefined,
+          where: and(eq(industrialLand.userId, adminId), eq(industrialLand.role, sessionUser.role as string)),
           orderBy: desc(industrialLand.createdAt),
         });
       } else if (sessionUser && sessionUser.id) {
         lands = await db.query.industrialLand.findMany({
           where: eq(industrialLand.userId, sessionUser.id as string),
+          orderBy: desc(industrialLand.createdAt),
+        });
+      } else if (queryUserId) {
+        lands = await db.query.industrialLand.findMany({
+          where: queryRole
+            ? and(eq(industrialLand.userId, queryUserId), eq(industrialLand.role, queryRole))
+            : eq(industrialLand.userId, queryUserId),
           orderBy: desc(industrialLand.createdAt),
         });
       } else {
@@ -3834,16 +3887,28 @@ export function registerRoutes(app: Express) {
     try {
       const sessionUser = (req as any).session?.user || null;
       const queryUserId = typeof req.query.userId === 'string' ? req.query.userId : undefined;
+      const queryRole = typeof req.query.role === 'string' ? req.query.role : undefined;
 
       let offices;
-      if (sessionUser && sessionUser.role === 'admin') {
+      if (sessionUser && (sessionUser.role === 'admin' || sessionUser.role === 'super_admin')) {
+        const adminId = sessionUser.id as string;
+        if (queryUserId && queryUserId !== adminId) {
+          return res.status(403).json({ message: "Forbidden: cannot access other users' listings" });
+        }
         offices = await db.query.officeSpaces.findMany({
-          where: queryUserId ? eq(officeSpaces.userId, queryUserId) : undefined,
+          where: and(eq(officeSpaces.userId, adminId), eq(officeSpaces.role, sessionUser.role as string)),
           orderBy: desc(officeSpaces.createdAt),
         });
       } else if (sessionUser && sessionUser.id) {
         offices = await db.query.officeSpaces.findMany({
           where: eq(officeSpaces.userId, sessionUser.id as string),
+          orderBy: desc(officeSpaces.createdAt),
+        });
+      } else if (queryUserId) {
+        offices = await db.query.officeSpaces.findMany({
+          where: queryRole
+            ? and(eq(officeSpaces.userId, queryUserId), eq(officeSpaces.role, queryRole))
+            : eq(officeSpaces.userId, queryUserId),
           orderBy: desc(officeSpaces.createdAt),
         });
       } else {
@@ -4302,14 +4367,41 @@ export function registerRoutes(app: Express) {
 
   // Showrooms Routes - Full CRUD
 
+  // Public Showrooms Listings
+  app.get("/api/showrooms", async (_req, res) => {
+    try {
+      const items = await db.query.showrooms.findMany({
+        where: eq(showrooms.isActive, true),
+        orderBy: desc(showrooms.createdAt),
+      });
+      res.json(items);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Public Showroom Detail
+  app.get("/api/showrooms/:id", async (req, res) => {
+    try {
+      const item = await db.query.showrooms.findFirst({
+        where: and(eq(showrooms.id, req.params.id), eq(showrooms.isActive, true)),
+      });
+      if (!item) return res.status(404).json({ message: "Showroom not found" });
+      res.json(item);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
   // GET all showrooms
   app.get("/api/admin/showrooms", async (req, res) => {
     try {
       const sessionUser = (req as any).session?.user || null;
       const queryUserId = typeof req.query.userId === 'string' ? req.query.userId : undefined;
+      const queryRole = typeof req.query.role === 'string' ? req.query.role : undefined;
 
       let showroomsList;
-      if (sessionUser && sessionUser.role === 'admin') {
+      if (sessionUser && (sessionUser.role === 'admin' || sessionUser.role === 'super_admin')) {
         const adminId = sessionUser.id as string;
         if (queryUserId && queryUserId !== adminId) {
           return res.status(403).json({ message: "Forbidden: cannot access other users' listings" });
@@ -4317,13 +4409,23 @@ export function registerRoutes(app: Express) {
         showroomsList = await db.query.showrooms.findMany({
           where: and(
             or(eq(showrooms.userId, adminId), eq(showrooms.sellerId, adminId)),
-            eq(showrooms.role, 'admin'),
+            eq(showrooms.role, sessionUser.role as string),
           ),
           orderBy: desc(showrooms.createdAt),
         });
       } else if (sessionUser && sessionUser.id) {
         showroomsList = await db.query.showrooms.findMany({
           where: eq(showrooms.userId, sessionUser.id as string),
+          orderBy: desc(showrooms.createdAt),
+        });
+      } else if (queryUserId) {
+        showroomsList = await db.query.showrooms.findMany({
+          where: queryRole
+            ? and(
+                or(eq(showrooms.userId, queryUserId), eq(showrooms.sellerId, queryUserId)),
+                eq(showrooms.role, queryRole)
+              )
+            : or(eq(showrooms.userId, queryUserId), eq(showrooms.sellerId, queryUserId)),
           orderBy: desc(showrooms.createdAt),
         });
       } else {
@@ -4477,14 +4579,41 @@ export function registerRoutes(app: Express) {
 
   // Heavy Equipment Routes - Full CRUD
 
+  // Public Heavy Equipment Listings
+  app.get("/api/heavy-equipment", async (_req, res) => {
+    try {
+      const items = await db.query.heavyEquipment.findMany({
+        where: eq(heavyEquipment.isActive, true),
+        orderBy: desc(heavyEquipment.createdAt),
+      });
+      res.json(items);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Public Heavy Equipment Detail
+  app.get("/api/heavy-equipment/:id", async (req, res) => {
+    try {
+      const item = await db.query.heavyEquipment.findFirst({
+        where: and(eq(heavyEquipment.id, req.params.id), eq(heavyEquipment.isActive, true)),
+      });
+      if (!item) return res.status(404).json({ message: "Equipment not found" });
+      res.json(item);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
   // GET all heavy equipment
   app.get("/api/admin/heavy-equipment", async (req, res) => {
     try {
       const sessionUser = (req as any).session?.user || null;
       const queryUserId = typeof req.query.userId === 'string' ? req.query.userId : undefined;
+      const queryRole = typeof req.query.role === 'string' ? req.query.role : undefined;
 
       let equipment;
-      if (sessionUser && sessionUser.role === 'admin') {
+      if (sessionUser && (sessionUser.role === 'admin' || sessionUser.role === 'super_admin')) {
         const adminId = sessionUser.id as string;
         if (queryUserId && queryUserId !== adminId) {
           return res.status(403).json({ message: "Forbidden: cannot access other users' listings" });
@@ -4492,7 +4621,7 @@ export function registerRoutes(app: Express) {
         equipment = await db.query.heavyEquipment.findMany({
           where: and(
             or(eq(heavyEquipment.userId, adminId), eq(heavyEquipment.sellerId, adminId)),
-            eq(heavyEquipment.role, 'admin'),
+            eq(heavyEquipment.role, sessionUser.role as string),
           ),
           orderBy: desc(heavyEquipment.createdAt),
         });
@@ -4500,6 +4629,16 @@ export function registerRoutes(app: Express) {
         const sid = sessionUser.id as string;
         equipment = await db.query.heavyEquipment.findMany({
           where: or(eq(heavyEquipment.userId, sid), eq(heavyEquipment.sellerId, sid)),
+          orderBy: desc(heavyEquipment.createdAt),
+        });
+      } else if (queryUserId) {
+        equipment = await db.query.heavyEquipment.findMany({
+          where: queryRole
+            ? and(
+                or(eq(heavyEquipment.userId, queryUserId), eq(heavyEquipment.sellerId, queryUserId)),
+                eq(heavyEquipment.role, queryRole)
+              )
+            : or(eq(heavyEquipment.userId, queryUserId), eq(heavyEquipment.sellerId, queryUserId)),
           orderBy: desc(heavyEquipment.createdAt),
         });
       } else {
@@ -4727,9 +4866,10 @@ export function registerRoutes(app: Express) {
     try {
       const sessionUser = (req as any).session?.user || null;
       const queryUserId = typeof req.query.userId === 'string' ? req.query.userId : undefined;
+      const queryRole = typeof req.query.role === 'string' ? req.query.role : undefined;
 
       let vehicles;
-      if (sessionUser && sessionUser.role === 'admin') {
+      if (sessionUser && (sessionUser.role === 'admin' || sessionUser.role === 'super_admin')) {
         const adminId = sessionUser.id as string;
         if (queryUserId && queryUserId !== adminId) {
           return res.status(403).json({ message: "Forbidden: cannot access other users' listings" });
@@ -4737,7 +4877,7 @@ export function registerRoutes(app: Express) {
         vehicles = await db.query.secondHandCarsBikes.findMany({
           where: and(
             or(eq(secondHandCarsBikes.userId, adminId), eq(secondHandCarsBikes.sellerId, adminId)),
-            eq(secondHandCarsBikes.role, 'admin'),
+            eq(secondHandCarsBikes.role, sessionUser.role as string),
           ),
           orderBy: desc(secondHandCarsBikes.createdAt),
         });
@@ -4745,6 +4885,22 @@ export function registerRoutes(app: Express) {
         const sid = sessionUser.id as string;
         vehicles = await db.query.secondHandCarsBikes.findMany({
           where: or(eq(secondHandCarsBikes.userId, sid), eq(secondHandCarsBikes.sellerId, sid)),
+          orderBy: desc(secondHandCarsBikes.createdAt),
+        });
+      } else if (queryUserId) {
+        vehicles = await db.query.secondHandCarsBikes.findMany({
+          where: queryRole
+            ? and(
+                or(
+                  eq(secondHandCarsBikes.userId, queryUserId),
+                  eq(secondHandCarsBikes.sellerId, queryUserId)
+                ),
+                eq(secondHandCarsBikes.role, queryRole)
+              )
+            : or(
+                eq(secondHandCarsBikes.userId, queryUserId),
+                eq(secondHandCarsBikes.sellerId, queryUserId)
+              ),
           orderBy: desc(secondHandCarsBikes.createdAt),
         });
       } else {
@@ -4885,9 +5041,10 @@ export function registerRoutes(app: Express) {
   app.get("/api/second-hand-cars-bikes", async (req, res) => {
     const sessionUser = (req as any).session?.user || null;
     const queryUserId = typeof req.query.userId === 'string' ? req.query.userId : undefined;
+    const queryRole = typeof req.query.role === 'string' ? req.query.role : undefined;
 
     let listings;
-    if (sessionUser && sessionUser.role === 'admin') {
+    if (sessionUser && (sessionUser.role === 'admin' || sessionUser.role === 'super_admin')) {
       listings = await db
         .select()
         .from(secondHandCarsBikes)
@@ -4902,8 +5059,23 @@ export function registerRoutes(app: Express) {
         .select()
         .from(secondHandCarsBikes)
         .where(or(eq(secondHandCarsBikes.userId, sid), eq(secondHandCarsBikes.sellerId, sid)));
+    } else if (queryUserId) {
+      listings = await db
+        .select()
+        .from(secondHandCarsBikes)
+        .where(
+          queryRole
+            ? and(
+                or(eq(secondHandCarsBikes.userId, queryUserId), eq(secondHandCarsBikes.sellerId, queryUserId)),
+                eq(secondHandCarsBikes.role, queryRole)
+              )
+            : or(eq(secondHandCarsBikes.userId, queryUserId), eq(secondHandCarsBikes.sellerId, queryUserId))
+        );
     } else {
-      listings = [];
+      listings = await db
+        .select()
+        .from(secondHandCarsBikes)
+        .where(eq(secondHandCarsBikes.isActive, true));
     }
     res.json(listings);
   });
@@ -4952,13 +5124,19 @@ export function registerRoutes(app: Express) {
     try {
       const sessionUser = (req as any).session?.user || null;
       const queryUserId = typeof req.query.userId === 'string' ? req.query.userId : undefined;
+      const queryRole = typeof req.query.role === 'string' ? req.query.role : undefined;
 
       let rentals;
-      if (sessionUser && sessionUser.role === 'admin') {
+      if (sessionUser && (sessionUser.role === 'admin' || sessionUser.role === 'super_admin')) {
+        const adminId = sessionUser.id as string;
+        if (queryUserId && queryUserId !== adminId) {
+          return res.status(403).json({ message: "Forbidden: cannot access other users' listings" });
+        }
         rentals = await db.query.carBikeRentals.findMany({
-          where: queryUserId
-            ? or(eq(carBikeRentals.userId, queryUserId), eq(carBikeRentals.ownerId, queryUserId))
-            : undefined,
+          where: and(
+            or(eq(carBikeRentals.userId, adminId), eq(carBikeRentals.ownerId, adminId)),
+            eq(carBikeRentals.role, sessionUser.role as string),
+          ),
           orderBy: desc(carBikeRentals.createdAt),
         });
       } else if (sessionUser && sessionUser.id) {
@@ -4967,8 +5145,21 @@ export function registerRoutes(app: Express) {
           where: or(eq(carBikeRentals.userId, sid), eq(carBikeRentals.ownerId, sid)),
           orderBy: desc(carBikeRentals.createdAt),
         });
+      } else if (queryUserId) {
+        rentals = await db.query.carBikeRentals.findMany({
+          where: queryRole
+            ? and(
+                or(eq(carBikeRentals.userId, queryUserId), eq(carBikeRentals.ownerId, queryUserId)),
+                eq(carBikeRentals.role, queryRole)
+              )
+            : or(eq(carBikeRentals.userId, queryUserId), eq(carBikeRentals.ownerId, queryUserId)),
+          orderBy: desc(carBikeRentals.createdAt),
+        });
       } else {
-        rentals = [];
+        rentals = await db.query.carBikeRentals.findMany({
+          where: eq(carBikeRentals.isActive, true),
+          orderBy: desc(carBikeRentals.createdAt),
+        });
       }
       res.json(rentals);
     } catch (error: any) {
@@ -5029,6 +5220,42 @@ export function registerRoutes(app: Express) {
     res.json({ success: true });
   });
 
+  // Public Transportation/Moving Services Listings
+  app.get("/api/transportation-moving-services", async (_req, res) => {
+    try {
+      const services = await db.query.transportationMovingServices.findMany({
+        where: eq(transportationMovingServices.isActive, true),
+        orderBy: desc(transportationMovingServices.createdAt),
+      });
+
+      res.json(services);
+    } catch (error: any) {
+      console.error("Error fetching public transportation services:", error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Public Transportation/Moving Services Detail
+  app.get("/api/transportation-moving-services/:id", async (req, res) => {
+    try {
+      const service = await db.query.transportationMovingServices.findFirst({
+        where: and(
+          eq(transportationMovingServices.id, req.params.id),
+          eq(transportationMovingServices.isActive, true),
+        ),
+      });
+
+      if (!service) {
+        return res.status(404).json({ message: "Service not found" });
+      }
+
+      res.json(service);
+    } catch (error: any) {
+      console.error("Error fetching public transportation service detail:", error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+
   // Transportation/Moving Services Routes - Full CRUD
 
   // GET all transportation services
@@ -5036,9 +5263,10 @@ export function registerRoutes(app: Express) {
     try {
       const sessionUser = (req as any).session?.user || null;
       const queryUserId = typeof req.query.userId === 'string' ? req.query.userId : undefined;
+      const queryRole = typeof req.query.role === 'string' ? req.query.role : undefined;
 
       let services;
-      if (sessionUser && sessionUser.role === 'admin') {
+      if (sessionUser && (sessionUser.role === 'admin' || sessionUser.role === 'super_admin')) {
         const adminId = sessionUser.id as string;
         if (queryUserId && queryUserId !== adminId) {
           return res.status(403).json({ message: "Forbidden: cannot access other users' listings" });
@@ -5046,7 +5274,7 @@ export function registerRoutes(app: Express) {
         services = await db.query.transportationMovingServices.findMany({
           where: and(
             or(eq(transportationMovingServices.userId, adminId), eq(transportationMovingServices.ownerId, adminId)),
-            eq(transportationMovingServices.role, 'admin'),
+            eq(transportationMovingServices.role, sessionUser.role as string),
           ),
           orderBy: desc(transportationMovingServices.createdAt),
         });
@@ -5054,6 +5282,22 @@ export function registerRoutes(app: Express) {
         const sid = sessionUser.id as string;
         services = await db.query.transportationMovingServices.findMany({
           where: or(eq(transportationMovingServices.userId, sid), eq(transportationMovingServices.ownerId, sid)),
+          orderBy: desc(transportationMovingServices.createdAt),
+        });
+      } else if (queryUserId) {
+        services = await db.query.transportationMovingServices.findMany({
+          where: queryRole
+            ? and(
+                or(
+                  eq(transportationMovingServices.userId, queryUserId),
+                  eq(transportationMovingServices.ownerId, queryUserId)
+                ),
+                eq(transportationMovingServices.role, queryRole)
+              )
+            : or(
+                eq(transportationMovingServices.userId, queryUserId),
+                eq(transportationMovingServices.ownerId, queryUserId)
+              ),
           orderBy: desc(transportationMovingServices.createdAt),
         });
       } else {
@@ -5198,6 +5442,42 @@ export function registerRoutes(app: Express) {
     }
   });
 
+  // Public Vehicle License Classes Listings
+  app.get("/api/vehicle-license-classes", async (_req, res) => {
+    try {
+      const classes = await db.query.vehicleLicenseClasses.findMany({
+        where: eq(vehicleLicenseClasses.isActive, true),
+        orderBy: desc(vehicleLicenseClasses.createdAt),
+      });
+
+      res.json(classes);
+    } catch (error: any) {
+      console.error("Error fetching public vehicle license classes:", error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Public Vehicle License Classes Detail
+  app.get("/api/vehicle-license-classes/:id", async (req, res) => {
+    try {
+      const licenseClass = await db.query.vehicleLicenseClasses.findFirst({
+        where: and(
+          eq(vehicleLicenseClasses.id, req.params.id),
+          eq(vehicleLicenseClasses.isActive, true),
+        ),
+      });
+
+      if (!licenseClass) {
+        return res.status(404).json({ message: "Class not found" });
+      }
+
+      res.json(licenseClass);
+    } catch (error: any) {
+      console.error("Error fetching public vehicle license class detail:", error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+
   // Vehicle License Classes Routes - Full CRUD
 
   // GET all vehicle license classes
@@ -5205,9 +5485,10 @@ export function registerRoutes(app: Express) {
     try {
       const sessionUser = (req as any).session?.user || null;
       const queryUserId = typeof req.query.userId === 'string' ? req.query.userId : undefined;
+      const queryRole = typeof req.query.role === 'string' ? req.query.role : undefined;
 
       let classes;
-      if (sessionUser && sessionUser.role === 'admin') {
+      if (sessionUser && (sessionUser.role === 'admin' || sessionUser.role === 'super_admin')) {
         const adminId = sessionUser.id as string;
         if (queryUserId && queryUserId !== adminId) {
           return res.status(403).json({ message: "Forbidden: cannot access other users' listings" });
@@ -5215,7 +5496,7 @@ export function registerRoutes(app: Express) {
         classes = await db.query.vehicleLicenseClasses.findMany({
           where: and(
             or(eq(vehicleLicenseClasses.userId, adminId), eq(vehicleLicenseClasses.ownerId, adminId)),
-            eq(vehicleLicenseClasses.role, 'admin'),
+            eq(vehicleLicenseClasses.role, sessionUser.role as string),
           ),
           orderBy: desc(vehicleLicenseClasses.createdAt),
         });
@@ -5223,6 +5504,22 @@ export function registerRoutes(app: Express) {
         const sid = sessionUser.id as string;
         classes = await db.query.vehicleLicenseClasses.findMany({
           where: or(eq(vehicleLicenseClasses.userId, sid), eq(vehicleLicenseClasses.ownerId, sid)),
+          orderBy: desc(vehicleLicenseClasses.createdAt),
+        });
+      } else if (queryUserId) {
+        classes = await db.query.vehicleLicenseClasses.findMany({
+          where: queryRole
+            ? and(
+                or(
+                  eq(vehicleLicenseClasses.userId, queryUserId),
+                  eq(vehicleLicenseClasses.ownerId, queryUserId)
+                ),
+                eq(vehicleLicenseClasses.role, queryRole)
+              )
+            : or(
+                eq(vehicleLicenseClasses.userId, queryUserId),
+                eq(vehicleLicenseClasses.ownerId, queryUserId)
+              ),
           orderBy: desc(vehicleLicenseClasses.createdAt),
         });
       } else {
@@ -5537,16 +5834,29 @@ export function registerRoutes(app: Express) {
     try {
       const sessionUser = (req as any).session?.user || null;
       const queryUserId = typeof req.query.userId === 'string' ? req.query.userId : undefined;
+      const queryRole = typeof req.query.role === 'string' ? req.query.role : undefined;
 
       let items;
-      if (sessionUser && sessionUser.role === 'admin') {
+      if (sessionUser && (sessionUser.role === 'admin' || sessionUser.role === 'super_admin')) {
+        const adminId = sessionUser.id as string;
+        if (queryUserId && queryUserId !== adminId) {
+          return res.status(403).json({ message: "Forbidden: cannot access other users' listings" });
+        }
         items = await db.query.jewelryAccessories.findMany({
-          where: queryUserId ? eq(jewelryAccessories.userId, queryUserId) : undefined,
+          where: and(eq(jewelryAccessories.userId, adminId), eq(jewelryAccessories.role, sessionUser.role as string)),
           orderBy: desc(jewelryAccessories.createdAt),
         });
       } else if (sessionUser && sessionUser.id) {
+        const sid = sessionUser.id as string;
         items = await db.query.jewelryAccessories.findMany({
-          where: eq(jewelryAccessories.userId, sessionUser.id as string),
+          where: eq(jewelryAccessories.userId, sid),
+          orderBy: desc(jewelryAccessories.createdAt),
+        });
+      } else if (queryUserId) {
+        items = await db.query.jewelryAccessories.findMany({
+          where: queryRole
+            ? and(eq(jewelryAccessories.userId, queryUserId), eq(jewelryAccessories.role, queryRole))
+            : eq(jewelryAccessories.userId, queryUserId),
           orderBy: desc(jewelryAccessories.createdAt),
         });
       } else {
@@ -5555,6 +5865,31 @@ export function registerRoutes(app: Express) {
       res.json(items);
     } catch (error: any) {
       console.error('Error fetching jewelry & accessories:', error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Jewelry & Accessories (public)
+  app.get("/api/jewelry-accessories", async (_req, res) => {
+    try {
+      const items = await db.query.jewelryAccessories.findMany({
+        where: eq(jewelryAccessories.isActive, true),
+        orderBy: desc(jewelryAccessories.createdAt),
+      });
+      res.json(items);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.get("/api/jewelry-accessories/:id", async (req, res) => {
+    try {
+      const item = await db.query.jewelryAccessories.findFirst({
+        where: and(eq(jewelryAccessories.id, req.params.id), eq(jewelryAccessories.isActive, true)),
+      });
+      if (!item) return res.status(404).json({ message: "Item not found" });
+      res.json(item);
+    } catch (error: any) {
       res.status(500).json({ message: error.message });
     }
   });
@@ -5879,6 +6214,34 @@ export function registerRoutes(app: Express) {
     }
   });
 
+  // Second Hand Phones, Tablets & Accessories (public)
+  app.get("/api/second-hand-phones-tablets-accessories", async (_req, res) => {
+    try {
+      const items = await db.query.secondHandPhonesTabletsAccessories.findMany({
+        where: eq(secondHandPhonesTabletsAccessories.isActive, true),
+        orderBy: desc(secondHandPhonesTabletsAccessories.createdAt),
+      });
+      res.json(items);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.get("/api/second-hand-phones-tablets-accessories/:id", async (req, res) => {
+    try {
+      const item = await db.query.secondHandPhonesTabletsAccessories.findFirst({
+        where: and(
+          eq(secondHandPhonesTabletsAccessories.id, req.params.id),
+          eq(secondHandPhonesTabletsAccessories.isActive, true)
+        ),
+      });
+      if (!item) return res.status(404).json({ message: "Item not found" });
+      res.json(item);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
   // GET single product by ID
   app.get("/api/admin/second-hand-phones-tablets-accessories/:id", async (req, res) => {
     try {
@@ -6003,16 +6366,29 @@ export function registerRoutes(app: Express) {
     try {
       const sessionUser = (req as any).session?.user || null;
       const queryUserId = typeof req.query.userId === 'string' ? req.query.userId : undefined;
+      const queryRole = typeof req.query.role === 'string' ? req.query.role : undefined;
 
       let services;
-      if (sessionUser && sessionUser.role === 'admin') {
+      if (sessionUser && (sessionUser.role === 'admin' || sessionUser.role === 'super_admin')) {
+        const adminId = sessionUser.id as string;
+        if (queryUserId && queryUserId !== adminId) {
+          return res.status(403).json({ message: "Forbidden: cannot access other users' listings" });
+        }
         services = await db.query.eventDecorationServices.findMany({
-          where: queryUserId ? eq(eventDecorationServices.userId, queryUserId) : undefined,
+          where: and(eq(eventDecorationServices.userId, adminId), eq(eventDecorationServices.role, sessionUser.role as string)),
           orderBy: desc(eventDecorationServices.createdAt),
         });
       } else if (sessionUser && sessionUser.id) {
+        const sid = sessionUser.id as string;
         services = await db.query.eventDecorationServices.findMany({
-          where: eq(eventDecorationServices.userId, sessionUser.id as string),
+          where: eq(eventDecorationServices.userId, sid),
+          orderBy: desc(eventDecorationServices.createdAt),
+        });
+      } else if (queryUserId) {
+        services = await db.query.eventDecorationServices.findMany({
+          where: queryRole
+            ? and(eq(eventDecorationServices.userId, queryUserId), eq(eventDecorationServices.role, queryRole))
+            : eq(eventDecorationServices.userId, queryUserId),
           orderBy: desc(eventDecorationServices.createdAt),
         });
       } else {
@@ -6020,6 +6396,30 @@ export function registerRoutes(app: Express) {
       }
 
       res.json(services);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.get("/api/event-decoration-services", async (_req, res) => {
+    try {
+      const items = await db.query.eventDecorationServices.findMany({
+        where: eq(eventDecorationServices.isActive, true),
+        orderBy: desc(eventDecorationServices.createdAt),
+      });
+      res.json(items);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.get("/api/event-decoration-services/:id", async (req, res) => {
+    try {
+      const item = await db.query.eventDecorationServices.findFirst({
+        where: and(eq(eventDecorationServices.id, req.params.id), eq(eventDecorationServices.isActive, true)),
+      });
+      if (!item) return res.status(404).json({ message: "Item not found" });
+      res.json(item);
     } catch (error: any) {
       res.status(500).json({ message: error.message });
     }
@@ -6159,6 +6559,34 @@ export function registerRoutes(app: Express) {
     }
   });
 
+  // Computer, Mobile & Laptop Repair Services (public)
+  app.get("/api/computer-mobile-laptop-repair-services", async (_req, res) => {
+    try {
+      const items = await db.query.computerMobileLaptopRepairServices.findMany({
+        where: eq(computerMobileLaptopRepairServices.isActive, true),
+        orderBy: desc(computerMobileLaptopRepairServices.createdAt),
+      });
+      res.json(items);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.get("/api/computer-mobile-laptop-repair-services/:id", async (req, res) => {
+    try {
+      const item = await db.query.computerMobileLaptopRepairServices.findFirst({
+        where: and(
+          eq(computerMobileLaptopRepairServices.id, req.params.id),
+          eq(computerMobileLaptopRepairServices.isActive, true)
+        ),
+      });
+      if (!item) return res.status(404).json({ message: "Item not found" });
+      res.json(item);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
   // GET single repair service by ID
   app.get("/api/admin/computer-mobile-laptop-repair-services/:id", async (req, res) => {
     try {
@@ -6279,12 +6707,64 @@ export function registerRoutes(app: Express) {
   // Household Services Routes - Full CRUD
 
   // GET all household services
-  app.get("/api/admin/household-services", async (_req, res) => {
+  app.get("/api/admin/household-services", async (req, res) => {
     try {
-      const services = await db.query.householdServices.findMany({
+      const sessionUser = (req as any).session?.user || null;
+      const queryUserId = typeof req.query.userId === 'string' ? req.query.userId : undefined;
+      const queryRole = typeof req.query.role === 'string' ? req.query.role : undefined;
+
+      let services;
+      if (sessionUser && (sessionUser.role === 'admin' || sessionUser.role === 'super_admin')) {
+        const adminId = sessionUser.id as string;
+        if (queryUserId && queryUserId !== adminId) {
+          return res.status(403).json({ message: "Forbidden: cannot access other users' listings" });
+        }
+        services = await db.query.householdServices.findMany({
+          where: and(eq(householdServices.userId, adminId), eq(householdServices.role, sessionUser.role as string)),
+          orderBy: desc(householdServices.createdAt),
+        });
+      } else if (sessionUser && sessionUser.id) {
+        const sid = sessionUser.id as string;
+        services = await db.query.householdServices.findMany({
+          where: eq(householdServices.userId, sid),
+          orderBy: desc(householdServices.createdAt),
+        });
+      } else if (queryUserId) {
+        services = await db.query.householdServices.findMany({
+          where: queryRole
+            ? and(eq(householdServices.userId, queryUserId), eq(householdServices.role, queryRole))
+            : eq(householdServices.userId, queryUserId),
+          orderBy: desc(householdServices.createdAt),
+        });
+      } else {
+        services = [];
+      }
+
+      res.json(services);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.get("/api/household-services", async (_req, res) => {
+    try {
+      const items = await db.query.householdServices.findMany({
+        where: eq(householdServices.isActive, true),
         orderBy: desc(householdServices.createdAt),
       });
-      res.json(services);
+      res.json(items);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.get("/api/household-services/:id", async (req, res) => {
+    try {
+      const item = await db.query.householdServices.findFirst({
+        where: and(eq(householdServices.id, req.params.id), eq(householdServices.isActive, true)),
+      });
+      if (!item) return res.status(404).json({ message: "Item not found" });
+      res.json(item);
     } catch (error: any) {
       res.status(500).json({ message: error.message });
     }
@@ -6541,12 +7021,65 @@ export function registerRoutes(app: Express) {
   // Fashion & Beauty Products Routes - Full CRUD
 
   // GET all fashion & beauty products
-  app.get("/api/admin/fashion-beauty-products", async (_req, res) => {
+  app.get("/api/admin/fashion-beauty-products", async (req, res) => {
     try {
-      const products = await db.query.fashionBeautyProducts.findMany({
+      const sessionUser = (req as any).session?.user || null;
+      const queryUserId = typeof req.query.userId === 'string' ? req.query.userId : undefined;
+      const queryRole = typeof req.query.role === 'string' ? req.query.role : undefined;
+
+      let products;
+      if (sessionUser && (sessionUser.role === 'admin' || sessionUser.role === 'super_admin')) {
+        const adminId = sessionUser.id as string;
+        if (queryUserId && queryUserId !== adminId) {
+          return res.status(403).json({ message: "Forbidden: cannot access other users' listings" });
+        }
+        products = await db.query.fashionBeautyProducts.findMany({
+          where: and(eq(fashionBeautyProducts.userId, adminId), eq(fashionBeautyProducts.role, sessionUser.role as string)),
+          orderBy: desc(fashionBeautyProducts.createdAt),
+        });
+      } else if (sessionUser && sessionUser.id) {
+        const sid = sessionUser.id as string;
+        products = await db.query.fashionBeautyProducts.findMany({
+          where: eq(fashionBeautyProducts.userId, sid),
+          orderBy: desc(fashionBeautyProducts.createdAt),
+        });
+      } else if (queryUserId) {
+        products = await db.query.fashionBeautyProducts.findMany({
+          where: queryRole
+            ? and(eq(fashionBeautyProducts.userId, queryUserId), eq(fashionBeautyProducts.role, queryRole))
+            : eq(fashionBeautyProducts.userId, queryUserId),
+          orderBy: desc(fashionBeautyProducts.createdAt),
+        });
+      } else {
+        products = [];
+      }
+
+      res.json(products);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Fashion & Beauty Products (public)
+  app.get("/api/fashion-beauty-products", async (_req, res) => {
+    try {
+      const items = await db.query.fashionBeautyProducts.findMany({
+        where: eq(fashionBeautyProducts.isActive, true),
         orderBy: desc(fashionBeautyProducts.createdAt),
       });
-      res.json(products);
+      res.json(items);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.get("/api/fashion-beauty-products/:id", async (req, res) => {
+    try {
+      const item = await db.query.fashionBeautyProducts.findFirst({
+        where: and(eq(fashionBeautyProducts.id, req.params.id), eq(fashionBeautyProducts.isActive, true)),
+      });
+      if (!item) return res.status(404).json({ message: "Item not found" });
+      res.json(item);
     } catch (error: any) {
       res.status(500).json({ message: error.message });
     }
@@ -6974,12 +7507,65 @@ export function registerRoutes(app: Express) {
   // Saree/Clothing/Shopping Routes - Full CRUD
 
   // GET all saree/clothing/shopping items
-  app.get("/api/admin/saree-clothing-shopping", async (_req, res) => {
+  app.get("/api/admin/saree-clothing-shopping", async (req, res) => {
+    try {
+      const sessionUser = (req as any).session?.user || null;
+      const queryUserId = typeof req.query.userId === 'string' ? req.query.userId : undefined;
+      const queryRole = typeof req.query.role === 'string' ? req.query.role : undefined;
+
+      let items;
+      if (sessionUser && (sessionUser.role === 'admin' || sessionUser.role === 'super_admin')) {
+        const adminId = sessionUser.id as string;
+        if (queryUserId && queryUserId !== adminId) {
+          return res.status(403).json({ message: "Forbidden: cannot access other users' listings" });
+        }
+        items = await db.query.sareeClothingShopping.findMany({
+          where: and(eq(sareeClothingShopping.userId, adminId), eq(sareeClothingShopping.role, sessionUser.role as string)),
+          orderBy: desc(sareeClothingShopping.createdAt),
+        });
+      } else if (sessionUser && sessionUser.id) {
+        const sid = sessionUser.id as string;
+        items = await db.query.sareeClothingShopping.findMany({
+          where: eq(sareeClothingShopping.userId, sid),
+          orderBy: desc(sareeClothingShopping.createdAt),
+        });
+      } else if (queryUserId) {
+        items = await db.query.sareeClothingShopping.findMany({
+          where: queryRole
+            ? and(eq(sareeClothingShopping.userId, queryUserId), eq(sareeClothingShopping.role, queryRole))
+            : eq(sareeClothingShopping.userId, queryUserId),
+          orderBy: desc(sareeClothingShopping.createdAt),
+        });
+      } else {
+        items = [];
+      }
+
+      res.json(items);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Saree/Clothing/Shopping (public)
+  app.get("/api/saree-clothing-shopping", async (_req, res) => {
     try {
       const items = await db.query.sareeClothingShopping.findMany({
+        where: eq(sareeClothingShopping.isActive, true),
         orderBy: desc(sareeClothingShopping.createdAt),
       });
       res.json(items);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.get("/api/saree-clothing-shopping/:id", async (req, res) => {
+    try {
+      const item = await db.query.sareeClothingShopping.findFirst({
+        where: and(eq(sareeClothingShopping.id, req.params.id), eq(sareeClothingShopping.isActive, true)),
+      });
+      if (!item) return res.status(404).json({ message: "Item not found" });
+      res.json(item);
     } catch (error: any) {
       res.status(500).json({ message: error.message });
     }
@@ -7111,17 +7697,23 @@ export function registerRoutes(app: Express) {
   app.get("/api/admin/dance-karate-gym-yoga", async (req, res) => {
     try {
       const sessionUser = (req as any).session?.user || null;
+      const headerRole = typeof req.headers['x-user-role'] === 'string' ? (req.headers['x-user-role'] as string) : undefined;
+      const queryRole = typeof req.query.role === 'string' ? (req.query.role as string) : undefined;
+      const isAdmin = (sessionUser && sessionUser.role === 'admin') || headerRole === 'admin' || queryRole === 'admin';
+
+      const headerUserId = typeof req.headers['x-user-id'] === 'string' ? (req.headers['x-user-id'] as string) : undefined;
       const queryUserId = typeof req.query.userId === 'string' ? req.query.userId : undefined;
 
       let classes;
-      if (sessionUser && sessionUser.role === 'admin') {
+      if (isAdmin) {
         classes = await db.query.danceKarateGymYoga.findMany({
           where: queryUserId ? eq(danceKarateGymYoga.userId, queryUserId) : undefined,
           orderBy: desc(danceKarateGymYoga.createdAt),
         });
-      } else if (sessionUser && sessionUser.id) {
+      } else if ((sessionUser && sessionUser.id) || headerUserId || queryUserId) {
+        const effectiveUserId = (sessionUser && sessionUser.id) ? (sessionUser.id as string) : (headerUserId || queryUserId) as string;
         classes = await db.query.danceKarateGymYoga.findMany({
-          where: eq(danceKarateGymYoga.userId, sessionUser.id as string),
+          where: eq(danceKarateGymYoga.userId, effectiveUserId),
           orderBy: desc(danceKarateGymYoga.createdAt),
         });
       } else {
@@ -7285,17 +7877,23 @@ export function registerRoutes(app: Express) {
   app.get("/api/admin/language-classes", async (req, res) => {
     try {
       const sessionUser = (req as any).session?.user || null;
+      const headerRole = typeof req.headers['x-user-role'] === 'string' ? (req.headers['x-user-role'] as string) : undefined;
+      const queryRole = typeof req.query.role === 'string' ? (req.query.role as string) : undefined;
+      const isAdmin = (sessionUser && sessionUser.role === 'admin') || headerRole === 'admin' || queryRole === 'admin';
+
+      const headerUserId = typeof req.headers['x-user-id'] === 'string' ? (req.headers['x-user-id'] as string) : undefined;
       const queryUserId = typeof req.query.userId === 'string' ? req.query.userId : undefined;
 
       let classes;
-      if (sessionUser && sessionUser.role === 'admin') {
+      if (isAdmin) {
         classes = await db.query.languageClasses.findMany({
           where: queryUserId ? eq(languageClasses.userId, queryUserId) : undefined,
           orderBy: desc(languageClasses.createdAt),
         });
-      } else if (sessionUser && sessionUser.id) {
+      } else if ((sessionUser && sessionUser.id) || headerUserId || queryUserId) {
+        const effectiveUserId = (sessionUser && sessionUser.id) ? (sessionUser.id as string) : (headerUserId || queryUserId) as string;
         classes = await db.query.languageClasses.findMany({
-          where: eq(languageClasses.userId, sessionUser.id as string),
+          where: eq(languageClasses.userId, effectiveUserId),
           orderBy: desc(languageClasses.createdAt),
         });
       } else {
@@ -7453,17 +8051,23 @@ export function registerRoutes(app: Express) {
 app.get("/api/admin/academies-music-arts-sports", async (req, res) => {
     try {
       const sessionUser = (req as any).session?.user || null;
+      const headerRole = typeof req.headers['x-user-role'] === 'string' ? (req.headers['x-user-role'] as string) : undefined;
+      const queryRole = typeof req.query.role === 'string' ? (req.query.role as string) : undefined;
+      const isAdmin = (sessionUser && sessionUser.role === 'admin') || headerRole === 'admin' || queryRole === 'admin';
+
+      const headerUserId = typeof req.headers['x-user-id'] === 'string' ? (req.headers['x-user-id'] as string) : undefined;
       const queryUserId = typeof req.query.userId === 'string' ? req.query.userId : undefined;
 
       let academies;
-      if (sessionUser && sessionUser.role === 'admin') {
+      if (isAdmin) {
         academies = await db.query.academiesMusicArtsSports.findMany({
           where: queryUserId ? eq(academiesMusicArtsSports.userId, queryUserId) : undefined,
           orderBy: desc(academiesMusicArtsSports.createdAt),
         });
-      } else if (sessionUser && sessionUser.id) {
+      } else if ((sessionUser && sessionUser.id) || headerUserId || queryUserId) {
+        const effectiveUserId = (sessionUser && sessionUser.id) ? (sessionUser.id as string) : (headerUserId || queryUserId) as string;
         academies = await db.query.academiesMusicArtsSports.findMany({
-          where: eq(academiesMusicArtsSports.userId, sessionUser.id as string),
+          where: eq(academiesMusicArtsSports.userId, effectiveUserId),
           orderBy: desc(academiesMusicArtsSports.createdAt),
         });
       } else {
@@ -7726,17 +8330,23 @@ app.get("/api/admin/academies-music-arts-sports", async (req, res) => {
 app.get("/api/admin/schools-colleges-coaching", async (req, res) => {
   try {
     const sessionUser = (req as any).session?.user || null;
+    const headerRole = typeof req.headers['x-user-role'] === 'string' ? (req.headers['x-user-role'] as string) : undefined;
+    const queryRole = typeof req.query.role === 'string' ? (req.query.role as string) : undefined;
+    const isAdmin = (sessionUser && sessionUser.role === 'admin') || headerRole === 'admin' || queryRole === 'admin';
+
+    const headerUserId = typeof req.headers['x-user-id'] === 'string' ? (req.headers['x-user-id'] as string) : undefined;
     const queryUserId = typeof req.query.userId === 'string' ? req.query.userId : undefined;
 
     let results;
-    if (sessionUser && sessionUser.role === 'admin') {
+    if (isAdmin) {
       results = await db.query.schoolsCollegesCoaching.findMany({
         where: queryUserId ? eq(schoolsCollegesCoaching.userId, queryUserId) : undefined,
         orderBy: desc(schoolsCollegesCoaching.createdAt),
       });
-    } else if (sessionUser && sessionUser.id) {
+    } else if ((sessionUser && sessionUser.id) || headerUserId || queryUserId) {
+      const effectiveUserId = (sessionUser && sessionUser.id) ? (sessionUser.id as string) : (headerUserId || queryUserId) as string;
       results = await db.query.schoolsCollegesCoaching.findMany({
-        where: eq(schoolsCollegesCoaching.userId, sessionUser.id as string),
+        where: eq(schoolsCollegesCoaching.userId, effectiveUserId),
         orderBy: desc(schoolsCollegesCoaching.createdAt),
       });
     } else {
@@ -7945,17 +8555,23 @@ app.patch("/api/admin/schools-colleges-coaching/:id/toggle-featured", async (req
 app.get("/api/admin/skill-training-certification", async (req, res) => {
   try {
     const sessionUser = (req as any).session?.user || null;
+    const headerRole = typeof req.headers['x-user-role'] === 'string' ? (req.headers['x-user-role'] as string) : undefined;
+    const queryRole = typeof req.query.role === 'string' ? (req.query.role as string) : undefined;
+    const isAdmin = (sessionUser && sessionUser.role === 'admin') || headerRole === 'admin' || queryRole === 'admin';
+
+    const headerUserId = typeof req.headers['x-user-id'] === 'string' ? (req.headers['x-user-id'] as string) : undefined;
     const queryUserId = typeof req.query.userId === 'string' ? req.query.userId : undefined;
 
     let results;
-    if (sessionUser && sessionUser.role === 'admin') {
+    if (isAdmin) {
       results = await db.query.skillTrainingCertification.findMany({
         where: queryUserId ? eq(skillTrainingCertification.userId, queryUserId) : undefined,
         orderBy: desc(skillTrainingCertification.createdAt),
       });
-    } else if (sessionUser && sessionUser.id) {
+    } else if ((sessionUser && sessionUser.id) || headerUserId || queryUserId) {
+      const effectiveUserId = (sessionUser && sessionUser.id) ? (sessionUser.id as string) : (headerUserId || queryUserId) as string;
       results = await db.query.skillTrainingCertification.findMany({
-        where: eq(skillTrainingCertification.userId, sessionUser.id as string),
+        where: eq(skillTrainingCertification.userId, effectiveUserId),
         orderBy: desc(skillTrainingCertification.createdAt),
       });
     } else {
@@ -8204,9 +8820,10 @@ app.patch("/api/admin/skill-training-certification/:id/toggle-featured", async (
     try {
       const sessionUser = (req as any).session?.user || null;
       const queryUserId = typeof req.query.userId === 'string' ? req.query.userId : undefined;
+      const queryRole = typeof req.query.role === 'string' ? req.query.role : undefined;
 
       let classes;
-      if (sessionUser && sessionUser.role === 'admin') {
+      if ((sessionUser && sessionUser.role === 'admin') || queryRole === 'admin') {
         classes = await db.query.tuitionPrivateClasses.findMany({
           where: queryUserId ? eq(tuitionPrivateClasses.userId, queryUserId) : undefined,
           orderBy: desc(tuitionPrivateClasses.createdAt),
@@ -8499,16 +9116,29 @@ app.patch("/api/admin/skill-training-certification/:id/toggle-featured", async (
     try {
       const sessionUser = (req as any).session?.user || null;
       const queryUserId = typeof req.query.userId === 'string' ? req.query.userId : undefined;
+      const queryRole = typeof req.query.role === 'string' ? req.query.role : undefined;
 
       let stores;
-      if (sessionUser && sessionUser.role === 'admin') {
+      if (sessionUser && (sessionUser.role === 'admin' || sessionUser.role === 'super_admin')) {
+        const adminId = sessionUser.id as string;
+        if (queryUserId && queryUserId !== adminId) {
+          return res.status(403).json({ message: "Forbidden: cannot access other users' listings" });
+        }
         stores = await db.query.pharmacyMedicalStores.findMany({
-          where: queryUserId ? eq(pharmacyMedicalStores.userId, queryUserId) : undefined,
+          where: and(eq(pharmacyMedicalStores.userId, adminId), eq(pharmacyMedicalStores.role, sessionUser.role as string)),
           orderBy: desc(pharmacyMedicalStores.createdAt),
         });
       } else if (sessionUser && sessionUser.id) {
+        const sid = sessionUser.id as string;
         stores = await db.query.pharmacyMedicalStores.findMany({
-          where: eq(pharmacyMedicalStores.userId, sessionUser.id as string),
+          where: eq(pharmacyMedicalStores.userId, sid),
+          orderBy: desc(pharmacyMedicalStores.createdAt),
+        });
+      } else if (queryUserId) {
+        stores = await db.query.pharmacyMedicalStores.findMany({
+          where: queryRole
+            ? and(eq(pharmacyMedicalStores.userId, queryUserId), eq(pharmacyMedicalStores.role, queryRole))
+            : eq(pharmacyMedicalStores.userId, queryUserId),
           orderBy: desc(pharmacyMedicalStores.createdAt),
         });
       } else {
@@ -8517,6 +9147,31 @@ app.patch("/api/admin/skill-training-certification/:id/toggle-featured", async (
       res.json(stores);
     } catch (error: any) {
       console.error('Error fetching pharmacy stores:', error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Pharmacy & Medical Stores (public)
+  app.get("/api/pharmacy-medical-stores", async (_req, res) => {
+    try {
+      const items = await db.query.pharmacyMedicalStores.findMany({
+        where: eq(pharmacyMedicalStores.isActive, true),
+        orderBy: desc(pharmacyMedicalStores.createdAt),
+      });
+      res.json(items);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.get("/api/pharmacy-medical-stores/:id", async (req, res) => {
+    try {
+      const item = await db.query.pharmacyMedicalStores.findFirst({
+        where: and(eq(pharmacyMedicalStores.id, req.params.id), eq(pharmacyMedicalStores.isActive, true)),
+      });
+      if (!item) return res.status(404).json({ message: "Item not found" });
+      res.json(item);
+    } catch (error: any) {
       res.status(500).json({ message: error.message });
     }
   });
@@ -8661,6 +9316,31 @@ app.patch("/api/admin/skill-training-certification/:id/toggle-featured", async (
     }
   });
 
+  // Telecommunication Services (public)
+  app.get("/api/telecommunication-services", async (_req, res) => {
+    try {
+      const items = await db.query.telecommunicationServices.findMany({
+        where: eq(telecommunicationServices.isActive, true),
+        orderBy: desc(telecommunicationServices.createdAt),
+      });
+      res.json(items);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.get("/api/telecommunication-services/:id", async (req, res) => {
+    try {
+      const item = await db.query.telecommunicationServices.findFirst({
+        where: and(eq(telecommunicationServices.id, req.params.id), eq(telecommunicationServices.isActive, true)),
+      });
+      if (!item) return res.status(404).json({ message: "Item not found" });
+      res.json(item);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
   app.post("/api/admin/telecommunication-services", async (req, res) => {
     try {
       // sanitize numeric fields coming as empty strings
@@ -8782,6 +9462,31 @@ app.patch("/api/admin/skill-training-certification/:id/toggle-featured", async (
     }
   });
 
+  // Service Centre / Warranty (public)
+  app.get("/api/service-centre-warranty", async (_req, res) => {
+    try {
+      const items = await db.query.serviceCentreWarranty.findMany({
+        where: eq(serviceCentreWarranty.isActive, true),
+        orderBy: desc(serviceCentreWarranty.createdAt),
+      });
+      res.json(items);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.get("/api/service-centre-warranty/:id", async (req, res) => {
+    try {
+      const item = await db.query.serviceCentreWarranty.findFirst({
+        where: and(eq(serviceCentreWarranty.id, req.params.id), eq(serviceCentreWarranty.isActive, true)),
+      });
+      if (!item) return res.status(404).json({ message: "Item not found" });
+      res.json(item);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
   app.post("/api/admin/service-centre-warranty", async (req, res) => {
     try {
       // sanitize numeric fields coming as empty strings
@@ -8882,10 +9587,63 @@ app.patch("/api/admin/skill-training-certification/:id/toggle-featured", async (
   // Health & Wellness Services Routes - Full CRUD
   app.get("/api/admin/health-wellness-services", async (req, res) => {
     try {
-      const services = await db.query.healthWellnessServices.findMany({
+      const sessionUser = (req as any).session?.user || null;
+      const queryUserId = typeof req.query.userId === 'string' ? req.query.userId : undefined;
+      const queryRole = typeof req.query.role === 'string' ? req.query.role : undefined;
+
+      let services;
+      if (sessionUser && (sessionUser.role === 'admin' || sessionUser.role === 'super_admin')) {
+        const adminId = sessionUser.id as string;
+        if (queryUserId && queryUserId !== adminId) {
+          return res.status(403).json({ message: "Forbidden: cannot access other users' listings" });
+        }
+        services = await db.query.healthWellnessServices.findMany({
+          where: and(eq(healthWellnessServices.userId, adminId), eq(healthWellnessServices.role, sessionUser.role as string)),
+          orderBy: desc(healthWellnessServices.createdAt),
+        });
+      } else if (sessionUser && sessionUser.id) {
+        const sid = sessionUser.id as string;
+        services = await db.query.healthWellnessServices.findMany({
+          where: eq(healthWellnessServices.userId, sid),
+          orderBy: desc(healthWellnessServices.createdAt),
+        });
+      } else if (queryUserId) {
+        services = await db.query.healthWellnessServices.findMany({
+          where: queryRole
+            ? and(eq(healthWellnessServices.userId, queryUserId), eq(healthWellnessServices.role, queryRole))
+            : eq(healthWellnessServices.userId, queryUserId),
+          orderBy: desc(healthWellnessServices.createdAt),
+        });
+      } else {
+        services = [];
+      }
+
+      res.json(services);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Health & Wellness Services (public)
+  app.get("/api/health-wellness-services", async (_req, res) => {
+    try {
+      const items = await db.query.healthWellnessServices.findMany({
+        where: eq(healthWellnessServices.isActive, true),
         orderBy: desc(healthWellnessServices.createdAt),
       });
-      res.json(services);
+      res.json(items);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.get("/api/health-wellness-services/:id", async (req, res) => {
+    try {
+      const item = await db.query.healthWellnessServices.findFirst({
+        where: and(eq(healthWellnessServices.id, req.params.id), eq(healthWellnessServices.isActive, true)),
+      });
+      if (!item) return res.status(404).json({ message: "Item not found" });
+      res.json(item);
     } catch (error: any) {
       res.status(500).json({ message: error.message });
     }
@@ -9154,6 +9912,19 @@ app.patch("/api/admin/skill-training-certification/:id/toggle-featured", async (
     }
   });
 
+  // Construction Materials Detail
+  app.get("/api/construction-materials/:id", async (req, res) => {
+    try {
+      const item = await db.query.constructionMaterials.findFirst({
+        where: eq(constructionMaterials.id, req.params.id),
+      });
+      if (!item) return res.status(404).json({ message: "Item not found" });
+      res.json(item);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
   // Rental Listings
   app.get("/api/rental-listings", async (req, res) => {
     try {
@@ -9168,6 +9939,19 @@ app.patch("/api/admin/skill-training-certification/:id/toggle-featured", async (
     }
   });
 
+  // Rental Listings Detail
+  app.get("/api/rental-listings/:id", async (req, res) => {
+    try {
+      const item = await db.query.rentalListings.findFirst({
+        where: eq(rentalListings.id, req.params.id),
+      });
+      if (!item) return res.status(404).json({ message: "Listing not found" });
+      res.json(item);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
   // Hostel & PG Listings
   app.get("/api/hostel-listings", async (req, res) => {
     try {
@@ -9177,6 +9961,19 @@ app.patch("/api/admin/skill-training-certification/:id/toggle-featured", async (
         orderBy: desc(hostelPgListings.createdAt),
       });
       res.json(items);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Hostel Listings Detail
+  app.get("/api/hostel-listings/:id", async (req, res) => {
+    try {
+      const item = await db.query.hostelPgListings.findFirst({
+        where: and(eq(hostelPgListings.id, req.params.id), eq(hostelPgListings.active, true)),
+      });
+      if (!item) return res.status(404).json({ message: "Listing not found" });
+      res.json(item);
     } catch (error: any) {
       res.status(500).json({ message: error.message });
     }
@@ -9486,6 +10283,31 @@ app.patch("/api/admin/skill-training-certification/:id/toggle-featured", async (
     }
   });
 
+  // E-Books & Online Courses (public alias used by subcategory pages)
+  app.get("/api/ebooks-online-courses", async (_req, res) => {
+    try {
+      const items = await db.query.ebooksOnlineCourses.findMany({
+        where: eq(ebooksOnlineCourses.isActive, true),
+        orderBy: desc(ebooksOnlineCourses.createdAt),
+      });
+      res.json(items);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.get("/api/ebooks-online-courses/:id", async (req, res) => {
+    try {
+      const item = await db.query.ebooksOnlineCourses.findFirst({
+        where: and(eq(ebooksOnlineCourses.id, req.params.id), eq(ebooksOnlineCourses.isActive, true)),
+      });
+      if (!item) return res.status(404).json({ message: "Item not found" });
+      res.json(item);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
   // Cricket & Sports Training
   app.get("/api/cricket-sports", async (req, res) => {
     try {
@@ -9495,6 +10317,131 @@ app.patch("/api/admin/skill-training-certification/:id/toggle-featured", async (
         orderBy: desc(cricketSportsTraining.createdAt),
       });
       res.json(items);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Cricket & Sports Training (public alias used by subcategory pages)
+  app.get("/api/cricket-sports-training", async (_req, res) => {
+    try {
+      const items = await db.query.cricketSportsTraining.findMany({
+        where: eq(cricketSportsTraining.isActive, true),
+        orderBy: desc(cricketSportsTraining.createdAt),
+      });
+      res.json(items);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.get("/api/cricket-sports-training/:id", async (req, res) => {
+    try {
+      const item = await db.query.cricketSportsTraining.findFirst({
+        where: and(eq(cricketSportsTraining.id, req.params.id), eq(cricketSportsTraining.isActive, true)),
+      });
+      if (!item) return res.status(404).json({ message: "Item not found" });
+      res.json(item);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Tuition & Private Classes (public alias used by subcategory pages)
+  app.get("/api/tuition-private-classes", async (_req, res) => {
+    try {
+      const items = await db.query.tuitionPrivateClasses.findMany({
+        where: eq(tuitionPrivateClasses.isActive, true),
+        orderBy: desc(tuitionPrivateClasses.createdAt),
+      });
+      res.json(items);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.get("/api/tuition-private-classes/:id", async (req, res) => {
+    try {
+      const item = await db.query.tuitionPrivateClasses.findFirst({
+        where: and(eq(tuitionPrivateClasses.id, req.params.id), eq(tuitionPrivateClasses.isActive, true)),
+      });
+      if (!item) return res.status(404).json({ message: "Item not found" });
+      res.json(item);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Skill Training & Certification (public alias used by subcategory pages)
+  app.get("/api/skill-training-certification", async (_req, res) => {
+    try {
+      const items = await db.query.skillTrainingCertification.findMany({
+        where: eq(skillTrainingCertification.isActive, true),
+        orderBy: desc(skillTrainingCertification.createdAt),
+      });
+      res.json(items);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.get("/api/skill-training-certification/:id", async (req, res) => {
+    try {
+      const item = await db.query.skillTrainingCertification.findFirst({
+        where: and(eq(skillTrainingCertification.id, req.params.id), eq(skillTrainingCertification.isActive, true)),
+      });
+      if (!item) return res.status(404).json({ message: "Item not found" });
+      res.json(item);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Educational Consultancy & Study Abroad (public alias used by subcategory pages)
+  app.get("/api/educational-consultancy-study-abroad", async (_req, res) => {
+    try {
+      const items = await db.query.educationalConsultancyStudyAbroad.findMany({
+        where: eq(educationalConsultancyStudyAbroad.isActive, true),
+        orderBy: desc(educationalConsultancyStudyAbroad.createdAt),
+      });
+      res.json(items);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.get("/api/educational-consultancy-study-abroad/:id", async (req, res) => {
+    try {
+      const item = await db.query.educationalConsultancyStudyAbroad.findFirst({
+        where: and(eq(educationalConsultancyStudyAbroad.id, req.params.id), eq(educationalConsultancyStudyAbroad.isActive, true)),
+      });
+      if (!item) return res.status(404).json({ message: "Item not found" });
+      res.json(item);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Dance, Karate, Gym & Yoga (public alias used by subcategory pages)
+  app.get("/api/dance-karate-gym-yoga", async (_req, res) => {
+    try {
+      const items = await db.query.danceKarateGymYoga.findMany({
+        where: eq(danceKarateGymYoga.isActive, true),
+        orderBy: desc(danceKarateGymYoga.createdAt),
+      });
+      res.json(items);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.get("/api/dance-karate-gym-yoga/:id", async (req, res) => {
+    try {
+      const item = await db.query.danceKarateGymYoga.findFirst({
+        where: and(eq(danceKarateGymYoga.id, req.params.id), eq(danceKarateGymYoga.isActive, true)),
+      });
+      if (!item) return res.status(404).json({ message: "Item not found" });
+      res.json(item);
     } catch (error: any) {
       res.status(500).json({ message: error.message });
     }
@@ -9584,6 +10531,19 @@ app.patch("/api/admin/skill-training-certification/:id/toggle-featured", async (
     }
   });
 
+  // Property Deals Detail (public)
+  app.get("/api/property-deals-public/:id", async (req, res) => {
+    try {
+      const item = await db.query.propertyDeals.findFirst({
+        where: eq(propertyDeals.id, req.params.id),
+      });
+      if (!item) return res.status(404).json({ message: "Item not found" });
+      res.json(item);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
   // Commercial Properties (public endpoint)
   app.get("/api/commercial-properties-public", async (req, res) => {
     try {
@@ -9593,6 +10553,19 @@ app.patch("/api/admin/skill-training-certification/:id/toggle-featured", async (
         orderBy: desc(commercialProperties.createdAt),
       });
       res.json(items);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Commercial Properties Detail (public)
+  app.get("/api/commercial-properties-public/:id", async (req, res) => {
+    try {
+      const item = await db.query.commercialProperties.findFirst({
+        where: eq(commercialProperties.id, req.params.id),
+      });
+      if (!item) return res.status(404).json({ message: "Item not found" });
+      res.json(item);
     } catch (error: any) {
       res.status(500).json({ message: error.message });
     }
@@ -9612,6 +10585,19 @@ app.patch("/api/admin/skill-training-certification/:id/toggle-featured", async (
     }
   });
 
+  // Industrial Land Detail (public)
+  app.get("/api/industrial-land-public/:id", async (req, res) => {
+    try {
+      const item = await db.query.industrialLand.findFirst({
+        where: eq(industrialLand.id, req.params.id),
+      });
+      if (!item) return res.status(404).json({ message: "Item not found" });
+      res.json(item);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
   // Office Spaces (public endpoint)
   app.get("/api/office-spaces-public", async (req, res) => {
     try {
@@ -9621,6 +10607,19 @@ app.patch("/api/admin/skill-training-certification/:id/toggle-featured", async (
         orderBy: desc(officeSpaces.createdAt),
       });
       res.json(items);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Office Spaces Detail (public)
+  app.get("/api/office-spaces-public/:id", async (req, res) => {
+    try {
+      const item = await db.query.officeSpaces.findFirst({
+        where: eq(officeSpaces.id, req.params.id),
+      });
+      if (!item) return res.status(404).json({ message: "Item not found" });
+      res.json(item);
     } catch (error: any) {
       res.status(500).json({ message: error.message });
     }

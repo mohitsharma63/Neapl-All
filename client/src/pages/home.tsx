@@ -915,7 +915,7 @@ export default function Home() {
                       return (
                         <Link
                           key={subcategory.id}
-                          to={`/category/${activeCategory}/subcategory/${subcategory.slug}`}
+                          to={`/category/${activeCategory}/subcategory/${encodeURIComponent(subcategory.slug)}`}
                           style={{ animationDelay: `${index * 0.08}s` }}
                           className={`${colorClass} p-6 rounded-2xl hover:shadow-xl transition-all duration-500 group border border-gray-200 animate-fade-in-up hover:scale-105 hover:-translate-y-1`}
                         >

@@ -27,9 +27,16 @@ export default function SubcategoryPage() {
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
 
   // Fetch category data
-  const { data: categories = [], isLoading: categoryLoading } = useQuery({
+  const { data: categoriesData, isLoading: categoryLoading } = useQuery({
     queryKey: ["/api/admin/categories"],
+    queryFn: async () => {
+      const response = await fetch("/api/admin/categories");
+      if (!response.ok) throw new Error("Failed to fetch categories");
+      return response.json();
+    },
   });
+
+  const categories = (categoriesData ?? []) as any[];
 
   // Find the current category
   const category = categories.find((cat: any) => cat.id === categoryId);
@@ -57,30 +64,64 @@ export default function SubcategoryPage() {
   });
 
   // Get API endpoint for this subcategory
-  const decodedSubcategorySlug = decodeURIComponent(subcategorySlug || '');
-  const endpoint = SUBCATEGORY_API_MAP[subcategorySlug || ''] || SUBCATEGORY_API_MAP[decodedSubcategorySlug];
-  const subcategoryName = subcategoryData?.name || SUBCATEGORY_NAMES[subcategorySlug || ''] || subcategorySlug;
+  const decodedSubcategorySlug = decodeURIComponent(subcategorySlug || "");
+  const normalizedSubcategorySlug = decodedSubcategorySlug.trim().replace(/\s+/g, " ");
+  const normalizedSubcategoryKey = normalizedSubcategorySlug.replace(/\s/g, "");
+
+  const apiMapCandidates = [
+    subcategoryData?.slug,
+    subcategoryData?.name,
+    subcategorySlug,
+    decodedSubcategorySlug,
+    normalizedSubcategorySlug,
+    normalizedSubcategoryKey,
+  ].filter(Boolean) as string[];
+
+  const endpoint = apiMapCandidates.reduce<string | undefined>((acc, key) => {
+    if (acc) return acc;
+    return SUBCATEGORY_API_MAP[key];
+  }, undefined);
+
+  const subcategoryName =
+    subcategoryData?.name ||
+    SUBCATEGORY_NAMES[(subcategoryData?.slug as any) || ""] ||
+    SUBCATEGORY_NAMES[subcategorySlug || ""] ||
+    normalizedSubcategorySlug ||
+    subcategorySlug;
 
   // Fetch listings for this subcategory
-  const { data: listings = [], isLoading: listingsLoading } = useQuery({
+  const { data: listingsData, isLoading: listingsLoading } = useQuery({
     queryKey: [endpoint],
     enabled: !!endpoint,
     queryFn: async () => {
-      const response = await fetch(endpoint);
+      if (!endpoint) return [];
+      const endpointString = endpoint as string;
+      const response = await fetch(endpointString);
       if (!response.ok) throw new Error("Failed to fetch listings");
       return response.json();
     },
   });
 
+  const listings = (listingsData ?? []) as any[];
+
   // Filter listings
   const filteredListings = listings.filter((listing: any) => {
-    if (!listing.isActive) return false;
+    const isListingActive =
+      typeof listing?.isActive === "boolean"
+        ? listing.isActive
+        : typeof listing?.active === "boolean"
+          ? listing.active
+          : true;
+
+    if (!isListingActive) return false;
     if (searchTerm && !listing.title?.toLowerCase().includes(searchTerm.toLowerCase())) return false;
     if (cityFilter !== "all" && listing.city !== cityFilter) return false;
     return true;
   });
 
-  const cities = [...new Set(listings.map((l: any) => l.city).filter(Boolean))];
+  const cities = Array.from(
+    new Set<string>(listings.map((l: any) => l.city).filter(Boolean))
+  );
 
   if (categoryLoading || listingsLoading) {
     return (
@@ -126,35 +167,13 @@ export default function SubcategoryPage() {
               Home
             </Link>
             <span>{'>'}</span>
-            {category && (
-              <>
-                <Link href={`/category/${category.id}`} className="hover:text-foreground transition-colors">
-                  {category.name}
-                </Link>
-                <span>{'>'}</span>
-              </>
-            )}
+         
             <span className="text-foreground font-medium">{subcategoryName}</span>
           </nav>
 
           {/* Page Header */}
           <div className="flex items-center justify-between">
-            <div>
-              <div className="flex items-center space-x-3 mb-2">
-                {category && (
-                  <Link href={`/category/${category.id}`}>
-                    <Button variant="outline" size="sm" className="gap-2">
-                      <ArrowLeft className="w-4 h-4" />
-                      Back to {category.name}
-                    </Button>
-                  </Link>
-                )}
-                <Badge variant="secondary" className="text-sm">
-                  {filteredListings.length} Listings
-                </Badge>
-              </div>
-
-            </div>
+           
 
             {/* View Toggle */}
             <div className="hidden md:flex items-center space-x-2 bg-white rounded-lg p-1 shadow-sm border">

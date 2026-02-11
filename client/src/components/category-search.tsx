@@ -76,7 +76,7 @@ export default function CategorySearch({
       phones: 'Phones, Tablets & Accessories',
       secondHandPhones: 'Second Hand Phones & Accessories',
       computerRepair: 'Computer, Mobile & Laptop Repair Services',
-      cyberCafe: 'Cyber Café / Internet Services',
+      // cyberCafe: 'Cyber Café / Internet Services',
       telecommunication: 'Telecommunication Services',
       serviceCentre: 'Service Centre / Warranty',
       household: 'Household Services',

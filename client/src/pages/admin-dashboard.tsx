@@ -2702,7 +2702,7 @@ function AppSidebar({ activeSection, setActiveSection }: { activeSection: string
     { title: "Blogs", icon: FileText, key: "blogs" },
     { title: "Articles", icon: FileText, key: "articles" },
     { title: "Videos", icon: Video, key: "videos" },
-    { title: "Featured Videos", icon: Video, key: "featured-videos" },
+    // { title: "Featured Videos", icon: Video, key: "featured-videos" },
   ];
 
   return (
@@ -5341,16 +5341,23 @@ function VideosSection() {
       <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
         {Array.isArray(videos) && videos.map((video) => (
           <Card key={video.id} className="group hover:shadow-lg transition-shadow">
-            {video.thumbnailUrl && (
+            {(video.videoUrl || video.thumbnailUrl) && (
               <div className="relative h-40 bg-black">
-                <img src={video.thumbnailUrl} alt={video.title} className="w-full h-full " />
+                {video.videoUrl ? (
+                  <video className="w-full h-full" preload="metadata" controls playsInline muted>
+                    <source src={video.videoUrl} type="video/mp4" />
+                    Your browser does not support the video tag.
+                  </video>
+                ) : (
+                  <img src={video.thumbnailUrl} alt={video.title} className="w-full h-full" />
+                )}
               </div>
             )}
             <CardHeader className="pb-3">
               <div className="flex items-start justify-between gap-2">
                 <div className="flex-1">
                   <CardTitle className="text-lg line-clamp-2">{video.title}</CardTitle>
-                  {video.duration && <p className="text-sm text-muted-foreground mt-1">{video.duration} min</p>}
+                  {video.durationMinutes && <p className="text-sm text-muted-foreground mt-1">{video.durationMinutes} min</p>}
                 </div>
                 <Badge variant={video.isActive ? 'default' : 'secondary'}>{video.isActive ? 'Active' : 'Inactive'}</Badge>
               </div>
@@ -5431,9 +5438,16 @@ function FeaturedVideosSection() {
       <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
         {Array.isArray(videos) && videos.map((video) => (
           <Card key={video.id} className="group hover:shadow-lg transition-shadow">
-            {video.thumbnailUrl && (
+            {(video.videoUrl || video.thumbnailUrl) && (
               <div className="relative h-40 bg-black">
-                <img src={video.thumbnailUrl} alt={video.title} className="w-full h-full " />
+                {video.videoUrl ? (
+                  <video className="w-full h-full" preload="metadata" controls playsInline muted>
+                    <source src={video.videoUrl} type="video/mp4" />
+                    Your browser does not support the video tag.
+                  </video>
+                ) : (
+                  <img src={video.thumbnailUrl} alt={video.title} className="w-full h-full" />
+                )}
               </div>
             )}
             <CardHeader className="pb-3">
@@ -6243,7 +6257,7 @@ function DanceKarateGymYogaSection() {
       }
 
       const url = `/api/admin/dance-karate-gym-yoga${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
-      const response = await fetch(url);
+      const response = await fetch(url, { credentials: 'include' });
       const data = await response.json();
       setClasses(Array.isArray(data) ? data : []);
     } catch (error) {
@@ -6609,7 +6623,8 @@ function LanguageClassesSection() {
       if (user?.id) params.append('userId', user.id.toString());
       if (user?.role) params.append('role', user.role);
 
-      const response = await fetch(`/api/admin/language-classes`);
+      const url = `/api/admin/language-classes${params.toString() ? `?${params.toString()}` : ''}`;
+      const response = await fetch(url, { credentials: 'include' });
       const data = await response.json();
       setClasses(Array.isArray(data) ? data : []);
     } catch (error) {

@@ -74,7 +74,7 @@ export default function CategoryPage() {
           {category.subcategories.map((subcategory) => (
             <Link
               key={subcategory.id}
-              href={`/subcategory/${subcategory.slug}`}
+              href={`/subcategory/${encodeURIComponent(subcategory.slug)}`}
             >
               <Card className="h-full hover:shadow-lg transition-shadow cursor-pointer">
                 <CardHeader>
