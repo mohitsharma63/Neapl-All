@@ -106,37 +106,37 @@ export default function Footer() {
             <h3 className="text-lg font-semibold mb-4">Explore</h3>
             <ul className="space-y-2">
               <li>
-                <Link href="/properties" className="text-primary-foreground/80 hover:text-accent transition-colors underline" data-testid="link-footer-properties">
+                <Link href="/properties" className="text-primary-foreground/80 hover:text-primary-foreground transition-colors underline" data-testid="link-footer-properties">
                   Properties
                 </Link>
               </li>
               <li>
-                <a href="#" className="text-primary-foreground/80 hover:text-accent transition-colors underline" data-testid="link-footer-vehicles">
+                <a href="#" className="text-primary-foreground/80 hover:text-primary-foreground transition-colors underline" data-testid="link-footer-vehicles">
                   Vehicles
                 </a>
               </li>
               <li>
-                <a href="#" className="text-primary-foreground/80 hover:text-accent transition-colors underline" data-testid="link-footer-classifieds">
+                <a href="#" className="text-primary-foreground/80 hover:text-primary-foreground transition-colors underline" data-testid="link-footer-classifieds">
                   Classifieds
                 </a>
               </li>
               <li>
-                <a href="#" className="text-primary-foreground/80 hover:text-accent transition-colors underline" data-testid="link-footer-services">
+                <a href="#" className="text-primary-foreground/80 hover:text-primary-foreground transition-colors underline" data-testid="link-footer-services">
                   Services
                 </a>
               </li>
               <li>
-                <a href="#" className="text-primary-foreground/80 hover:text-accent transition-colors underline" data-testid="link-footer-jobs">
+                <a href="#" className="text-primary-foreground/80 hover:text-primary-foreground transition-colors underline" data-testid="link-footer-jobs">
                   Jobs
                 </a>
               </li>
               <li>
-                <a href="#" className="text-primary-foreground/80 hover:text-accent transition-colors underline" data-testid="link-footer-rewards">
+                <a href="#" className="text-primary-foreground/80 hover:text-primary-foreground transition-colors underline" data-testid="link-footer-rewards">
                   Rewards
                 </a>
               </li>
               <li>
-                <a href="#" className="text-primary-foreground/80 hover:text-accent transition-colors underline" data-testid="link-footer-premium">
+                <a href="#" className="text-primary-foreground/80 hover:text-primary-foreground transition-colors underline" data-testid="link-footer-premium">
                   Premium subscriptions
                 </a>
               </li>
@@ -148,27 +148,27 @@ export default function Footer() {
             <h3 className="text-lg font-semibold mb-4">Other</h3>
             <ul className="space-y-2">
               <li>
-                <a href="#" className="text-primary-foreground/80 hover:text-accent transition-colors underline" data-testid="link-footer-news">
+                <a href="#" className="text-primary-foreground/80 hover:text-primary-foreground transition-colors underline" data-testid="link-footer-news">
                   News
                 </a>
               </li>
               <li>
-                <a href="#" className="text-primary-foreground/80 hover:text-accent transition-colors underline" data-testid="link-footer-events">
+                <a href="#" className="text-primary-foreground/80 hover:text-primary-foreground transition-colors underline" data-testid="link-footer-events">
                   Events
                 </a>
               </li>
               <li>
-                <a href="#" className="text-primary-foreground/80 hover:text-accent transition-colors underline" data-testid="link-footer-forums">
+                <a href="#" className="text-primary-foreground/80 hover:text-primary-foreground transition-colors underline" data-testid="link-footer-forums">
                   Forums
                 </a>
               </li>
               <li>
-                <a href="#" className="text-primary-foreground/80 hover:text-accent transition-colors underline" data-testid="link-footer-business">
+                <a href="#" className="text-primary-foreground/80 hover:text-primary-foreground transition-colors underline" data-testid="link-footer-business">
                   Business pages
                 </a>
               </li>
               <li>
-                <a href="#" className="text-primary-foreground/80 hover:text-accent transition-colors underline" data-testid="link-footer-eshops">
+                <a href="#" className="text-primary-foreground/80 hover:text-primary-foreground transition-colors underline" data-testid="link-footer-eshops">
                   eShops
                 </a>
               </li>
@@ -180,27 +180,27 @@ export default function Footer() {
             <h3 className="text-lg font-semibold mb-4">Legal</h3>
             <ul className="space-y-2">
               <li>
-                <a href="#" className="text-primary-foreground/80 hover:text-accent transition-colors underline" data-testid="link-footer-advertising-terms">
+                <a href="#" className="text-primary-foreground/80 hover:text-primary-foreground transition-colors underline" data-testid="link-footer-advertising-terms">
                   Advertising Terms
                 </a>
               </li>
               <li>
-                <a href="#" className="text-primary-foreground/80 hover:text-accent transition-colors underline" data-testid="link-footer-refund-policy">
+                <a href="#" className="text-primary-foreground/80 hover:text-primary-foreground transition-colors underline" data-testid="link-footer-refund-policy">
                   Refund Policy
                 </a>
               </li>
               <li>
-                <a href="#" className="text-primary-foreground/80 hover:text-accent transition-colors underline" data-testid="link-footer-website-terms">
+                <a href="#" className="text-primary-foreground/80 hover:text-primary-foreground transition-colors underline" data-testid="link-footer-website-terms">
                   Website Terms
                 </a>
               </li>
               <li>
-                <a href="#" className="text-primary-foreground/80 hover:text-accent transition-colors underline" data-testid="link-footer-posting-rules">
+                <a href="#" className="text-primary-foreground/80 hover:text-primary-foreground transition-colors underline" data-testid="link-footer-posting-rules">
                   Rules for posting ads
                 </a>
               </li>
               <li>
-                <a href="#" className="text-primary-foreground/80 hover:text-accent transition-colors underline" data-testid="link-footer-contact">
+                <a href="#" className="text-primary-foreground/80 hover:text-primary-foreground transition-colors underline" data-testid="link-footer-contact">
                   Contact Us
                 </a>
               </li>
@@ -227,22 +227,22 @@ export default function Footer() {
                 Let's stay connected
               </h4>
               <div className="flex space-x-3" data-testid="social-links">
-                <a href="#" className="w-10 h-10 bg-primary-foreground/20 rounded-full flex items-center justify-center hover:bg-accent transition-colors" data-testid="link-facebook">
+                <a href="#" className="w-10 h-10 bg-primary-foreground/20 rounded-full flex items-center justify-center hover:bg-primary-foreground/30 transition-colors" data-testid="link-facebook">
                   <i className="fab fa-facebook-f"></i>
                 </a>
-                <a href="#" className="w-10 h-10 bg-primary-foreground/20 rounded-full flex items-center justify-center hover:bg-accent transition-colors" data-testid="link-twitter">
+                <a href="#" className="w-10 h-10 bg-primary-foreground/20 rounded-full flex items-center justify-center hover:bg-primary-foreground/30 transition-colors" data-testid="link-twitter">
                   <i className="fab fa-twitter"></i>
                 </a>
-                <a href="#" className="w-10 h-10 bg-primary-foreground/20 rounded-full flex items-center justify-center hover:bg-accent transition-colors" data-testid="link-instagram">
+                <a href="#" className="w-10 h-10 bg-primary-foreground/20 rounded-full flex items-center justify-center hover:bg-primary-foreground/30 transition-colors" data-testid="link-instagram">
                   <i className="fab fa-instagram"></i>
                 </a>
-                <a href="#" className="w-10 h-10 bg-primary-foreground/20 rounded-full flex items-center justify-center hover:bg-accent transition-colors" data-testid="link-linkedin">
+                <a href="#" className="w-10 h-10 bg-primary-foreground/20 rounded-full flex items-center justify-center hover:bg-primary-foreground/30 transition-colors" data-testid="link-linkedin">
                   <i className="fab fa-linkedin-in"></i>
                 </a>
-                <a href="#" className="w-10 h-10 bg-primary-foreground/20 rounded-full flex items-center justify-center hover:bg-accent transition-colors" data-testid="link-youtube">
+                <a href="#" className="w-10 h-10 bg-primary-foreground/20 rounded-full flex items-center justify-center hover:bg-primary-foreground/30 transition-colors" data-testid="link-youtube">
                   <i className="fab fa-youtube"></i>
                 </a>
-                <a href="#" className="w-10 h-10 bg-primary-foreground/20 rounded-full flex items-center justify-center hover:bg-accent transition-colors" data-testid="link-tiktok">
+                <a href="#" className="w-10 h-10 bg-primary-foreground/20 rounded-full flex items-center justify-center hover:bg-primary-foreground/30 transition-colors" data-testid="link-tiktok">
                   <i className="fab fa-tiktok"></i>
                 </a>
               </div>

@@ -2182,9 +2182,9 @@ export default function Home() {
                   className="basis-full md:basis-1/2 lg:basis-1/3 px-2"
                 >
                   <div className="w-full flex flex-col rounded-2xl overflow-hidden shadow-lg hover:shadow-2xl transition-shadow bg-white">
-                    <div className="relative w-full h-72 md:h-64 lg:h-72 bg-black flex items-center justify-center group overflow-hidden">
+                    <div className="relative w-full aspect-[9/16] bg-black flex items-center justify-center overflow-hidden">
                       <video
-                        className="w-full h-full  rounded-t-2xl"
+                        className="w-full h-full object-contain rounded-t-2xl"
                         preload="metadata"
                         controls
                         playsInline

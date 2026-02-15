@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Mail, Phone } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -20,6 +21,31 @@ function prettyKey(k: string) {
 
 export default function ListingDetail({ listing, titleField = "title", subtitleField = "contactPerson", showFields, featureKeys }: Props) {
   if (!listing) return null;
+
+  const ownerId = (listing.userId || listing.sellerId) as string | undefined;
+
+  const { data: ownerUser } = useQuery({
+    queryKey: ["users", ownerId],
+    enabled: Boolean(ownerId && typeof ownerId === "string" && ownerId.length > 0),
+    queryFn: async () => {
+      const res = await fetch(`/api/users/${ownerId}`);
+      if (!res.ok) throw new Error("Failed to fetch user");
+      return res.json();
+    },
+  });
+
+  const contactName =
+    (ownerUser?.firstName || ownerUser?.lastName
+      ? [ownerUser?.firstName, ownerUser?.lastName].filter(Boolean).join(" ")
+      : ownerUser?.username || ownerUser?.name) ||
+    listing.contactPerson ||
+    "—";
+
+  const contactPhone = ownerUser?.phone || listing.contactPhone;
+  const contactEmail = ownerUser?.email || listing.contactEmail;
+
+  const whatsappNumber = typeof contactPhone === "string" ? contactPhone.replace(/[^\d]/g, "") : "";
+  const whatsappHref = whatsappNumber ? `https://wa.me/${whatsappNumber}` : "";
 
   // Default fields to display when no showFields provided.
   const defaultFields = [
@@ -238,30 +264,35 @@ export default function ListingDetail({ listing, titleField = "title", subtitleF
           </div>
 
           <aside className="space-y-4">
-            <div className="bg-white p-4 rounded shadow">
+            <div className="bg-white p-3 rounded-lg shadow-sm border border-gray-100">
              
-              <div className="font-semibold">Contact</div>
-              <div className="mt-2 text-sm text-muted-foreground">{listing.contactPerson || "—"}</div>
-              {listing.contactPhone ? (
-                <a href={`tel:${listing.contactPhone}`} className="block mt-3 w-full text-center bg-green-600 text-white px-4 py-2 rounded"><Phone className="inline-block mr-2"/>Call</a>
+              <div className="text-sm font-semibold">Contact</div>
+              <div className="mt-1 text-sm text-muted-foreground font-medium">{contactName}</div>
+              {ownerUser?.role || ownerUser?.accountType ? (
+                <div className="mt-0.5 text-xs text-muted-foreground">
+                  {[ownerUser?.role, ownerUser?.accountType].filter(Boolean).join(" • ")}
+                </div>
               ) : null}
-              {listing.contactEmail ? (
-                <a href={`mailto:${listing.contactEmail}`} className="block mt-2 w-full text-center bg-gray-800 text-white px-4 py-2 rounded"><Mail className="inline-block mr-2"/>Email</a>
+              {whatsappHref ? (
+                <a href={whatsappHref} target="_blank" rel="noreferrer" className="block mt-3 w-full text-center text-sm bg-green-600 hover:bg-green-700 text-white px-3 py-2 rounded-md"><Phone className="inline-block mr-2 w-4 h-4"/>WhatsApp</a>
+              ) : null}
+              {contactEmail ? (
+                <a href={`mailto:${contactEmail}`} className="block mt-2 w-full text-center text-sm bg-gray-800 hover:bg-gray-900 text-white px-3 py-2 rounded-md"><Mail className="inline-block mr-2 w-4 h-4"/>Email</a>
               ) : null}
             </div>
 
-            <div className="bg-white p-4 rounded shadow">
+            <div className="bg-white p-3 rounded-lg shadow-sm border border-gray-100">
               <div className="flex items-center justify-between">
-                <div className="font-semibold">Stats</div>
+                <div className="text-sm font-semibold">Stats</div>
                 <div className="text-sm text-muted-foreground">{listing.isActive ? <Badge className="bg-green-100 text-green-800">Active</Badge> : <Badge className="bg-gray-100 text-gray-800">Inactive</Badge>}</div>
               </div>
 
-              <div className="mt-3 text-sm text-muted-foreground">
-                <div className="mb-2">{listing.isFeatured ? <Badge className="mr-2">Featured</Badge> : null}Views: <span className="font-medium">{listing.viewCount ?? 0}</span></div>
-                <div className="mb-1">Created: <span className="font-medium">{listing.createdAt ? new Date(listing.createdAt).toLocaleString() : "—"}</span></div>
-                <div className="mb-1">Updated: <span className="font-medium">{listing.updatedAt ? new Date(listing.updatedAt).toLocaleString() : "—"}</span></div>
-                <div className="mb-1">Location: <span className="font-medium">{[listing.areaName, listing.city, listing.stateProvince, listing.country].filter(Boolean).join(", ") || '—'}</span></div>
-                <div className="mb-1">Address: <span className="font-medium">{listing.fullAddress || '—'}</span></div>
+              <div className="mt-2 text-sm text-muted-foreground space-y-1">
+                <div>{listing.isFeatured ? <Badge className="mr-2">Featured</Badge> : null}Views: <span className="font-medium">{listing.viewCount ?? 0}</span></div>
+                <div>Created: <span className="font-medium">{listing.createdAt ? new Date(listing.createdAt).toLocaleString() : "—"}</span></div>
+                <div>Updated: <span className="font-medium">{listing.updatedAt ? new Date(listing.updatedAt).toLocaleString() : "—"}</span></div>
+                <div>Location: <span className="font-medium">{[listing.areaName, listing.city, listing.stateProvince, listing.country].filter(Boolean).join(", ") || '—'}</span></div>
+                <div>Address: <span className="font-medium">{listing.fullAddress || '—'}</span></div>
               </div>
             </div>
 
