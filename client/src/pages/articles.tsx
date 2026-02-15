@@ -1,5 +1,6 @@
 
 import { useState, useEffect } from "react";
+import { jsPDF } from "jspdf";
 import { FileText, Download, Share2, Bookmark, Eye, ThumbsUp, Filter, Calendar, ChevronLeft, ChevronRight } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import Header from "@/components/header";
@@ -107,17 +108,45 @@ export default function Articles() {
         return;
       }
 
-      // Otherwise generate a simple HTML file from the content / excerpt
-      const content = article.content || article.excerpt || article.title || '';
-      const blob = new Blob([content], { type: 'text/html' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = (article.title || 'article') + '.html';
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      URL.revokeObjectURL(url);
+      // Otherwise generate a PDF from the content/excerpt/title
+      const title = String(article?.title || 'Article');
+      const html = String(article?.content || article?.excerpt || '').trim();
+      const plainText = html
+        ? html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim()
+        : String(article?.excerpt || article?.title || '').trim();
+
+      const doc = new jsPDF({ unit: 'pt', format: 'a4' });
+      const pageWidth = doc.internal.pageSize.getWidth();
+      const pageHeight = doc.internal.pageSize.getHeight();
+      const margin = 48;
+
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(18);
+      const titleLines = doc.splitTextToSize(title, pageWidth - margin * 2);
+      doc.text(titleLines, margin, margin);
+
+      let cursorY = margin + titleLines.length * 22 + 10;
+
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(12);
+      const body = plainText || 'No content';
+      const lines = doc.splitTextToSize(body, pageWidth - margin * 2);
+      const lineHeight = 16;
+
+      for (const line of lines) {
+        if (cursorY > pageHeight - margin) {
+          doc.addPage();
+          cursorY = margin;
+        }
+        doc.text(String(line), margin, cursorY);
+        cursorY += lineHeight;
+      }
+
+      const fileNameSafe = title
+        .replace(/[\\/:*?\"<>|]+/g, '')
+        .trim()
+        .slice(0, 80);
+      doc.save(`${fileNameSafe || 'article'}.pdf`);
     } catch (e) {
       console.error('Download failed', e);
       alert('Unable to download this article');

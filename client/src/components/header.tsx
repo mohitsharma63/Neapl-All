@@ -329,13 +329,13 @@ export default function Header() {
               <a href="https://www.facebook.com/share/1GKbiCHhY1/?mibextid=wwXIfr" target="_blank" rel="noopener noreferrer" className="text-gray-600 hover:text-primary transition-colors" aria-label="Facebook">
                 <Facebook className="w-4 h-4" />
               </a>
-              <a href="https://www.instagram.com/jeevika" target="_blank" rel="noopener noreferrer" className="text-gray-600 hover:text-primary transition-colors" aria-label="Instagram">
+              <a href="https://www.instagram.com/jeevika_1631?igsh=MTk1M2NmeGV3ajlrdw%3D%3D&utm_source=qr" target="_blank" rel="noopener noreferrer" className="text-gray-600 hover:text-primary transition-colors" aria-label="Instagram">
                 <Instagram className="w-4 h-4" />
               </a>
-              <a href="https://www.linkedin.com/company/jeevika" target="_blank" rel="noopener noreferrer" className="text-gray-600 hover:text-primary transition-colors" aria-label="LinkedIn">
+              <a href="https://www.linkedin.com/company/jeevika-services-pvt-ltd/" target="_blank" rel="noopener noreferrer" className="text-gray-600 hover:text-primary transition-colors" aria-label="LinkedIn">
                 <Linkedin className="w-4 h-4" />
               </a>
-              <a href="https://twitter.com/jeevika" target="_blank" rel="noopener noreferrer" className="text-gray-600 hover:text-primary transition-colors" aria-label="Twitter">
+              <a href="https://x.com/jeevika1631?s=21" target="_blank" rel="noopener noreferrer" className="text-gray-600 hover:text-primary transition-colors" aria-label="Twitter">
                 <Twitter className="w-4 h-4" />
               </a>
               <a href="https://wa.me/9779709142561" target="_blank" rel="noopener noreferrer" className="text-gray-600 hover:text-primary transition-colors" aria-label="WhatsApp">

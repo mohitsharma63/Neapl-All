@@ -227,22 +227,22 @@ export default function Footer() {
                 Let's stay connected
               </h4>
               <div className="flex space-x-3" data-testid="social-links">
-                <a href="#" className="w-10 h-10 bg-primary-foreground/20 rounded-full flex items-center justify-center hover:bg-primary-foreground/30 transition-colors" data-testid="link-facebook">
+                <a href="https://www.facebook.com/share/1GKbiCHhY1/?mibextid=wwXIfr" target="_blank" rel="noopener noreferrer" className="w-10 h-10 bg-primary-foreground/20 rounded-full flex items-center justify-center hover:bg-primary-foreground/30 transition-colors" data-testid="link-facebook">
                   <i className="fab fa-facebook-f"></i>
                 </a>
-                <a href="#" className="w-10 h-10 bg-primary-foreground/20 rounded-full flex items-center justify-center hover:bg-primary-foreground/30 transition-colors" data-testid="link-twitter">
+                <a href="https://x.com/jeevika1631?s=21" target="_blank" rel="noopener noreferrer" className="w-10 h-10 bg-primary-foreground/20 rounded-full flex items-center justify-center hover:bg-primary-foreground/30 transition-colors" data-testid="link-twitter">
                   <i className="fab fa-twitter"></i>
                 </a>
-                <a href="#" className="w-10 h-10 bg-primary-foreground/20 rounded-full flex items-center justify-center hover:bg-primary-foreground/30 transition-colors" data-testid="link-instagram">
+                <a href="https://www.instagram.com/jeevika_1631?igsh=MTk1M2NmeGV3ajlrdw%3D%3D&utm_source=qr" target="_blank" rel="noopener noreferrer" className="w-10 h-10 bg-primary-foreground/20 rounded-full flex items-center justify-center hover:bg-primary-foreground/30 transition-colors" data-testid="link-instagram">
                   <i className="fab fa-instagram"></i>
                 </a>
-                <a href="#" className="w-10 h-10 bg-primary-foreground/20 rounded-full flex items-center justify-center hover:bg-primary-foreground/30 transition-colors" data-testid="link-linkedin">
+                <a href="https://www.linkedin.com/company/jeevika-services-pvt-ltd/" target="_blank" rel="noopener noreferrer" className="w-10 h-10 bg-primary-foreground/20 rounded-full flex items-center justify-center hover:bg-primary-foreground/30 transition-colors" data-testid="link-linkedin">
                   <i className="fab fa-linkedin-in"></i>
                 </a>
-                <a href="#" className="w-10 h-10 bg-primary-foreground/20 rounded-full flex items-center justify-center hover:bg-primary-foreground/30 transition-colors" data-testid="link-youtube">
+                <a href="https://www.youtube.com/channel/UCfOq8T-NtTGC-hC06_qnBaQ" target="_blank" rel="noopener noreferrer" className="w-10 h-10 bg-primary-foreground/20 rounded-full flex items-center justify-center hover:bg-primary-foreground/30 transition-colors" data-testid="link-youtube">
                   <i className="fab fa-youtube"></i>
                 </a>
-                <a href="#" className="w-10 h-10 bg-primary-foreground/20 rounded-full flex items-center justify-center hover:bg-primary-foreground/30 transition-colors" data-testid="link-tiktok">
+                <a href="https://www.tiktok.com/@jeevika.services?_r=1&_t=ZS-924Vhw7hXYy" target="_blank" rel="noopener noreferrer" className="w-10 h-10 bg-primary-foreground/20 rounded-full flex items-center justify-center hover:bg-primary-foreground/30 transition-colors" data-testid="link-tiktok">
                   <i className="fab fa-tiktok"></i>
                 </a>
               </div>
