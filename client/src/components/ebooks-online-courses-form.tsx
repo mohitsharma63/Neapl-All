@@ -493,10 +493,7 @@ export default function EbooksOnlineCoursesForm() {
                 </div>
 
                 <div className="flex items-center space-x-4">
-                  <div className="flex items-center space-x-2">
-                    <Switch id="isFree" onCheckedChange={(checked) => setValue("isFree", checked)} />
-                    <Label htmlFor="isFree">Free</Label>
-                  </div>
+                 
                   <div className="flex items-center space-x-2">
                     <Switch id="lifetimeAccess" onCheckedChange={(checked) => setValue("lifetimeAccess", checked)} />
                     <Label htmlFor="lifetimeAccess">Lifetime Access</Label>
