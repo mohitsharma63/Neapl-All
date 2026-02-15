@@ -47,6 +47,10 @@ export default function ListingDetail({ listing, titleField = "title", subtitleF
   const whatsappNumber = typeof contactPhone === "string" ? contactPhone.replace(/[^\d]/g, "") : "";
   const whatsappHref = whatsappNumber ? `https://wa.me/${whatsappNumber}` : "";
 
+  const hasPrice = typeof listing.price === "number" || (typeof listing.price === "string" && String(listing.price).trim().length > 0);
+  const numericPrice = hasPrice ? Number(listing.price) : NaN;
+  const formattedPrice = !isNaN(numericPrice) ? `₹${numericPrice.toLocaleString()}` : hasPrice ? `₹${String(listing.price)}` : "";
+
   // Default fields to display when no showFields provided.
   const defaultFields = [
     "listingType",
@@ -142,6 +146,9 @@ export default function ListingDetail({ listing, titleField = "title", subtitleF
         <div className="mb-6">
           <h1 className="text-3xl font-bold mb-1">{listing[titleField] || listing.name || "Details"}</h1>
           {listing[subtitleField] && <div className="text-sm text-muted-foreground">{listing[subtitleField]}</div>}
+          {hasPrice ? (
+            <div className="mt-3 text-2xl font-bold text-green-700">{formattedPrice}</div>
+          ) : null}
           {listing.feePerMonth || listing.feePerHour || listing.feePerSubject ? (
             <div className="mt-3 text-xl font-semibold text-green-700">
               {listing.feePerMonth ? `₹${Number(listing.feePerMonth).toLocaleString()}/month` : listing.feePerHour ? `₹${Number(listing.feePerHour).toLocaleString()}/hr` : listing.feePerSubject ? `₹${Number(listing.feePerSubject).toLocaleString()}/subject` : null}
@@ -155,11 +162,13 @@ export default function ListingDetail({ listing, titleField = "title", subtitleF
             <div className="bg-white p-4 rounded shadow">
               <div className="relative">
                 {currentImage ? (
-                  <img
-                    src={currentImage}
-                    alt={listing[titleField] || "listing image"}
-                    className="w-full h-64 md:h-80 rounded object-cover object-center"
-                  />
+                  <div className="w-full aspect-video rounded overflow-hidden bg-gray-50">
+                    <img
+                      src={currentImage}
+                      alt={listing[titleField] || "listing image"}
+                      className="w-full h-full object-contain object-center"
+                    />
+                  </div>
                 ) : (
                   <div className="w-full h-72 md:h-96 bg-gray-100 flex items-center justify-center rounded">No Image</div>
                 )}
@@ -273,8 +282,16 @@ export default function ListingDetail({ listing, titleField = "title", subtitleF
                   {[ownerUser?.role, ownerUser?.accountType].filter(Boolean).join(" • ")}
                 </div>
               ) : null}
+              {contactPhone ? (
+                <a
+                  href={`tel:${String(contactPhone).replace(/\s+/g, "")}`}
+                  className="block mt-3 w-full text-center text-sm bg-[#0B8457] hover:bg-[#0a7750] text-white px-3 py-2 rounded-md"
+                >
+                  <Phone className="inline-block mr-2 w-4 h-4" />Call
+                </a>
+              ) : null}
               {whatsappHref ? (
-                <a href={whatsappHref} target="_blank" rel="noreferrer" className="block mt-3 w-full text-center text-sm bg-green-600 hover:bg-green-700 text-white px-3 py-2 rounded-md"><Phone className="inline-block mr-2 w-4 h-4"/>WhatsApp</a>
+                <a href={whatsappHref} target="_blank" rel="noreferrer" className="block mt-2 w-full text-center text-sm bg-green-600 hover:bg-green-700 text-white px-3 py-2 rounded-md"><Phone className="inline-block mr-2 w-4 h-4"/>WhatsApp</a>
               ) : null}
               {contactEmail ? (
                 <a href={`mailto:${contactEmail}`} className="block mt-2 w-full text-center text-sm bg-gray-800 hover:bg-gray-900 text-white px-3 py-2 rounded-md"><Mail className="inline-block mr-2 w-4 h-4"/>Email</a>

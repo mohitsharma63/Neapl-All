@@ -2171,7 +2171,7 @@ export default function Home() {
           <CarouselContent>
             {videosLoading ? (
               <CarouselItem>
-                <div className="relative h-[220px] rounded-3xl overflow-hidden bg-gray-100 flex items-center">
+                <div className="relative h-[260px] rounded-3xl overflow-hidden bg-gray-100 flex items-center">
                   <div className="text-muted-foreground">Loading videos...</div>
                 </div>
               </CarouselItem>
@@ -2182,7 +2182,7 @@ export default function Home() {
                   className="basis-full md:basis-1/2 lg:basis-1/3 px-2"
                 >
                   <div className="w-full flex flex-col rounded-2xl overflow-hidden shadow-lg hover:shadow-2xl transition-shadow bg-white">
-                    <div className="relative w-full aspect-[9/16] bg-black flex items-center justify-center overflow-hidden">
+                    <div className="relative w-full aspect-[9/16] max-h-[420px] md:max-h-[380px] lg:max-h-[420px] bg-black flex items-center justify-center overflow-hidden">
                       <video
                         className="w-full h-full object-contain rounded-t-2xl"
                         preload="metadata"
