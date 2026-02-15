@@ -8556,6 +8556,7 @@ function ArticlesSection() {
   const [categoryForm, setCategoryForm] = useState<any>({ name: '', slug: '', description: '', isActive: true });
   const [isCatSubmitting, setIsCatSubmitting] = useState(false);
   const [editingCategory, setEditingCategory] = useState<any>(null);
+  const [editingArticle, setEditingArticle] = useState<any>(null);
   const [showForm, setShowForm] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isUploadingThumbnail, setIsUploadingThumbnail] = useState(false);
@@ -8584,7 +8585,144 @@ function ArticlesSection() {
     categoryName: "",
   });
 
-  // ... (rest of the code remains the same)
+  useEffect(() => {
+    fetchArticles();
+    fetchArticleCategories();
+  }, []);
+
+  const fetchArticles = async () => {
+    try {
+      const r = await fetch('/api/admin/articles');
+      if (r.ok) {
+        const j = await r.json();
+        setArticles(Array.isArray(j) ? j : []);
+      } else {
+        setArticles([]);
+      }
+    } catch (e) {
+      console.error('Error fetching articles:', e);
+      setArticles([]);
+    }
+  };
+
+  const fetchArticleCategories = async () => {
+    try {
+      const r = await fetch('/api/admin/article-categories');
+      if (r.ok) {
+        const j = await r.json();
+        const list = Array.isArray(j) ? j : [];
+        setCategories(list.map((c: any) => ({ ...c, isActive: c?.isActive ?? true })));
+      } else {
+        setCategories([]);
+      }
+    } catch (e) {
+      console.error('Error fetching article categories:', e);
+      setCategories([]);
+    }
+  };
+
+  const handleCategorySave = async (e: any) => {
+    e.preventDefault();
+    if (isCatSubmitting) return;
+    setIsCatSubmitting(true);
+    try {
+      const payload: any = {
+        name: categoryForm?.name,
+        slug: categoryForm?.slug,
+        description: categoryForm?.description,
+        role: 'admin',
+      };
+
+      const url = editingCategory ? `/api/admin/article-categories/${editingCategory.id}` : '/api/admin/article-categories';
+      const method = editingCategory ? 'PUT' : 'POST';
+
+      const r = await fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json', 'x-user-role': 'admin' },
+        body: JSON.stringify(payload),
+      });
+
+      if (r.ok) {
+        setEditingCategory(null);
+        setCategoryForm({ name: '', slug: '', description: '', isActive: true });
+        await fetchArticleCategories();
+      } else {
+        const json = await r.json().catch(() => null);
+        alert(json?.message || 'Failed to save category');
+      }
+    } catch (err) {
+      console.error('Error saving category:', err);
+      alert('Failed to save category');
+    } finally {
+      setIsCatSubmitting(false);
+    }
+  };
+
+  const handleEditCategory = (c: any) => {
+    setEditingCategory(c);
+    setCategoryForm({
+      name: c?.name || '',
+      slug: c?.slug || '',
+      description: c?.description || '',
+      isActive: c?.isActive ?? true,
+    });
+  };
+
+  const handleDeleteCategory = async (id: string) => {
+    if (!confirm('Are you sure you want to delete this category?')) return;
+    try {
+      const r = await fetch(`/api/admin/article-categories/${id}`, {
+        method: 'DELETE',
+        headers: { 'x-user-role': 'admin' },
+      });
+      if (r.ok) {
+        await fetchArticleCategories();
+      } else {
+        const json = await r.json().catch(() => null);
+        alert(json?.message || 'Failed to delete category');
+      }
+    } catch (err) {
+      console.error('Error deleting category:', err);
+      alert('Failed to delete category');
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!confirm('Are you sure you want to delete this article?')) return;
+    try {
+      const r = await fetch(`/api/admin/articles/${id}`, { method: 'DELETE' });
+      if (r.ok) {
+        await fetchArticles();
+      } else {
+        const json = await r.json().catch(() => null);
+        alert(json?.message || 'Failed to delete article');
+      }
+    } catch (err) {
+      console.error('Error deleting article:', err);
+      alert('Failed to delete article');
+    }
+  };
+
+  const togglePublish = async (id: string) => {
+    try {
+      const r = await fetch(`/api/admin/articles/${id}/toggle-publish`, { method: 'PATCH' });
+      if (r.ok) {
+        await fetchArticles();
+      }
+    } catch (err) {
+      console.error('Error toggling publish:', err);
+    }
+  };
+
+  const handleViewArticle = (a: any) => {
+    try {
+      const id = a?.id;
+      if (!id) return;
+      window.open(`/articles/${id}`, '_blank');
+    } catch (err) {
+      console.error('Error viewing article:', err);
+    }
+  };
 
   const handleSubmit = async (e: any) => {
     e.preventDefault();
@@ -8656,6 +8794,7 @@ function ArticlesSection() {
 
   const handleEditArticle = (a: any) => {
     setEditingArticle(a);
+    setShowForm(true);
     setForm({
       title: a.title || '',
       slug: a.slug || '',
@@ -8679,8 +8818,6 @@ function ArticlesSection() {
       categoryName: a.categoryName || '',
     });
   };
-
-  // ... (rest of the code remains the same)
 
   return (
     <div className="space-y-6">
@@ -8708,20 +8845,20 @@ function ArticlesSection() {
           <form onSubmit={handleSubmit} className="space-y-4 p-4">
             <div className="space-y-3">
               <Label>Title</Label>
-              <Input value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} placeholder="Title" required />
+              <Input value={form.title} onChange={e => setForm((f: any) => ({ ...f, title: e.target.value }))} placeholder="Title" required />
 
               <Label>Slug</Label>
-              <Input value={form.slug} onChange={e => setForm(f => ({ ...f, slug: e.target.value }))} placeholder="Slug" required />
+              <Input value={form.slug} onChange={e => setForm((f: any) => ({ ...f, slug: e.target.value }))} placeholder="Slug" required />
 
               <Label>Excerpt</Label>
-              <Input value={form.excerpt} onChange={e => setForm(f => ({ ...f, excerpt: e.target.value }))} placeholder="Excerpt" />
+              <Input value={form.excerpt} onChange={e => setForm((f: any) => ({ ...f, excerpt: e.target.value }))} placeholder="Excerpt" />
 
               <Label>Content</Label>
-              <Textarea value={form.content} onChange={e => setForm(f => ({ ...f, content: e.target.value }))} rows={8} placeholder="Content" />
+              <Textarea value={form.content} onChange={e => setForm((f: any) => ({ ...f, content: e.target.value }))} rows={8} placeholder="Content" />
               <Label>Category</Label>
               <Select value={form.categoryId || ''} onValueChange={(v) => {
                 const sel = categories.find((c:any) => c.id === v);
-                setForm(f => ({ ...f, categoryId: v, categoryName: sel?.name || '' }));
+                setForm((f: any) => ({ ...f, categoryId: v, categoryName: sel?.name || '' }));
               }}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select category" />
@@ -8736,7 +8873,7 @@ function ArticlesSection() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                 <div>
                   <Label>Type</Label>
-                  <select className="input w-full" value={form.type} onChange={e => setForm(f => ({ ...f, type: e.target.value }))}>
+                  <select className="input w-full" value={form.type} onChange={e => setForm((f: any) => ({ ...f, type: e.target.value }))}>
                     <option>Guide</option>
                     <option>Research</option>
                     <option>Whitepaper</option>
@@ -8744,12 +8881,12 @@ function ArticlesSection() {
                 </div>
                 <div>
                   <Label>Pages</Label>
-                  <Input type="number" min={0} value={form.pages} onChange={e => setForm(f => ({ ...f, pages: e.target.value }))} placeholder="Pages (number)" />
+                  <Input type="number" min={0} value={form.pages} onChange={e => setForm((f: any) => ({ ...f, pages: e.target.value }))} placeholder="Pages (number)" />
                 </div>
               </div>
 
               <Label>Cover Image URL</Label>
-              <Input value={form.thumbnailUrl} onChange={e => setForm(f => ({ ...f, thumbnailUrl: e.target.value }))} placeholder="Cover Image URL" />
+              <Input value={form.thumbnailUrl} onChange={e => setForm((f: any) => ({ ...f, thumbnailUrl: e.target.value }))} placeholder="Cover Image URL" />
               <div>
                 <Label>Or choose file</Label>
                 <input
@@ -8844,40 +8981,40 @@ function ArticlesSection() {
               </div>
 
               <Label>Author name</Label>
-              <Input value={form.authorName} onChange={e => setForm(f => ({ ...f, authorName: e.target.value }))} placeholder="Author name" />
+              <Input value={form.authorName} onChange={e => setForm((f: any) => ({ ...f, authorName: e.target.value }))} placeholder="Author name" />
 
               <Label>Author ID (optional)</Label>
-              <Input value={form.authorId} onChange={e => setForm(f => ({ ...f, authorId: e.target.value }))} placeholder="Author ID (optional)" />
+              <Input value={form.authorId} onChange={e => setForm((f: any) => ({ ...f, authorId: e.target.value }))} placeholder="Author ID (optional)" />
 
               <div className="flex items-center gap-6">
                 <div className="flex items-center gap-2">
-                  <Switch checked={!!form.isPublished} onCheckedChange={v => setForm(f => ({ ...f, isPublished: !!v }))} />
+                  <Switch checked={!!form.isPublished} onCheckedChange={v => setForm((f: any) => ({ ...f, isPublished: !!v }))} />
                   <span>Published</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Switch checked={!!form.isFeatured} onCheckedChange={v => setForm(f => ({ ...f, isFeatured: !!v }))} />
+                  <Switch checked={!!form.isFeatured} onCheckedChange={v => setForm((f: any) => ({ ...f, isFeatured: !!v }))} />
                   <span>Featured</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Switch checked={!!form.isPremium} onCheckedChange={v => setForm(f => ({ ...f, isPremium: !!v }))} />
+                  <Switch checked={!!form.isPremium} onCheckedChange={v => setForm((f: any) => ({ ...f, isPremium: !!v }))} />
                   <span>Premium</span>
                 </div>
               </div>
 
               <Label>SEO Title</Label>
-              <Input value={(form as any).seoTitle || ''} onChange={e => setForm(f => ({ ...f, seoTitle: e.target.value }))} placeholder="SEO Title" />
+              <Input value={(form as any).seoTitle || ''} onChange={e => setForm((f: any) => ({ ...f, seoTitle: e.target.value }))} placeholder="SEO Title" />
 
               <Label>SEO Description</Label>
-              <Textarea value={(form as any).seoDescription || ''} onChange={e => setForm(f => ({ ...f, seoDescription: e.target.value }))} rows={4} placeholder="SEO Description" />
+              <Textarea value={(form as any).seoDescription || ''} onChange={e => setForm((f: any) => ({ ...f, seoDescription: e.target.value }))} rows={4} placeholder="SEO Description" />
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                 <div>
                   <Label>User ID (optional)</Label>
-                  <Input value={form.userId} onChange={e => setForm(f => ({ ...f, userId: e.target.value }))} placeholder="User ID (optional)" />
+                  <Input value={form.userId} onChange={e => setForm((f: any) => ({ ...f, userId: e.target.value }))} placeholder="User ID (optional)" />
                 </div>
                 <div>
                   <Label>Role (optional)</Label>
-                  <Input value={form.role} onChange={e => setForm(f => ({ ...f, role: e.target.value }))} placeholder="Role (optional)" />
+                  <Input value={form.role} onChange={e => setForm((f: any) => ({ ...f, role: e.target.value }))} placeholder="Role (optional)" />
                 </div>
               </div>
             </div>
