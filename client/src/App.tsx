@@ -57,8 +57,6 @@ function Router() {
       <Route path="/category/:categorySlug/subcategory/:subcategorySlug" component={SubcategoryPage} />
       <Route path="/subcategory/:name" component={SubcategoryPage} />
       <Route path="/tuition-private-classes/:id" component={TuitionClassDetail} /> {/* Route for tuition class detail (legacy/specific) */}
-      <Route path="/:categorySlug/:id" component={CategoryItemDetail} /> {/* Generic dynamic route for all categories */}
-
       <Route path="/contact" component={Contact} />
       <Route path="/login" component={Login} />
       <Route path="/signup" component={Signup} />
@@ -82,6 +80,8 @@ function Router() {
       {/* <Route path="/category/:categorySlug/subcategory/TuitionPrivatClasses" component={TuitionPrivateClassesPage} /> */}
       <Route path="/dance-karate-gym-yoga" component={DanceKarateGymYoga} />
       <Route path="/language-classes" component={LanguageClasses} />
+
+      <Route path="/:categorySlug/:id" component={CategoryItemDetail} /> {/* Generic dynamic route for all categories */}
       
       <Route component={NotFound} />
     </Switch>

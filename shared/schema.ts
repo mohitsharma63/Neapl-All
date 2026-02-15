@@ -3442,6 +3442,7 @@ export const articles = pgTable("articles", {
   downloads: text("downloads").default("0"),
   likes: integer("likes").default(0),
   thumbnailUrl: text("thumbnail_url"),
+  images: jsonb("images").$type<string[]>().default([]),
   isPremium: boolean("is_premium").default(false),
   isPublished: boolean("is_published").default(false),
   isFeatured: boolean("is_featured").default(false),

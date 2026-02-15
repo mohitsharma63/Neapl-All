@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from "react";
-import { FileText, Download, Share2, Bookmark, Eye, ThumbsUp, Filter, Calendar } from "lucide-react";
+import { FileText, Download, Share2, Bookmark, Eye, ThumbsUp, Filter, Calendar, ChevronLeft, ChevronRight } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import Header from "@/components/header";
 import Footer from "@/components/footer";
@@ -20,6 +20,7 @@ export default function Articles() {
   const [savedArticles, setSavedArticles] = useState<Record<string, boolean>>({});
   const [showFilterPanel, setShowFilterPanel] = useState(false);
   const [filterDraft, setFilterDraft] = useState<string | null>(null);
+  const [dialogImageIndex, setDialogImageIndex] = useState(0);
 
   // load articles on mount
   useEffect(() => {
@@ -125,6 +126,29 @@ export default function Articles() {
         return;
       }
 
+      const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+      const fileLinks = list
+        .map((article) => ({
+          title: article?.title || 'article',
+          url: article?.downloadUrl || article?.pdfUrl || article?.fileUrl,
+        }))
+        .filter((x) => typeof x.url === 'string' && String(x.url).trim().length > 0);
+
+      for (const item of fileLinks) {
+        try {
+          const a = document.createElement('a');
+          a.href = String(item.url);
+          a.download = `${String(item.title).slice(0, 80)}.pdf`;
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+          await sleep(250);
+        } catch (err) {
+          // ignore and continue
+        }
+      }
+
       let html = `<!doctype html><html><head><meta charset="utf-8"><title>Articles</title></head><body>`;
       for (const a of list) {
         html += `<article style="margin-bottom:40px;">`;
@@ -161,6 +185,7 @@ export default function Articles() {
 
     // try common upload locations
     const candidates = [
+      `/uploads/media/${s}`,
       `/uploads/vehicles/${s}`,
       `/uploads/${s}`,
       `/attached_assets/${s}`,
@@ -168,6 +193,24 @@ export default function Articles() {
       s, // last resort - whatever the string is
     ];
     return candidates[0];
+  };
+
+  const getDialogImages = (article: any): string[] => {
+    const raw: any[] = [];
+    if (Array.isArray(article?.images)) raw.push(...article.images);
+    if (article?.thumbnailUrl) raw.push(article.thumbnailUrl);
+    if (article?.thumbnail) raw.push(article.thumbnail);
+    const cleaned = raw
+      .filter(Boolean)
+      .map((x) => String(x))
+      .map((x) => resolveImageSrc(x))
+      .filter(Boolean);
+
+    const uniq: string[] = [];
+    for (const u of cleaned) {
+      if (!uniq.includes(u)) uniq.push(u);
+    }
+    return uniq;
   };
 
   // load categories
@@ -357,6 +400,10 @@ export default function Articles() {
                             <Download className="w-4 h-4 mr-2" />
                             Download PDF
                           </Button>
+                          <Button variant="outline" onClick={() => { setDialogImageIndex(0); setViewingArticle(article); setShowDialog(true); }}>
+                            <Eye className="w-4 h-4 mr-2" />
+                            View Article
+                          </Button>
                           <Button variant="outline" onClick={() => handleSave(article)}>
                             <Bookmark className="w-4 h-4 mr-2" />
                             {savedArticles[String(article.id ?? article.slug ?? article.title)] ? 'Saved' : 'Save'}
@@ -393,10 +440,16 @@ export default function Articles() {
                           <Download className="w-4 h-4" />
                           {article.downloads || '0'}
                         </span>
-                        <Button size="sm" variant="outline">
-                          <Download className="w-4 h-4 mr-2" />
-                          Download
-                        </Button>
+                        <div className="flex gap-2">
+                          <Button size="sm" variant="outline" onClick={() => { setDialogImageIndex(0); setViewingArticle(article); setShowDialog(true); }}>
+                            <Eye className="w-4 h-4 mr-2" />
+                            View
+                          </Button>
+                          <Button size="sm" variant="outline" onClick={() => handleDownload(article)}>
+                            <Download className="w-4 h-4 mr-2" />
+                            Download
+                          </Button>
+                        </div>
                       </div>
                     </CardContent>
                   </Card>
@@ -416,9 +469,68 @@ export default function Articles() {
           </DialogHeader>
           {viewingArticle ? (
             <div className="p-4 space-y-4">
-              { (viewingArticle.thumbnailUrl || viewingArticle.thumbnail) && (
-                <img src={resolveImageSrc(viewingArticle.thumbnailUrl || viewingArticle.thumbnail)} alt={viewingArticle.title} className="w-full h-56  rounded-md" onError={(e) => { (e.currentTarget as HTMLImageElement).src = placeholderDataUrl; }} />
-              )}
+              {(() => {
+                const images = getDialogImages(viewingArticle);
+                const hasImages = images.length > 0;
+                const safeIndex = hasImages ? ((dialogImageIndex % images.length) + images.length) % images.length : 0;
+                const current = hasImages ? images[safeIndex] : undefined;
+                return (
+                  <div className="bg-white p-3 rounded shadow">
+                    <div className="relative">
+                      {current ? (
+                        <div className="w-full aspect-video rounded overflow-hidden bg-gray-50">
+                          <img
+                            src={current}
+                            alt={viewingArticle.title}
+                            className="w-full h-full object-contain object-center"
+                            onError={(e) => { (e.currentTarget as HTMLImageElement).src = placeholderDataUrl; }}
+                          />
+                        </div>
+                      ) : (
+                        <div className="w-full h-56 bg-gray-100 flex items-center justify-center rounded">No Image</div>
+                      )}
+
+                      {images.length > 1 ? (
+                        <>
+                          <button
+                            type="button"
+                            onClick={() => setDialogImageIndex((i) => i - 1)}
+                            className="absolute left-2 top-1/2 -translate-y-1/2 bg-white/80 hover:bg-white p-2 rounded-full shadow"
+                            aria-label="previous image"
+                          >
+                            <ChevronLeft className="w-5 h-5" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setDialogImageIndex((i) => i + 1)}
+                            className="absolute right-2 top-1/2 -translate-y-1/2 bg-white/80 hover:bg-white p-2 rounded-full shadow"
+                            aria-label="next image"
+                          >
+                            <ChevronRight className="w-5 h-5" />
+                          </button>
+                        </>
+                      ) : null}
+                    </div>
+
+                    {images.length > 1 ? (
+                      <div className="flex gap-3 overflow-x-auto mt-3">
+                        {images.map((img, idx) => (
+                          <button
+                            type="button"
+                            key={img + idx}
+                            onClick={() => setDialogImageIndex(idx)}
+                            className={`flex-shrink-0 w-20 h-20 rounded-lg border-2 overflow-hidden transition-all duration-300 ${
+                              idx === safeIndex ? "border-purple-600 shadow-md" : "border-gray-200/50 hover:border-gray-300"
+                            }`}
+                          >
+                            <img src={img} alt={`thumb-${idx}`} className="w-full h-full object-cover object-center" />
+                          </button>
+                        ))}
+                      </div>
+                    ) : null}
+                  </div>
+                );
+              })()}
               <div className="flex items-center gap-4 text-sm text-muted-foreground">
                 <span>By {viewingArticle.authorName || '—'}</span>
                 <span className="flex items-center gap-1"><Calendar className="w-4 h-4" />{viewingArticle.createdAt ? new Date(viewingArticle.createdAt).toLocaleDateString() : ''}</span>
