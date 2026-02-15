@@ -22,6 +22,12 @@ export default function Articles() {
   const [filterDraft, setFilterDraft] = useState<string | null>(null);
   const [dialogImageIndex, setDialogImageIndex] = useState(0);
 
+  useEffect(() => {
+    if (showDialog) {
+      setDialogImageIndex(0);
+    }
+  }, [showDialog, viewingArticle?.id]);
+
   // load articles on mount
   useEffect(() => {
     let mounted = true;
@@ -356,7 +362,7 @@ export default function Articles() {
                           src={resolveImageSrc(article.thumbnailUrl || article.thumbnail)}
                           alt={article.title}
                           className="w-full h-full  cursor-pointer"
-                          onClick={() => { setViewingArticle(article); setShowDialog(true); }}
+                          onClick={() => { setDialogImageIndex(0); setViewingArticle(article); setShowDialog(true); }}
                           onError={(e) => { (e.currentTarget as HTMLImageElement).src = placeholderDataUrl; }}
                         />
                         {article.isPremium && (
@@ -368,7 +374,7 @@ export default function Articles() {
                           <Badge>{article.type}</Badge>
                           <span className="text-sm text-muted-foreground">{article.pages} pages</span>
                         </div>
-                        <h3 className="text-2xl font-bold mb-3 hover:text-purple-600 transition-colors cursor-pointer" onClick={() => { setViewingArticle(article); setShowDialog(true); }}>
+                        <h3 className="text-2xl font-bold mb-3 hover:text-purple-600 transition-colors cursor-pointer" onClick={() => { setDialogImageIndex(0); setViewingArticle(article); setShowDialog(true); }}>
                           {article.title}
                         </h3>
                         <p className="text-muted-foreground mb-4">
@@ -429,7 +435,7 @@ export default function Articles() {
                     <CardContent className="p-6">
                       <Badge className="mb-3">{article.type}</Badge>
                       <h3 className="text-lg font-bold mb-3 hover:text-purple-600 transition-colors cursor-pointer line-clamp-2">
-                        <span onClick={() => { setViewingArticle(article); setShowDialog(true); }}>{article.title}</span>
+                        <span onClick={() => { setDialogImageIndex(0); setViewingArticle(article); setShowDialog(true); }}>{article.title}</span>
                       </h3>
                       <div className="flex items-center justify-between text-sm text-muted-foreground mb-4">
                         <span>{article.createdAt ? new Date(article.createdAt).toLocaleDateString() : ''}</span>
@@ -461,7 +467,7 @@ export default function Articles() {
       </div>
 
       {/* Article View Dialog */}
-      <Dialog open={showDialog} onOpenChange={(open) => { setShowDialog(open); if (!open) setViewingArticle(null); }}>
+      <Dialog open={showDialog} onOpenChange={(open) => { setShowDialog(open); if (!open) { setViewingArticle(null); setDialogImageIndex(0); } }}>
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{viewingArticle?.title || 'Article'}</DialogTitle>
@@ -538,7 +544,7 @@ export default function Articles() {
               </div>
               <div className="prose max-w-none" dangerouslySetInnerHTML={{ __html: viewingArticle.content || viewingArticle.excerpt || '' }} />
               <div className="flex justify-end">
-                <Button variant="ghost" onClick={() => { setShowDialog(false); setViewingArticle(null); }}>Close</Button>
+                <Button variant="ghost" onClick={() => { setShowDialog(false); setViewingArticle(null); setDialogImageIndex(0); }}>Close</Button>
               </div>
             </div>
           ) : (
