@@ -1446,6 +1446,41 @@ export function registerRoutes(app: Express) {
         });
       };
 
+      const toUiListing = (l: any) => {
+        const raw = l.raw || {};
+        const price =
+          raw.price ??
+          raw.pricePerMonth ??
+          raw.rentalPricePerDay ??
+          raw.rentalPricePerWeek ??
+          raw.rentalPricePerMonth ??
+          null;
+
+        const type =
+          raw.listingType ??
+          raw.rentalType ??
+          raw.dealType ??
+          raw.commercialType ??
+          raw.propertyType ??
+          raw.hostelType ??
+          raw.vehicleType ??
+          raw.category ??
+          "";
+
+        return {
+          id: String(l.id),
+          title: String(l.title || ""),
+          status: l.isActive ? "active" : "inactive",
+          isFeatured: !!l.isFeatured,
+          createdAt: l.createdAt ? new Date(l.createdAt).toISOString() : null,
+          price,
+          views: Number(l.viewCount || 0),
+          category: String(l.category || ""),
+          subCategory: raw.subcategory ?? raw.subCategory ?? undefined,
+          type: String(type || ""),
+        };
+      };
+
       const allListings = [
         ...normalize(rental, "rentalListings"),
         ...normalize(hostel, "hostelPgListings", { activeField: "active", featuredField: "featured" }),
@@ -1512,6 +1547,17 @@ export function registerRoutes(app: Express) {
         });
       }
 
+      const listingsByCategoryArray = Object.entries(listingsByCategory).map(([category, count]) => ({
+        category,
+        count,
+      }));
+
+      const categoryBreakdownRows = Object.entries(categoryMap).map(([category, stats]) => ({
+        category,
+        subCategory: "-",
+        count: stats.count,
+      }));
+
       const statusOverview = {
         active: activeListings,
         inactive: totalListings - activeListings,
@@ -1526,6 +1572,9 @@ export function registerRoutes(app: Express) {
           return bd - ad;
         })
         .slice(0, 10);
+
+      const allListingsUi = allListings.map(toUiListing);
+      const recentListingsUi = recentListings.map(toUiListing).slice(0, 5);
 
       const avgViewsPerListing = totalListings > 0 ? totalViews / totalListings : 0;
       const featuredRate = totalListings > 0 ? featuredListings / totalListings : 0;
@@ -1560,15 +1609,15 @@ export function registerRoutes(app: Express) {
         featuredRate,
         totalCategories,
         avgListingsPerCategory,
-        listingsByCategory,
-        categoryBreakdown,
+        listingsByCategory: listingsByCategoryArray,
+        categoryBreakdown: categoryBreakdownRows,
         statusOverview,
         topCategoriesByViews,
         topListingsByViews,
         totalInquiries: 0,
         pendingInquiries: 0,
-        recentListings,
-        allListings,
+        recentListings: recentListingsUi,
+        allListings: allListingsUi,
       });
     } catch (error: any) {
       res.status(500).json({ message: error.message });
