@@ -325,10 +325,15 @@ export default function Contact() {
                 <CardTitle>हाम्रो स्थान | Our Location</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="bg-gray-200 rounded-lg h-64 flex items-center justify-center">
-                  <p className="text-muted-foreground">
-                    Interactive Map (Google Maps integration would go here)
-                  </p>
+                <div className="rounded-lg overflow-hidden h-64 border">
+                  <iframe
+                    title="Janakpur, Madhesh Province, Nepal"
+                    src="https://www.google.com/maps?q=Janakpur%2C%20Madhesh%20Province%2C%20Nepal&z=13&output=embed"
+                    width="100%"
+                    height="100%"
+                    loading="lazy"
+                    referrerPolicy="no-referrer-when-downgrade"
+                  />
                 </div>
                 <p className="text-sm text-muted-foreground mt-2">
                   Janakpur, Madhesh Province, Nepal

@@ -68,6 +68,7 @@ import {
 } from "../shared/schema";
 import { uploadMedia, handleMediaUpload } from './upload';
 import { eq, sql, desc, or, and, asc } from "drizzle-orm";
+import nodemailer from "nodemailer";
 
 const parseBoolean = (value: any, defaultValue = false) => {
   if (value === undefined || value === null) return defaultValue;
@@ -1668,6 +1669,70 @@ export function registerRoutes(app: Express) {
       res.json({ message: "Successfully subscribed to newsletter" });
     } catch (error: any) {
       res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.post('/api/post-ad', async (req, res) => {
+    try {
+      const payload = (req.body || {}) as any;
+
+      const title = String(payload.title || '').trim();
+      const category = String(payload.category || '').trim();
+      const description = String(payload.description || '').trim();
+      const location = String(payload.location || '').trim();
+      const contactName = String(payload.contactName || '').trim();
+      const email = String(payload.email || '').trim();
+      const mobile = String(payload.mobile || '').trim();
+      const adType = String(payload.adType || '').trim();
+
+      if (!title) return res.status(400).json({ message: 'Ad Title is required' });
+      if (!category) return res.status(400).json({ message: 'Category is required' });
+      if (!description) return res.status(400).json({ message: 'Description is required' });
+      if (!location) return res.status(400).json({ message: 'Location is required' });
+      if (!contactName) return res.status(400).json({ message: 'Contact Name is required' });
+      if (!email || !email.includes('@')) return res.status(400).json({ message: 'Valid Email Address is required' });
+      if (!mobile) return res.status(400).json({ message: 'Mobile Number is required' });
+      if (adType !== 'free' && adType !== 'paid') return res.status(400).json({ message: 'Ad Type must be free or paid' });
+
+      const host = process.env.SMTP_HOST;
+      const port = Number(process.env.SMTP_PORT || 587);
+      const secure = String(process.env.SMTP_SECURE || 'false').toLowerCase() === 'true';
+      const user = process.env.SMTP_USER;
+      const pass = process.env.SMTP_PASS;
+      const from = process.env.SMTP_FROM || user;
+
+      if (!host || !user || !pass || !from) {
+        return res.status(500).json({ message: 'SMTP is not configured on the server' });
+      }
+
+      const transporter = nodemailer.createTransport({
+        host,
+        port,
+        secure,
+        auth: { user, pass },
+      });
+
+      const to = process.env.SMTP_TO || from;
+
+      await transporter.sendMail({
+        from,
+        to,
+        replyTo: email,
+        subject: `New Ad Submission: ${title}`,
+        text:
+          `Ad Title: ${title}\n` +
+          `Category: ${category}\n` +
+          `Description: ${description}\n` +
+          `Location: ${location}\n` +
+          `Contact Name: ${contactName}\n` +
+          `Email: ${email}\n` +
+          `Mobile Number: ${mobile}\n` +
+          `Ad Type: ${adType}\n`,
+      });
+
+      res.status(200).json({ message: 'Submitted' });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message || 'Failed to submit' });
     }
   });
 

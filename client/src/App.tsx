@@ -19,6 +19,7 @@ import AdminSliders from "@/pages/admin-sliders";
 import SliderCardPage from "@/pages/slider-card";
 import SliderCardOnlyPage from "@/pages/slider-card-only";
 import SellerDashboard from "@/pages/seller-dashboard";
+import PostAd from "@/pages/post-ad";
 import SubcategoryPage from "@/pages/subcategory";
 import CategoryPage from "@/pages/category";
 import NotFound from "@/pages/not-found";
@@ -67,6 +68,7 @@ function Router() {
       <Route path="/slider-card-only" component={SliderCardOnlyPage} />
       <Route path="/admin" component={AdminDashboard} />
       <Route path="/seller-dashboard" component={SellerDashboard} />
+      <Route path="/post-ad" component={PostAd} />
       <Route path="/blog" component={Blog} />
       <Route path="/blog/:slug" component={BlogPost} />
       <Route path="/search" component={SearchPage} />
