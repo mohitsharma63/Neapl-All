@@ -4,11 +4,22 @@ import { Input } from "@/components/ui/input";
 import { Link } from "wouter";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
+import { useQuery } from "@tanstack/react-query";
 
 export default function Footer() {
   const [email, setEmail] = useState("");
   const [isSubscribing, setIsSubscribing] = useState(false);
   const { toast } = useToast();
+
+  const { data: categories = [] } = useQuery<any[]>({
+    queryKey: ["public-categories"],
+    queryFn: async () => {
+      const res = await fetch('/api/categories');
+      if (!res.ok) return [];
+      const data = await res.json();
+      return Array.isArray(data) ? data : [];
+    },
+  });
 
   const handleNewsletterSubscribe = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -100,110 +111,24 @@ export default function Footer() {
         </div>
 
         {/* Main Footer Content */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-8 mb-8">
           {/* Explore Section */}
           <div data-testid="footer-explore">
             <h3 className="text-lg font-semibold mb-4">Explore</h3>
             <ul className="space-y-2">
-              <li>
-                <Link href="/properties" className="text-primary-foreground/80 hover:text-primary-foreground transition-colors underline" data-testid="link-footer-properties">
-                  Properties
-                </Link>
-              </li>
-              <li>
-                <a href="#" className="text-primary-foreground/80 hover:text-primary-foreground transition-colors underline" data-testid="link-footer-vehicles">
-                  Vehicles
-                </a>
-              </li>
-              <li>
-                <a href="#" className="text-primary-foreground/80 hover:text-primary-foreground transition-colors underline" data-testid="link-footer-classifieds">
-                  Classifieds
-                </a>
-              </li>
-              <li>
-                <a href="#" className="text-primary-foreground/80 hover:text-primary-foreground transition-colors underline" data-testid="link-footer-services">
-                  Services
-                </a>
-              </li>
-              <li>
-                <a href="#" className="text-primary-foreground/80 hover:text-primary-foreground transition-colors underline" data-testid="link-footer-jobs">
-                  Jobs
-                </a>
-              </li>
-              <li>
-                <a href="#" className="text-primary-foreground/80 hover:text-primary-foreground transition-colors underline" data-testid="link-footer-rewards">
-                  Rewards
-                </a>
-              </li>
-              <li>
-                <a href="#" className="text-primary-foreground/80 hover:text-primary-foreground transition-colors underline" data-testid="link-footer-premium">
-                  Premium subscriptions
-                </a>
-              </li>
-            </ul>
-          </div>
-
-          {/* Other Section */}
-          <div data-testid="footer-other">
-            <h3 className="text-lg font-semibold mb-4">Other</h3>
-            <ul className="space-y-2">
-              <li>
-                <a href="#" className="text-primary-foreground/80 hover:text-primary-foreground transition-colors underline" data-testid="link-footer-news">
-                  News
-                </a>
-              </li>
-              <li>
-                <a href="#" className="text-primary-foreground/80 hover:text-primary-foreground transition-colors underline" data-testid="link-footer-events">
-                  Events
-                </a>
-              </li>
-              <li>
-                <a href="#" className="text-primary-foreground/80 hover:text-primary-foreground transition-colors underline" data-testid="link-footer-forums">
-                  Forums
-                </a>
-              </li>
-              <li>
-                <a href="#" className="text-primary-foreground/80 hover:text-primary-foreground transition-colors underline" data-testid="link-footer-business">
-                  Business pages
-                </a>
-              </li>
-              <li>
-                <a href="#" className="text-primary-foreground/80 hover:text-primary-foreground transition-colors underline" data-testid="link-footer-eshops">
-                  eShops
-                </a>
-              </li>
-            </ul>
-          </div>
-
-          {/* Legal Links */}
-          <div data-testid="footer-legal">
-            <h3 className="text-lg font-semibold mb-4">Legal</h3>
-            <ul className="space-y-2">
-              <li>
-                <a href="#" className="text-primary-foreground/80 hover:text-primary-foreground transition-colors underline" data-testid="link-footer-advertising-terms">
-                  Advertising Terms
-                </a>
-              </li>
-              <li>
-                <a href="#" className="text-primary-foreground/80 hover:text-primary-foreground transition-colors underline" data-testid="link-footer-refund-policy">
-                  Refund Policy
-                </a>
-              </li>
-              <li>
-                <a href="#" className="text-primary-foreground/80 hover:text-primary-foreground transition-colors underline" data-testid="link-footer-website-terms">
-                  Website Terms
-                </a>
-              </li>
-              <li>
-                <a href="#" className="text-primary-foreground/80 hover:text-primary-foreground transition-colors underline" data-testid="link-footer-posting-rules">
-                  Rules for posting ads
-                </a>
-              </li>
-              <li>
-                <a href="#" className="text-primary-foreground/80 hover:text-primary-foreground transition-colors underline" data-testid="link-footer-contact">
-                  Contact Us
-                </a>
-              </li>
+              {(categories || [])
+                .filter((c: any) => c?.isActive !== false)
+                .slice(0, 10)
+                .map((c: any) => (
+                  <li key={String(c.id)}>
+                    <Link
+                      href={`/category/${encodeURIComponent(String(c.slug || c.id))}`}
+                      className="text-primary-foreground/80 hover:text-primary-foreground transition-colors underline"
+                    >
+                      {String(c.name || 'Category')}
+                    </Link>
+                  </li>
+                ))}
             </ul>
           </div>
 

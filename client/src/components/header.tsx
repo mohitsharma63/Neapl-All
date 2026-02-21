@@ -267,24 +267,14 @@ export default function Header() {
     { href: "/health", label: "स्वास्थ्य | Health", shortLabel: "Health", isActive: location.startsWith("/health"), hasRoute: false },
   ];
 
-  const topNav = [
-    { href: "/", label: "Home", isActive: location === "/" || location.startsWith("/") },
-    { href: "/about", label: "About Us", isActive: location.startsWith("/about") },
-    { href: "/contact", label: "Contact", isActive: location.startsWith("/contact") },
-    { href: "/blog", label: "Blog", isActive: location.startsWith("/blog") },
-    { href: "/articles", label: "Articles", isActive: location.startsWith("/articles") },
-  ];
-
   // compute backend + local combined suggestions
   const backendSuggestions = searchSuggestions?.results || {};
 
-  // build local matches from topNav (pages) and serviceGroups (categories/subcategories)
+  // build local matches from serviceGroups (categories/subcategories)
   const localMatches: Record<string, any[]> = (() => {
     const q = (searchQuery || '').trim().toLowerCase();
     if (!q || q.length < 1) return {} as Record<string, any[]>;
     const tokens = q.split(/\s+/).filter(Boolean);
-
-    const pages = topNav.filter(p => tokens.some(t => p.label.toLowerCase().includes(t))).map(p => ({ href: p.href, label: p.label }));
 
     const categories: any[] = [];
     const subcategories: any[] = [];
@@ -302,7 +292,7 @@ export default function Header() {
       });
     });
 
-    return { pages, categories, subcategories };
+    return { categories, subcategories };
   })();
 
   // merge backend suggestions with localMatches (concatenate arrays, avoid duplicates roughly by id/name)
@@ -378,21 +368,7 @@ export default function Header() {
               </a>
             </div>
 
-            {/* Navigation Links - Right Side */}
-            <nav className="flex items-center space-x-4 text-sm">
-              {topNav.map((item) => (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className={`px-2 py-1 rounded-md hover:bg-gray-100 transition-colors ${
-                    item.isActive ? "font-semibold text-gray-900" : "text-gray-700"
-                  }`}
-                  aria-label={item.label}
-                >
-                  {item.label}
-                </Link>
-              ))}
-            </nav>
+            <div />
           </div>
         </div>
       </div>
@@ -497,31 +473,15 @@ export default function Header() {
                       </div>
                     </div>
 
-               
-
-                
-
-                    <div className="mb-3">
-                      <div className="text-xs text-gray-500 mb-1">Pages</div>
-                      <div className="flex flex-wrap gap-2">
-                        {topNav.map((p) => (
-                          <button
-                            key={p.href}
-                            onMouseDown={(ev) => ev.preventDefault()}
-                            onClick={() => { setShowSearchPopup(false); setLocation(p.href); }}
-                            className="text-sm px-3 py-1 bg-white border rounded text-gray-800"
-                          >{p.label}</button>
-                        ))}
-                      </div>
-                    </div>
-
                     <div className="mb-3">
                       <div className="text-xs text-gray-500 mb-1">Results</div>
                       {(!searchQuery || searchQuery.length < 2) ? (
                         <div className="text-sm text-gray-500">Type at least 2 characters to search</div>
                       ) : (combinedTotal > 0) ? (
                         <div className="space-y-2">
-                          {Object.entries(combinedResults).map(([group, items]) => (
+                          {Object.entries(combinedResults)
+                            .filter(([group]) => group !== 'pages')
+                            .map(([group, items]) => (
                             Array.isArray(items) && items.length > 0 ? (
                               <div key={group} className="mb-1">
                                 <div className="text-sm font-medium text-gray-800 px-2 py-1 capitalize">{group}</div>
@@ -529,7 +489,7 @@ export default function Header() {
                                   {items.map((it: any, idx: number) => {
                                     const phone = it.raw?.contactPhone || it.raw?.phone || it.raw?.whatsappNumber || it.contactPhone || it.phone || it.whatsappNumber;
                                     const whatsapp = it.raw?.whatsappNumber || it.whatsappNumber;
-                                    const title = group === 'pages' ? it.label : group === 'categories' ? it.name : group === 'subcategories' ? (it.name + (it.parent ? ` — ${it.parent.name}` : '')) : (it.title || it.name || it.raw?.name || it.raw?.title || it.id || String(it));
+                                    const title = group === 'categories' ? it.name : group === 'subcategories' ? (it.name + (it.parent ? ` — ${it.parent.name}` : '')) : (it.title || it.name || it.raw?.name || it.raw?.title || it.id || String(it));
 
                                     return (
                                       <div key={idx} className="w-full flex items-center justify-between px-3 py-2 hover:bg-gray-50">
@@ -537,11 +497,6 @@ export default function Header() {
                                           onMouseDown={(ev) => ev.preventDefault()}
                                           onClick={() => {
                                             setShowSearchPopup(false);
-                                            // pages
-                                            if (group === 'pages') {
-                                              setLocation(it.href);
-                                              return;
-                                            }
                                             // categories -> perform scoped search
                                             if (group === 'categories') {
                                               setLocation(buildSearchUrl(searchQuery) + `&category=${encodeURIComponent(it.slug)}`);
@@ -847,22 +802,6 @@ export default function Header() {
                       >
                         Search
                       </Button>
-                    </div>
-
-                    <div className="space-y-2">
-                      <div className="text-xs text-muted-foreground">Pages</div>
-                      <div className="space-y-1">
-                        {topNav.map((item) => (
-                          <Link
-                            key={item.href}
-                            href={item.href}
-                            className="flex items-center justify-between py-3 px-3 rounded-lg text-gray-700 hover:bg-gray-100 transition-colors"
-                            onClick={() => setIsMobileMenuOpen(false)}
-                          >
-                            <span>{item.label}</span>
-                          </Link>
-                        ))}
-                      </div>
                     </div>
 
                     <div className="space-y-2">

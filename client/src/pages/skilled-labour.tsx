@@ -16,6 +16,49 @@ interface ProProfileType {
   slug: string;
 }
 
+const PROFILE_TYPE_COLORS: Record<string, string> = {
+  'business-profile': '#1E3A5F',
+  'freelancing-profile': '#7C3AED',
+  'matrimony-profile': '#E75480',
+  'social-media-influencer-profile': '#F97316',
+  'company-organization-profile': '#2563EB',
+  'student-profile': '#EAB308',
+  'doctor-medical-profile': '#16A34A',
+  'teacher-trainer-profile': '#8B5A2B',
+  'personal-general-profile': '#6B7280',
+  'artist-creator-profile': '#DB2777',
+  'ngo-trust-profile': '#15803D',
+};
+
+function getProfileTypeColor(profileType?: Partial<ProProfileType> | null): string | undefined {
+  const slug = typeof profileType?.slug === 'string' ? profileType.slug : '';
+  if (slug && PROFILE_TYPE_COLORS[slug]) return PROFILE_TYPE_COLORS[slug];
+  const name = (typeof profileType?.name === 'string' ? profileType.name : '').toLowerCase();
+  if (!name) return undefined;
+  if (name.includes('business')) return PROFILE_TYPE_COLORS['business-profile'];
+  if (name.includes('freelanc')) return PROFILE_TYPE_COLORS['freelancing-profile'];
+  if (name.includes('matrimony')) return PROFILE_TYPE_COLORS['matrimony-profile'];
+  if (name.includes('influencer') || name.includes('social media')) return PROFILE_TYPE_COLORS['social-media-influencer-profile'];
+  if (name.includes('company') || name.includes('organization')) return PROFILE_TYPE_COLORS['company-organization-profile'];
+  if (name.includes('student')) return PROFILE_TYPE_COLORS['student-profile'];
+  if (name.includes('doctor') || name.includes('medical')) return PROFILE_TYPE_COLORS['doctor-medical-profile'];
+  if (name.includes('teacher') || name.includes('trainer')) return PROFILE_TYPE_COLORS['teacher-trainer-profile'];
+  if (name.includes('personal') || name.includes('general')) return PROFILE_TYPE_COLORS['personal-general-profile'];
+  if (name.includes('artist') || name.includes('creator')) return PROFILE_TYPE_COLORS['artist-creator-profile'];
+  if (name.includes('ngo') || name.includes('trust')) return PROFILE_TYPE_COLORS['ngo-trust-profile'];
+  return undefined;
+}
+
+function getBadgeTextColor(bgHex: string): string {
+  const h = bgHex.replace('#', '').trim();
+  if (h.length !== 6) return '#ffffff';
+  const r = parseInt(h.slice(0, 2), 16);
+  const g = parseInt(h.slice(2, 4), 16);
+  const b = parseInt(h.slice(4, 6), 16);
+  const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+  return luminance > 0.68 ? '#111827' : '#ffffff';
+}
+
 async function fetchJson(url: string) {
   const res = await fetch(url);
   const ct = res.headers.get("content-type") || "";
@@ -199,13 +242,22 @@ export default function SkilledLabourPage() {
                   safeString(item.values.logo) ||
                   safeString(item.user.avatar);
 
+                const typeColor = getProfileTypeColor(item.profileType);
+                const typeText = typeColor ? getBadgeTextColor(typeColor) : undefined;
+
                 return (
                   <button
                     key={item.profile.id}
                     onClick={() => setLocation(`/skilled-labour/${item.profile.id}`)}
                     className="text-left"
                   >
-                    <Card className="hover:shadow-lg transition-all duration-300 hover:-translate-y-0.5">
+                    <Card
+                      className="hover:shadow-lg transition-all duration-300 hover:-translate-y-0.5 overflow-hidden"
+                      style={typeColor ? { borderColor: typeColor } : undefined}
+                    >
+                      {typeColor ? (
+                        <div className="h-1 w-full" style={{ backgroundColor: typeColor }} />
+                      ) : null}
                       <CardHeader className="pb-3">
                         <div className="flex items-start gap-3">
                           <div className="w-12 h-12 rounded-xl bg-gray-100 overflow-hidden flex-shrink-0">
@@ -218,7 +270,17 @@ export default function SkilledLabourPage() {
                           <div className="min-w-0 flex-1">
                             <CardTitle className="text-base truncate">{displayName}</CardTitle>
                             <div className="mt-1">
-                              <Badge variant="secondary" className="text-xs">{item.profileType?.name}</Badge>
+                              <Badge
+                                variant="secondary"
+                                className="text-xs border-0"
+                                style={
+                                  typeColor
+                                    ? { backgroundColor: typeColor, color: typeText }
+                                    : undefined
+                                }
+                              >
+                                {item.profileType?.name}
+                              </Badge>
                             </div>
                           </div>
                         </div>
