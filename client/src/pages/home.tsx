@@ -2575,7 +2575,7 @@ export default function Home() {
 
       {/* Back to Top Button */}
       <button
-        className="fixed bottom-6 right-6 w-12 h-12 bg-primary text-primary-foreground rounded-full shadow-lg hover:bg-primary/90 transition-colors z-50"
+        className="fixed bottom-6 right-20 w-12 h-12 bg-primary text-primary-foreground rounded-full shadow-lg hover:bg-primary/90 transition-colors z-50"
         onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
         data-testid="button-back-to-top"
       >

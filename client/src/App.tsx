@@ -34,6 +34,8 @@ import WishlistPage from "@/pages/wishlist";
 import SkilledLabourPage from "@/pages/skilled-labour";
 import SkilledLabourDetailPage from "@/pages/skilled-labour-detail";
 
+import FloatingContact from "@/components/floating-contact";
+
 import TuitionPrivateClassesPage from "./pages/tuition-private-classes-page";
 import ListingDetailPage from "./pages/listing-detail-page";
 
@@ -97,6 +99,7 @@ function App() {
         <ScrollToTop />
         <Toaster />
         <Router />
+        <FloatingContact />
       </TooltipProvider>
     </QueryClientProvider>
   );

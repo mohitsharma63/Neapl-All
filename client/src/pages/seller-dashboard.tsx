@@ -3937,8 +3937,8 @@ function AnalyticsSection() {
               Active vs inactive and featured listings
             </CardDescription>
           </CardHeader>
-          <CardContent className="flex flex-col lg:flex-row items-center gap-4">
-            <div className="w-full lg:w-1/2">
+          <CardContent className="flex flex-col lg:flex-row lg:items-start gap-6">
+            <div className="w-full lg:w-1/2 flex justify-center">
               {data && data.totalListings > 0 ? (
                 <ChartContainer
                   config={{
@@ -3946,9 +3946,9 @@ function AnalyticsSection() {
                     Inactive: { label: 'Inactive', color: COLORS[1] },
                     Featured: { label: 'Featured', color: COLORS[2] },
                   }}
-                  className="h-64"
+                  className="h-64 w-full max-w-sm aspect-auto"
                 >
-                  <PieChart>
+                  <PieChart margin={{ top: 0, right: 0, bottom: 24, left: 0 }}>
                     <Pie
                       data={statusData}
                       dataKey="value"
@@ -3965,7 +3965,10 @@ function AnalyticsSection() {
                       ))}
                     </Pie>
                     <ChartTooltip content={<ChartTooltipContent hideLabel />} />
-                    <ChartLegend content={<ChartLegendContent />} />
+                    <ChartLegend
+                      verticalAlign="bottom"
+                      content={<ChartLegendContent className="flex-wrap" />}
+                    />
                   </PieChart>
                 </ChartContainer>
               ) : (
