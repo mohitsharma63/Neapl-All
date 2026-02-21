@@ -1,3 +1,4 @@
+
 import { useMemo } from "react";
 import { Link, useParams } from "wouter";
 import { useQuery } from "@tanstack/react-query";
@@ -6,58 +7,6 @@ import Footer from "@/components/footer";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-
-const PROFILE_TYPE_COLORS: Record<string, string> = {
-  'business-profile': '#1E3A5F',
-  'freelancing-profile': '#7C3AED',
-  'matrimony-profile': '#E75480',
-  'social-media-influencer-profile': '#F97316',
-  'company-organization-profile': '#2563EB',
-  'student-profile': '#EAB308',
-  'doctor-medical-profile': '#16A34A',
-  'teacher-trainer-profile': '#8B5A2B',
-  'personal-general-profile': '#6B7280',
-  'artist-creator-profile': '#DB2777',
-  'ngo-trust-profile': '#15803D',
-};
-
-function getProfileTypeColor(profileType?: any): string | undefined {
-  const slug = typeof profileType?.slug === 'string' ? profileType.slug : '';
-  if (slug && PROFILE_TYPE_COLORS[slug]) return PROFILE_TYPE_COLORS[slug];
-  const name = (typeof profileType?.name === 'string' ? profileType.name : '').toLowerCase();
-  if (!name) return undefined;
-  if (name.includes('business')) return PROFILE_TYPE_COLORS['business-profile'];
-  if (name.includes('freelanc')) return PROFILE_TYPE_COLORS['freelancing-profile'];
-  if (name.includes('matrimony')) return PROFILE_TYPE_COLORS['matrimony-profile'];
-  if (name.includes('influencer') || name.includes('social media')) return PROFILE_TYPE_COLORS['social-media-influencer-profile'];
-  if (name.includes('company') || name.includes('organization')) return PROFILE_TYPE_COLORS['company-organization-profile'];
-  if (name.includes('student')) return PROFILE_TYPE_COLORS['student-profile'];
-  if (name.includes('doctor') || name.includes('medical')) return PROFILE_TYPE_COLORS['doctor-medical-profile'];
-  if (name.includes('teacher') || name.includes('trainer')) return PROFILE_TYPE_COLORS['teacher-trainer-profile'];
-  if (name.includes('personal') || name.includes('general')) return PROFILE_TYPE_COLORS['personal-general-profile'];
-  if (name.includes('artist') || name.includes('creator')) return PROFILE_TYPE_COLORS['artist-creator-profile'];
-  if (name.includes('ngo') || name.includes('trust')) return PROFILE_TYPE_COLORS['ngo-trust-profile'];
-  return undefined;
-}
-
-function getBadgeTextColor(bgHex: string): string {
-  const h = bgHex.replace('#', '').trim();
-  if (h.length !== 6) return '#ffffff';
-  const r = parseInt(h.slice(0, 2), 16);
-  const g = parseInt(h.slice(2, 4), 16);
-  const b = parseInt(h.slice(4, 6), 16);
-  const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
-  return luminance > 0.68 ? '#111827' : '#ffffff';
-}
-
-function hexToRgba(hex: string, alpha: number): string {
-  const h = hex.replace('#', '').trim();
-  if (h.length !== 6) return `rgba(0,0,0,${alpha})`;
-  const r = parseInt(h.slice(0, 2), 16);
-  const g = parseInt(h.slice(2, 4), 16);
-  const b = parseInt(h.slice(4, 6), 16);
-  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
-}
 
 function safeString(v: any): string {
   if (v == null) return "";
@@ -135,6 +84,11 @@ export default function SkilledLabourDetailPage() {
     safeString(data?.values?.contactDetails) ||
     safeString(data?.values?.contactInfo);
 
+  const email =
+    safeString(data?.user?.email) ||
+    safeString(data?.values?.email) ||
+    safeString(data?.values?.contactEmail);
+
   const location =
     safeString(data?.user?.city) ||
     safeString(data?.user?.state) ||
@@ -172,12 +126,6 @@ export default function SkilledLabourDetailPage() {
   }
 
   const fields = Array.isArray(data.fields) ? data.fields : [];
-  const typeColor = getProfileTypeColor(data.profileType);
-  const typeText = typeColor ? getBadgeTextColor(typeColor) : undefined;
-  const cardBg = typeColor
-    ? `linear-gradient(135deg, ${hexToRgba(typeColor, 0.14)} 0%, rgba(255, 255, 255, 0.92) 55%, ${hexToRgba(typeColor, 0.08)} 100%)`
-    : undefined;
-  const tileBg = typeColor ? hexToRgba(typeColor, 0.08) : undefined;
 
   return (
     <div className="min-h-screen bg-background">
@@ -195,31 +143,14 @@ export default function SkilledLabourDetailPage() {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <Card
-            className="lg:col-span-1 overflow-hidden rounded-2xl shadow-sm"
-            style={
-              typeColor
-                ? {
-                    borderColor: hexToRgba(typeColor, 0.45),
-                    background: cardBg,
-                    boxShadow: `0 10px 30px ${hexToRgba(typeColor, 0.18)}`,
-                  }
-                : undefined
-            }
-          >
-            {typeColor ? (
-              <div className="h-1 w-full" style={{ backgroundColor: typeColor }} />
-            ) : null}
+          <Card className="lg:col-span-1 overflow-hidden">
             <CardHeader>
               <CardTitle>Profile</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div
-                className="w-full aspect-square rounded-2xl overflow-hidden border"
-                style={typeColor ? { borderColor: hexToRgba(typeColor, 0.25), backgroundColor: tileBg } : undefined}
-              >
+              <div className="w-full aspect-square rounded-xl bg-gray-100 overflow-hidden">
                 {photoUrl ? (
-                  <img src={photoUrl} alt={displayName} className="w-full h-full object-cover" />
+                  <img src={photoUrl} alt={displayName} className="w-full h-full " />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center text-sm text-muted-foreground">No photo</div>
                 )}
@@ -227,13 +158,7 @@ export default function SkilledLabourDetailPage() {
 
               <div className="space-y-2">
                 <div className="text-sm text-muted-foreground">Type</div>
-                <Badge
-                  variant="secondary"
-                  className="border-0"
-                  style={typeColor ? { backgroundColor: typeColor, color: typeText } : undefined}
-                >
-                  {data.profileType?.name || "Pro"}
-                </Badge>
+                <Badge variant="secondary">{data.profileType?.name || "Pro"}</Badge>
               </div>
 
               {headline && (
@@ -256,35 +181,47 @@ export default function SkilledLabourDetailPage() {
                   <div className="text-sm">{contact}</div>
                 </div>
               )}
+
+              {email && (
+                <div className="space-y-1">
+                  <div className="text-sm text-muted-foreground">Email</div>
+                  <div className="text-sm break-all">{email}</div>
+                </div>
+              )}
             </CardContent>
           </Card>
 
-          <Card
-            className="lg:col-span-2 overflow-hidden rounded-2xl shadow-sm"
-            style={
-              typeColor
-                ? {
-                    borderColor: hexToRgba(typeColor, 0.45),
-                    background: cardBg,
-                    boxShadow: `0 10px 30px ${hexToRgba(typeColor, 0.12)}`,
-                  }
-                : undefined
-            }
-          >
-            {typeColor ? (
-              <div className="h-1 w-full" style={{ backgroundColor: typeColor }} />
-            ) : null}
+          <Card className="lg:col-span-2">
             <CardHeader>
               <CardTitle>Details</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {email ? (
+                  <div className="p-4 rounded-xl border bg-white">
+                    <div className="text-xs text-muted-foreground">Email</div>
+                    <div className="mt-2 text-sm font-medium break-all">{email}</div>
+                  </div>
+                ) : null}
                 {fields
                   .filter((f: any) => {
                     const v = f?.value;
                     if (v == null) return false;
                     if (typeof v === "string" && v.trim() === "") return false;
                     if (Array.isArray(v) && v.length === 0) return false;
+
+                    const key = String(f?.field?.key || "").toLowerCase();
+                    const label = String(f?.field?.label || "").toLowerCase();
+                    if (
+                      key === "profilephoto" ||
+                      key === "profile_photo" ||
+                      key === "photo" ||
+                      key === "avatar" ||
+                      label.includes("profile photo")
+                    ) {
+                      return false;
+                    }
+
                     return true;
                   })
                   .map((f: any) => {
@@ -294,11 +231,7 @@ export default function SkilledLabourDetailPage() {
 
                     if (fieldType === "textarea") {
                       return (
-                        <div
-                          key={f.field?.id || label}
-                          className="md:col-span-2 p-4 rounded-2xl border"
-                          style={typeColor ? { borderColor: hexToRgba(typeColor, 0.18), backgroundColor: tileBg } : undefined}
-                        >
+                        <div key={f.field?.id || label} className="md:col-span-2 p-4 rounded-xl border bg-white">
                           <div className="text-xs text-muted-foreground">{label}</div>
                           <div className="mt-2 text-sm whitespace-pre-wrap">{safeString(value)}</div>
                         </div>
@@ -308,15 +241,11 @@ export default function SkilledLabourDetailPage() {
                     if (fieldType === "image") {
                       const url = safeString(value);
                       return (
-                        <div
-                          key={f.field?.id || label}
-                          className="p-4 rounded-2xl border"
-                          style={typeColor ? { borderColor: hexToRgba(typeColor, 0.18), backgroundColor: tileBg } : undefined}
-                        >
+                        <div key={f.field?.id || label} className="p-4 rounded-xl border bg-white">
                           <div className="text-xs text-muted-foreground">{label}</div>
                           <div className="mt-3 w-full aspect-video rounded-lg bg-gray-100 overflow-hidden">
                             {url ? (
-                              <img src={url} alt={label} className="w-full h-full object-cover" />
+                              <img src={url} alt={label} className="w-full h-full " />
                             ) : (
                               <div className="w-full h-full flex items-center justify-center text-sm text-muted-foreground">No image</div>
                             )}
@@ -328,23 +257,15 @@ export default function SkilledLabourDetailPage() {
                     if (fieldType === "images") {
                       const urls = Array.isArray(value) ? value.map((x) => safeString(x)).filter(Boolean) : [];
                       return (
-                        <div
-                          key={f.field?.id || label}
-                          className="md:col-span-2 p-4 rounded-2xl border"
-                          style={typeColor ? { borderColor: hexToRgba(typeColor, 0.18), backgroundColor: tileBg } : undefined}
-                        >
+                        <div key={f.field?.id || label} className="md:col-span-2 p-4 rounded-xl border bg-white">
                           <div className="text-xs text-muted-foreground">{label}</div>
                           {urls.length === 0 ? (
                             <div className="mt-2 text-sm text-muted-foreground">No images</div>
                           ) : (
                             <div className="mt-3 grid grid-cols-2 md:grid-cols-3 gap-3">
                               {urls.map((u, idx) => (
-                                <div
-                                  key={idx}
-                                  className="aspect-video rounded-xl overflow-hidden border"
-                                  style={typeColor ? { borderColor: hexToRgba(typeColor, 0.18), backgroundColor: tileBg } : undefined}
-                                >
-                                  <img src={u} alt={`${label}-${idx}`} className="w-full h-full object-cover" />
+                                <div key={idx} className="aspect-video rounded-lg bg-gray-100 overflow-hidden">
+                                  <img src={u} alt={`${label}-${idx}`} className="w-full h-full " />
                                 </div>
                               ))}
                             </div>
@@ -353,12 +274,12 @@ export default function SkilledLabourDetailPage() {
                       );
                     }
 
+                  
+
+                   
+
                     return (
-                      <div
-                        key={f.field?.id || label}
-                        className="p-4 rounded-2xl border"
-                        style={typeColor ? { borderColor: hexToRgba(typeColor, 0.18), backgroundColor: tileBg } : undefined}
-                      >
+                      <div key={f.field?.id || label} className="p-4 rounded-xl border bg-white">
                         <div className="text-xs text-muted-foreground">{label}</div>
                         <div className="mt-2 text-sm font-medium">{safeString(value) || "-"}</div>
                       </div>

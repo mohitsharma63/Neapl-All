@@ -5683,6 +5683,41 @@ export function registerRoutes(app: Express) {
     }
   });
 
+  app.get("/api/categories/:slugOrId", async (req, res) => {
+    try {
+      const raw = typeof req.params.slugOrId === 'string' ? req.params.slugOrId : '';
+      const slugOrId = decodeURIComponent(raw || '').trim();
+      if (!slugOrId) return res.status(400).json({ message: 'Missing category slug' });
+
+      const isNumericId = /^\d+$/.test(slugOrId);
+
+      const category = await db.query.adminCategories.findFirst({
+        where: isNumericId
+          ? eq(adminCategories.id, Number(slugOrId))
+          : eq(adminCategories.slug, slugOrId),
+        with: {
+          subcategories: true,
+        },
+      });
+
+      if (!category) return res.status(404).json({ message: 'Category not found' });
+      if ((category as any)?.isActive === false) return res.status(404).json({ message: 'Category not found' });
+
+      const normalized = {
+        ...category,
+        subcategories: Array.isArray((category as any).subcategories)
+          ? (category as any).subcategories
+              .filter((s: any) => s?.isActive !== false)
+              .map((s: any) => ({ ...s, listingCount: s?.listingCount ?? 0 }))
+          : [],
+      };
+
+      res.json(normalized);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
   // Public Vehicle License Classes Listings
   app.get("/api/vehicle-license-classes", async (_req, res) => {
     try {

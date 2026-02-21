@@ -111,24 +111,57 @@ export default function Footer() {
         </div>
 
         {/* Main Footer Content */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-8 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-8">
           {/* Explore Section */}
           <div data-testid="footer-explore">
             <h3 className="text-lg font-semibold mb-4">Explore</h3>
             <ul className="space-y-2">
               {(categories || [])
                 .filter((c: any) => c?.isActive !== false)
-                .slice(0, 10)
-                .map((c: any) => (
-                  <li key={String(c.id)}>
+                .flatMap((c: any) => Array.isArray(c?.subcategories) ? c.subcategories : [])
+                .filter((s: any) => s?.isActive !== false)
+                .slice(0, 12)
+                .map((s: any) => (
+                  <li key={String(s.id)}>
                     <Link
-                      href={`/category/${encodeURIComponent(String(c.slug || c.id))}`}
+                      href={`/subcategory/${encodeURIComponent(String(s.slug || s.name || s.id))}`}
                       className="text-primary-foreground/80 hover:text-primary-foreground transition-colors underline"
                     >
-                      {String(c.name || 'Category')}
+                      {String(s.name || 'Subcategory')}
                     </Link>
                   </li>
                 ))}
+            </ul>
+          </div>
+
+          <div data-testid="footer-pages">
+            <h3 className="text-lg font-semibold mb-4">Pages</h3>
+            <ul className="space-y-2">
+              <li>
+                <Link href="/" className="text-primary-foreground/80 hover:text-primary-foreground transition-colors underline">
+                  Home
+                </Link>
+              </li>
+              <li>
+                <Link href="/about" className="text-primary-foreground/80 hover:text-primary-foreground transition-colors underline">
+                  About Us
+                </Link>
+              </li>
+              <li>
+                <Link href="/contact" className="text-primary-foreground/80 hover:text-primary-foreground transition-colors underline">
+                  Contact
+                </Link>
+              </li>
+              <li>
+                <Link href="/blog" className="text-primary-foreground/80 hover:text-primary-foreground transition-colors underline">
+                  Blog
+                </Link>
+              </li>
+              <li>
+                <Link href="/articles" className="text-primary-foreground/80 hover:text-primary-foreground transition-colors underline">
+                  Articles
+                </Link>
+              </li>
             </ul>
           </div>
 
