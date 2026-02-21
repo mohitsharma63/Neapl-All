@@ -1225,8 +1225,37 @@ export function registerRoutes(app: Express) {
     }
   });
 
+  app.post('/api/upload', uploadMedia.single('file'), (req, res) => {
+    try {
+      return handleMediaUpload(req as any, res as any);
+    } catch (err: any) {
+      res.status(500).json({ message: err?.message || 'Upload failed' });
+    }
+  });
+
   // Multiple media upload endpoint for admin (e.g., listing image galleries)
   app.post('/api/admin/upload-multiple', uploadMedia.array('files', 10), (req, res) => {
+    try {
+      const files = (req as any).files as Express.Multer.File[] | undefined;
+      if (!files || files.length === 0) {
+        return res.status(400).json({ message: 'No files uploaded' });
+      }
+
+      const mapped = files.map((file) => ({
+        url: `/uploads/media/${file.filename}`,
+        filename: file.filename,
+        originalName: file.originalname,
+        size: file.size,
+      }));
+
+      return res.json({ success: true, files: mapped });
+    } catch (err: any) {
+      console.error('Multi media upload error:', err);
+      return res.status(500).json({ message: err?.message || 'Upload failed' });
+    }
+  });
+
+  app.post('/api/upload-multiple', uploadMedia.array('files', 10), (req, res) => {
     try {
       const files = (req as any).files as Express.Multer.File[] | undefined;
       if (!files || files.length === 0) {

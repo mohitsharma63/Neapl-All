@@ -12,6 +12,32 @@ import { Building, User, Briefcase, Eye, EyeOff, CheckCircle2, Upload, X } from 
 import { useToast } from "@/hooks/use-toast";
 import { useLocation } from "wouter";
 
+async function uploadSingleFile(file: File): Promise<string> {
+  const fd = new FormData();
+  fd.append('file', file);
+  const res = await fetch('/api/upload', { method: 'POST', body: fd });
+  if (!res.ok) {
+    const msg = await res.json().catch(() => ({}));
+    throw new Error(msg?.message || `Upload failed (${res.status})`);
+  }
+  const data = await res.json();
+  if (!data?.url || typeof data.url !== 'string') {
+    throw new Error('Upload failed: missing url');
+  }
+  return data.url;
+}
+
+function normalizeTags(input: unknown): string[] {
+  if (Array.isArray(input)) return input.map(String).map((s) => s.trim()).filter(Boolean);
+  if (typeof input === 'string') {
+    return input
+      .split(',')
+      .map((s) => s.trim())
+      .filter(Boolean);
+  }
+  return [];
+}
+
 const step1Schema = z.object({
   firstName: z.string().min(1, "First name is required"),
   lastName: z.string().min(1, "Last name is required"),
@@ -111,6 +137,9 @@ export default function MultiStepSignup() {
   const [categorySearch, setCategorySearch] = useState("");
   const [subcategorySearch, setSubcategorySearch] = useState("");
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const [uploadingFieldKey, setUploadingFieldKey] = useState<string | null>(null);
+  const [tagDrafts, setTagDrafts] = useState<Record<string, string>>({});
+
   const [proProfileTypes, setProProfileTypes] = useState<ProProfileType[]>([]);
   const [proProfileFields, setProProfileFields] = useState<ProProfileField[]>([]);
   const [selectedProProfileTypeId, setSelectedProProfileTypeId] = useState<string>("");
@@ -833,33 +862,128 @@ export default function MultiStepSignup() {
                           }
 
                           if (f.fieldType === 'tags') {
+                            const tags = normalizeTags(value);
+                            const draft = tagDrafts[f.key] ?? '';
                             return (
                               <div key={f.id} className="space-y-2">
                                 <Label className="text-sm font-semibold">{f.label}{required ? ' *' : ''}</Label>
                                 <Input
-                                  value={Array.isArray(value) ? value.join(', ') : (typeof value === 'string' ? value : '')}
+                                  value={draft}
                                   onChange={(e) => {
-                                    const raw = e.target.value;
-                                    const arr = raw.split(',').map((x) => x.trim()).filter(Boolean);
-                                    setProProfileValuesState((p) => ({ ...p, [f.key]: arr }));
+                                    const nextDraft = e.target.value;
+                                    setTagDrafts((p) => ({ ...p, [f.key]: nextDraft }));
                                   }}
-                                  placeholder={f.placeholder || 'Comma separated'}
+                                  onKeyDown={(e) => {
+                                    const target = e.target as HTMLInputElement;
+                                    const raw = target.value;
+                                    if (e.key === 'Enter' || e.key === ',') {
+                                      e.preventDefault();
+                                      const toAdd = raw
+                                        .split(',')
+                                        .map((s) => s.trim())
+                                        .filter(Boolean);
+                                      if (toAdd.length === 0) return;
+                                      const next = Array.from(new Set([...tags, ...toAdd]));
+                                      setProProfileValuesState((p) => ({ ...p, [f.key]: next }));
+                                      setTagDrafts((p) => ({ ...p, [f.key]: '' }));
+                                    }
+                                  }}
+                                  onBlur={(e) => {
+                                    const raw = e.target.value;
+                                    const toAdd = raw
+                                      .split(',')
+                                      .map((s) => s.trim())
+                                      .filter(Boolean);
+                                    if (toAdd.length === 0) return;
+                                    const next = Array.from(new Set([...tags, ...toAdd]));
+                                    setProProfileValuesState((p) => ({ ...p, [f.key]: next }));
+                                    setTagDrafts((p) => ({ ...p, [f.key]: '' }));
+                                  }}
+                                  placeholder={f.placeholder || 'Type a skill and press Enter'}
                                   className="h-11 border-2"
                                 />
+
+                                {tags.length > 0 ? (
+                                  <div className="flex flex-wrap gap-2 pt-1">
+                                    {tags.map((t) => (
+                                      <span key={`${f.key}-${t}`} className="inline-flex items-center gap-2 text-xs px-2 py-1 rounded-full bg-gray-100 text-gray-800">
+                                        {t}
+                                        <button
+                                          type="button"
+                                          className="text-gray-500 hover:text-gray-700"
+                                          onClick={() => {
+                                            const next = tags.filter((x) => x !== t);
+                                            setProProfileValuesState((p) => ({ ...p, [f.key]: next }));
+                                          }}
+                                          aria-label="remove"
+                                        >
+                                          <X className="w-3 h-3" />
+                                        </button>
+                                      </span>
+                                    ))}
+                                  </div>
+                                ) : null}
                               </div>
                             );
                           }
 
                           if (f.fieldType === 'image' || f.fieldType === 'images') {
+                            const isUploading = uploadingFieldKey === f.key;
+                            const urlValue = typeof value === 'string' ? value : '';
                             return (
                               <div key={f.id} className="space-y-2">
                                 <Label className="text-sm font-semibold">{f.label}{required ? ' *' : ''}</Label>
-                                <Input
-                                  value={typeof value === 'string' ? value : ''}
-                                  onChange={(e) => setProProfileValuesState((p) => ({ ...p, [f.key]: e.target.value }))}
-                                  placeholder={f.placeholder || 'Paste image URL'}
-                                  className="h-11 border-2"
-                                />
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                  <div className="space-y-2">
+                                    <Input
+                                      value={urlValue}
+                                      onChange={(e) => setProProfileValuesState((p) => ({ ...p, [f.key]: e.target.value }))}
+                                      placeholder={f.placeholder || 'Paste image URL'}
+                                      className="h-11 border-2"
+                                      disabled={isUploading}
+                                    />
+                                    <div>
+                                      <input
+                                        type="file"
+                                        accept="image/*"
+                                        className="hidden"
+                                        id={`pro-profile-upload-${f.key}`}
+                                        onChange={async (e) => {
+                                          const file = e.target.files?.[0];
+                                          if (!file) return;
+                                          try {
+                                            setUploadingFieldKey(f.key);
+                                            const url = await uploadSingleFile(file);
+                                            setProProfileValuesState((p) => ({ ...p, [f.key]: url }));
+                                          } catch (err: any) {
+                                            toast({
+                                              title: 'Upload failed',
+                                              description: err?.message || 'Failed to upload image',
+                                              variant: 'destructive',
+                                            });
+                                          } finally {
+                                            setUploadingFieldKey(null);
+                                            e.target.value = '';
+                                          }
+                                        }}
+                                      />
+                                      <label
+                                        htmlFor={`pro-profile-upload-${f.key}`}
+                                        className={`inline-flex items-center gap-2 text-sm px-3 py-2 rounded-md border border-gray-200 hover:border-gray-300 cursor-pointer ${isUploading ? 'opacity-60 pointer-events-none' : ''}`}
+                                      >
+                                        <Upload className="w-4 h-4" />
+                                        {isUploading ? 'Uploading…' : 'Upload image'}
+                                      </label>
+                                    </div>
+                                  </div>
+                                  <div className="border rounded-md p-2 bg-gray-50 min-h-[96px] flex items-center justify-center overflow-hidden">
+                                    {urlValue ? (
+                                      <img src={urlValue} alt="preview" className="max-h-24 w-auto object-contain" />
+                                    ) : (
+                                      <span className="text-xs text-muted-foreground">Preview</span>
+                                    )}
+                                  </div>
+                                </div>
                               </div>
                             );
                           }
