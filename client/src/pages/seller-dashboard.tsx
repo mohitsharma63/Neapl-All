@@ -30,6 +30,9 @@ import {
   Coffee,
   Mail,
   Phone,
+  Instagram,
+  Facebook,
+  Video,
   Search,
   ChevronDown,
   Pencil,
@@ -2846,6 +2849,9 @@ interface User {
   firstName?: string;
   lastName?: string;
   phone?: string;
+  instagramUrl?: string | null;
+  facebookUrl?: string | null;
+  tiktokUrl?: string | null;
   role: string;
   isActive: boolean;
   avatar?: string;
@@ -2989,10 +2995,20 @@ function AppSidebar({ activeSection, setActiveSection }: { activeSection: string
             </button>
           </li>
 
+          <li>
+            <button
+              className={`w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-colors ${activeSection === "platform" ? "bg-gradient-to-r from-blue-600 to-green-600 text-white" : "hover:bg-gray-50 dark:hover:bg-gray-900 text-gray-700 dark:text-gray-200"}`}
+              onClick={() => setActiveSection("platform")}
+              aria-current={activeSection === 'platform' ? 'page' : undefined}
+            >
+              <Users className="w-4 h-4" />
+              <span className="flex-1 text-left">Platform</span>
+            </button>
+          </li>
+
           {filteredCategoryPreferences.length === 0 && (
             <li className="px-3 py-2 text-sm text-muted-foreground">No categories found.</li>
           )}
-
           {filteredCategoryPreferences.map((pref: any) => {
             const category = categories.find(c => c.id === pref.categorySlug || c.slug === pref.categorySlug);
             const categoryName = pref.categoryName || category?.name || (pref.categorySlug || '').toString().replace(/_/g, ' ');
@@ -4194,6 +4210,167 @@ function AnalyticsSection() {
                 Analytics will appear once you have some activity on your listings.
               </div>
             )}
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  );
+}
+
+function PlatformSection() {
+  const { user } = useUser();
+  const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [instagramUrl, setInstagramUrl] = useState('');
+  const [facebookUrl, setFacebookUrl] = useState('');
+  const [tiktokUrl, setTiktokUrl] = useState('');
+
+  useEffect(() => {
+    const fetchProfile = async () => {
+      if (!user?.id) return;
+      try {
+        setLoading(true);
+        setError(null);
+        const res = await fetch('/api/seller/profile');
+        if (!res.ok) {
+          throw new Error(`Failed to load profile (${res.status})`);
+        }
+        const data = await res.json();
+        setInstagramUrl(typeof data?.instagramUrl === 'string' ? data.instagramUrl : '');
+        setFacebookUrl(typeof data?.facebookUrl === 'string' ? data.facebookUrl : '');
+        setTiktokUrl(typeof data?.tiktokUrl === 'string' ? data.tiktokUrl : '');
+      } catch (err: any) {
+        console.error('Error loading seller profile', err);
+        setError(err?.message || 'Failed to load profile');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProfile();
+  }, [user?.id]);
+
+  const handleSave = async () => {
+    try {
+      setSaving(true);
+      setError(null);
+      const res = await fetch('/api/seller/profile/social-links', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ instagramUrl, facebookUrl, tiktokUrl }),
+      });
+      if (!res.ok) {
+        const msg = await res.json().catch(() => ({}));
+        throw new Error(msg?.message || `Failed to save (${res.status})`);
+      }
+      const updated = await res.json();
+      setInstagramUrl(typeof updated?.instagramUrl === 'string' ? updated.instagramUrl : '');
+      setFacebookUrl(typeof updated?.facebookUrl === 'string' ? updated.facebookUrl : '');
+      setTiktokUrl(typeof updated?.tiktokUrl === 'string' ? updated.tiktokUrl : '');
+    } catch (err: any) {
+      console.error('Error saving social links', err);
+      setError(err?.message || 'Failed to save');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const links = [
+    { label: 'Instagram', value: instagramUrl, icon: Instagram },
+    { label: 'Facebook', value: facebookUrl, icon: Facebook },
+    { label: 'TikTok', value: tiktokUrl, icon: Video },
+  ];
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h2 className="text-2xl font-bold">Platform</h2>
+        <p className="text-muted-foreground">Add your social platform URLs</p>
+      </div>
+
+      {error && (
+        <Card className="border-destructive/40 bg-destructive/5">
+          <CardContent className="py-3 text-sm text-destructive">{error}</CardContent>
+        </Card>
+      )}
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <Card>
+          <CardHeader>
+            <CardTitle>Social Links</CardTitle>
+            <CardDescription>These links will be shown in your seller profile UI</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="instagramUrl">Instagram URL</Label>
+              <Input
+                id="instagramUrl"
+                value={instagramUrl}
+                onChange={(e) => setInstagramUrl(e.target.value)}
+                placeholder="https://instagram.com/yourpage"
+                disabled={loading || saving}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="facebookUrl">Facebook URL</Label>
+              <Input
+                id="facebookUrl"
+                value={facebookUrl}
+                onChange={(e) => setFacebookUrl(e.target.value)}
+                placeholder="https://facebook.com/yourpage"
+                disabled={loading || saving}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="tiktokUrl">TikTok URL</Label>
+              <Input
+                id="tiktokUrl"
+                value={tiktokUrl}
+                onChange={(e) => setTiktokUrl(e.target.value)}
+                placeholder="https://tiktok.com/@yourpage"
+                disabled={loading || saving}
+              />
+            </div>
+          </CardContent>
+          <CardFooter className="flex justify-end">
+            <Button onClick={handleSave} disabled={loading || saving}>
+              {saving ? 'Saving…' : 'Save'}
+            </Button>
+          </CardFooter>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Preview</CardTitle>
+            <CardDescription>What buyers will see</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {links.map((l) => {
+              const Icon = l.icon;
+              const href = (l.value || '').trim();
+              return (
+                <div key={l.label} className="flex items-center justify-between gap-4 border rounded-md p-3">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <Icon className="w-4 h-4 text-muted-foreground" />
+                    <div className="font-medium">{l.label}</div>
+                  </div>
+                  {href ? (
+                    <a
+                      className="text-sm text-primary hover:underline truncate max-w-[60%]"
+                      href={href}
+                      target="_blank"
+                      rel="noreferrer"
+                      title={href}
+                    >
+                      {href}
+                    </a>
+                  ) : (
+                    <span className="text-sm text-muted-foreground">Not set</span>
+                  )}
+                </div>
+              );
+            })}
           </CardContent>
         </Card>
       </div>
@@ -5880,6 +6057,8 @@ export default function SellerDashboard() {
         return <AnalyticsSection />;
       case "analytics":
         return <AnalyticsSection />;
+      case "platform":
+        return <PlatformSection />;
       case "settings":
         return <SettingsSection />;
       case "hostels-&-pg":

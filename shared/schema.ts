@@ -13,6 +13,9 @@ export const users = pgTable("users", {
   firstName: text("first_name"),
   lastName: text("last_name"),
   phone: text("phone"),
+  instagramUrl: text("instagram_url"),
+  facebookUrl: text("facebook_url"),
+  tiktokUrl: text("tiktok_url"),
   role: text("role").default("user"), // "admin", "agent", "user"
   accountType: text("account_type"), // "pro", "buyer", "seller"
   selectedServices: jsonb("selected_services").$type<string[]>().default([]),

@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import { Mail, Phone } from "lucide-react";
+import { Mail, Phone, Instagram, Facebook, Video } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
 type Props = {
@@ -43,6 +43,9 @@ export default function ListingDetail({ listing, titleField = "title", subtitleF
 
   const contactPhone = ownerUser?.phone || listing.contactPhone;
   const contactEmail = ownerUser?.email || listing.contactEmail;
+  const instagramUrl = ownerUser?.instagramUrl;
+  const facebookUrl = ownerUser?.facebookUrl;
+  const tiktokUrl = ownerUser?.tiktokUrl;
 
   const whatsappNumber = typeof contactPhone === "string" ? contactPhone.replace(/[^\d]/g, "") : "";
   const whatsappHref = whatsappNumber ? `https://wa.me/${whatsappNumber}` : "";
@@ -295,6 +298,41 @@ export default function ListingDetail({ listing, titleField = "title", subtitleF
               ) : null}
               {contactEmail ? (
                 <a href={`mailto:${contactEmail}`} className="block mt-2 w-full text-center text-sm bg-gray-800 hover:bg-gray-900 text-white px-3 py-2 rounded-md"><Mail className="inline-block mr-2 w-4 h-4"/>Email</a>
+              ) : null}
+
+              {instagramUrl || facebookUrl || tiktokUrl ? (
+                <div className="mt-3 grid grid-cols-1 gap-2">
+                  {instagramUrl ? (
+                    <a
+                      href={instagramUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="w-full text-center text-sm border border-gray-200 hover:border-gray-300 bg-white text-gray-800 px-3 py-2 rounded-md"
+                    >
+                      <Instagram className="inline-block mr-2 w-4 h-4" />Instagram
+                    </a>
+                  ) : null}
+                  {facebookUrl ? (
+                    <a
+                      href={facebookUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="w-full text-center text-sm border border-gray-200 hover:border-gray-300 bg-white text-gray-800 px-3 py-2 rounded-md"
+                    >
+                      <Facebook className="inline-block mr-2 w-4 h-4" />Facebook
+                    </a>
+                  ) : null}
+                  {tiktokUrl ? (
+                    <a
+                      href={tiktokUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="w-full text-center text-sm border border-gray-200 hover:border-gray-300 bg-white text-gray-800 px-3 py-2 rounded-md"
+                    >
+                      <Video className="inline-block mr-2 w-4 h-4" />TikTok
+                    </a>
+                  ) : null}
+                </div>
               ) : null}
             </div>
 

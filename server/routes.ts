@@ -1295,6 +1295,22 @@ export function registerRoutes(app: Express) {
 
       const sellerId = sessionUser.id as string;
 
+      const seller = await db.query.users.findFirst({
+        where: eq(users.id, sellerId),
+        columns: {
+          id: true,
+          username: true,
+          email: true,
+          firstName: true,
+          lastName: true,
+          phone: true,
+          accountType: true,
+          instagramUrl: true,
+          facebookUrl: true,
+          tiktokUrl: true,
+        },
+      });
+
       const [
         rental,
         hostel,
@@ -1620,7 +1636,80 @@ export function registerRoutes(app: Express) {
         allListings: allListingsUi,
       });
     } catch (error: any) {
+      console.error("Error fetching seller dashboard data:", error);
       res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.get("/api/seller/profile", async (req, res) => {
+    try {
+      const sessionUser = (req as any).session?.user;
+      if (!sessionUser?.id) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      if (sessionUser.accountType !== "seller") {
+        return res.status(403).json({ message: "Forbidden: seller access required" });
+      }
+
+      const sellerId = sessionUser.id as string;
+      const seller = await db.query.users.findFirst({
+        where: eq(users.id, sellerId),
+        columns: {
+          id: true,
+          username: true,
+          email: true,
+          firstName: true,
+          lastName: true,
+          phone: true,
+          accountType: true,
+          instagramUrl: true,
+          facebookUrl: true,
+          tiktokUrl: true,
+        },
+      });
+
+      if (!seller) {
+        return res.status(404).json({ message: "Seller not found" });
+      }
+
+      res.json(seller);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.put("/api/seller/profile/social-links", async (req, res) => {
+    try {
+      const sessionUser = (req as any).session?.user;
+      if (!sessionUser?.id) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      if (sessionUser.accountType !== "seller") {
+        return res.status(403).json({ message: "Forbidden: seller access required" });
+      }
+
+      const sellerId = sessionUser.id as string;
+      const { instagramUrl, facebookUrl, tiktokUrl } = req.body || {};
+
+      const [updatedUser] = await db
+        .update(users)
+        .set({
+          instagramUrl: typeof instagramUrl === "string" ? instagramUrl : null,
+          facebookUrl: typeof facebookUrl === "string" ? facebookUrl : null,
+          tiktokUrl: typeof tiktokUrl === "string" ? tiktokUrl : null,
+          updatedAt: new Date(),
+        })
+        .where(eq(users.id, sellerId))
+        .returning();
+
+      if (!updatedUser) {
+        return res.status(404).json({ message: "Seller not found" });
+      }
+
+      const { password: _pw, ...userWithoutPassword } = updatedUser as any;
+      res.json(userWithoutPassword);
+    } catch (error: any) {
+      res.status(400).json({ message: error.message });
     }
   });
 
