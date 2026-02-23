@@ -22,6 +22,7 @@ export default function ServiceCentreWarrantyForm() {
   const [userId, setUserId] = useState<string | null>(null);
   const [userRole, setUserRole] = useState<string | null>(null);
   const [images, setImages] = useState<string[]>([]);
+  const [uploadingImages, setUploadingImages] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [dragActive, setDragActive] = useState(false);
   const [imageError, setImageError] = useState<string | null>(null);
@@ -209,30 +210,46 @@ export default function ServiceCentreWarrantyForm() {
     setIsDialogOpen(true);
   };
 
-  const processFiles = (files: FileList | null) => {
+  const uploadMultipleImages = async (files: File[]) => {
+    if (files.length === 0) return [] as string[];
+    const fd = new FormData();
+    files.forEach((f) => fd.append('files', f));
+    const res = await fetch('/api/admin/upload-multiple', {
+      method: 'POST',
+      body: fd,
+    });
+    if (!res.ok) throw new Error('Upload failed');
+    const data = await res.json();
+    const urls = Array.isArray(data?.files) ? data.files.map((f: any) => f?.url).filter(Boolean) : [];
+    return urls as string[];
+  };
+
+  const processFiles = async (files: FileList | null) => {
     if (!files || files.length === 0) return;
     const allowed = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
     const maxSize = 5 * 1024 * 1024;
-    const incoming: Promise<string>[] = [];
+    const accepted: File[] = [];
     for (let i = 0; i < files.length; i++) {
       const f = files[i];
       if (!allowed.includes(f.type)) { setImageError('Only JPG, PNG, WEBP and GIF allowed'); continue; }
       if (f.size > maxSize) { setImageError('Each image must be <= 5MB'); continue; }
-      incoming.push(new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(String(reader.result));
-        reader.onerror = () => reject(new Error('Failed to read file'));
-        reader.readAsDataURL(f);
-      }));
+      accepted.push(f);
     }
-    if (incoming.length === 0) return;
-    Promise.all(incoming).then((dataUrls) => {
-      setImages(prev => [...prev, ...dataUrls].slice(0, 10));
+    if (accepted.length === 0) return;
+    setUploadingImages(true);
+    try {
+      const uploadedUrls = await uploadMultipleImages(accepted);
+      setImages((prev) => [...prev, ...uploadedUrls].slice(0, 10));
       setImageError(null);
-    }).catch(e => { console.error(e); setImageError('Failed to process images'); });
+    } catch (e) {
+      console.error(e);
+      setImageError('Failed to upload images');
+    } finally {
+      setUploadingImages(false);
+    }
   };
 
-  const handleDrop = (e: React.DragEvent) => { e.preventDefault(); e.stopPropagation(); setDragActive(false); processFiles(e.dataTransfer.files); };
+  const handleDrop = (e: React.DragEvent) => { e.preventDefault(); e.stopPropagation(); setDragActive(false); void processFiles(e.dataTransfer.files); };
   const handleDragOver = (e: React.DragEvent) => { e.preventDefault(); e.stopPropagation(); setDragActive(true); };
   const handleDragLeave = (e: React.DragEvent) => { e.preventDefault(); e.stopPropagation(); setDragActive(false); };
   const openFileDialog = () => fileInputRef.current?.click();

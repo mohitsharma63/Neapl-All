@@ -439,30 +439,27 @@ export function SecondHandCarsBikesForm() {
     if (!files || files.length === 0) return;
 
     setUploadingImages(true);
-    const newImages: string[] = [];
-
     try {
-      for (let i = 0; i < files.length; i++) {
-        const file = files[i];
-        const reader = new FileReader();
-
-        const result = await new Promise<string>((resolve, reject) => {
-          reader.onloadend = () => resolve(reader.result as string);
-          reader.onerror = reject;
-          reader.readAsDataURL(file);
-        });
-
-        newImages.push(result);
-      }
+      const fd = new FormData();
+      Array.from(files).forEach((f) => fd.append('files', f));
+      const res = await fetch('/api/admin/upload-multiple', {
+        method: 'POST',
+        body: fd,
+      });
+      if (!res.ok) throw new Error('Upload failed');
+      const data = await res.json();
+      const uploadedUrls = Array.isArray(data?.files)
+        ? data.files.map((f: any) => f?.url).filter(Boolean)
+        : [];
 
       setFormData(prev => ({
         ...prev,
-        images: [...prev.images, ...newImages]
+        images: [...prev.images, ...uploadedUrls]
       }));
 
       toast({
         title: "Success",
-        description: `${newImages.length} image(s) uploaded successfully`,
+        description: `${uploadedUrls.length} image(s) uploaded successfully`,
       });
     } catch (error) {
       toast({
@@ -472,6 +469,7 @@ export function SecondHandCarsBikesForm() {
       });
     } finally {
       setUploadingImages(false);
+      e.target.value = "";
     }
   };
 

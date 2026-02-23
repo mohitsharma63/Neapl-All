@@ -384,43 +384,39 @@ export function TransportationMovingServicesForm() {
     setViewDialogOpen(true);
   };
 
+  const uploadMultipleImages = async (fileList: FileList) => {
+    const files = Array.from(fileList);
+    if (files.length === 0) return [] as string[];
+    const fd = new FormData();
+    files.forEach((f) => fd.append('files', f));
+    const res = await fetch('/api/admin/upload-multiple', {
+      method: 'POST',
+      body: fd,
+    });
+    if (!res.ok) throw new Error('Upload failed');
+    const data = await res.json();
+    const urls = Array.isArray(data?.files) ? data.files.map((f: any) => f?.url).filter(Boolean) : [];
+    return urls as string[];
+  };
+
   const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
     if (!files || files.length === 0) return;
 
     setUploadingImages(true);
-    const imageUrls: string[] = [];
-
-    for (const file of files) {
-      try {
-        // Create a local URL for the image (for development/preview)
-        const reader = new FileReader();
-        reader.onloadend = () => {
-          const base64String = reader.result as string;
-          setFormData((prevFormData) => ({
-            ...prevFormData,
-            images: [...(prevFormData.images || []), base64String],
-          }));
-        };
-        reader.readAsDataURL(file);
-
-        // Note: For production, integrate with Cloudinary or another image hosting service
-        // const formData = new FormData();
-        // formData.append("file", file);
-        // formData.append("upload_preset", "your_upload_preset");
-        // const response = await fetch(`https://api.cloudinary.com/v1_1/your_cloud_name/image/upload`, {
-        //   method: "POST",
-        //   body: formData,
-        // });
-        // const data = await response.json();
-        // imageUrls.push(data.secure_url);
-      } catch (error) {
-        console.error("Image upload failed:", error);
-        toast({ title: "Error", description: `Failed to upload ${file.name}`, variant: "destructive" });
-      }
+    try {
+      const uploadedUrls = await uploadMultipleImages(files);
+      setFormData((prevFormData) => ({
+        ...prevFormData,
+        images: [...(prevFormData.images || []), ...uploadedUrls],
+      }));
+    } catch (error: any) {
+      console.error("Image upload failed:", error);
+      toast({ title: "Error", description: error?.message || 'Failed to upload images', variant: "destructive" });
+    } finally {
+      setUploadingImages(false);
+      event.target.value = '';
     }
-
-    setUploadingImages(false);
   };
 
   const removeImage = (index: number) => {

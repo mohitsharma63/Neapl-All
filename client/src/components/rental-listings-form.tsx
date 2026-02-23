@@ -39,27 +39,32 @@ export function RentalListingsForm({ open, onOpenChange, rental, onSuccess }: Re
   const [loading, setLoading] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
 
+  const uploadMultipleImages = async (fileList: FileList) => {
+    const files = Array.from(fileList);
+    if (files.length === 0) return [] as string[];
+    const fd = new FormData();
+    files.forEach((f) => fd.append('files', f));
+    const res = await fetch('/api/admin/upload-multiple', {
+      method: 'POST',
+      body: fd,
+    });
+    if (!res.ok) throw new Error('Upload failed');
+    const data = await res.json();
+    const urls = Array.isArray(data?.files) ? data.files.map((f: any) => f?.url).filter(Boolean) : [];
+    return urls as string[];
+  };
+
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
 
     setUploadingImage(true);
     try {
-      const uploadedUrls: string[] = [];
-
-      for (const file of Array.from(files)) {
-        const reader = new FileReader();
-        const base64 = await new Promise<string>((resolve) => {
-          reader.onloadend = () => resolve(reader.result as string);
-          reader.readAsDataURL(file);
-        });
-        uploadedUrls.push(base64);
-      }
-
-      setFormData({
-        ...formData,
-        images: [...formData.images, ...uploadedUrls],
-      });
+      const uploadedUrls = await uploadMultipleImages(files);
+      setFormData((prev) => ({
+        ...prev,
+        images: [...(prev.images || []), ...uploadedUrls],
+      }));
     } catch (error) {
       console.error("Error uploading images:", error);
     } finally {

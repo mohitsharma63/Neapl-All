@@ -90,31 +90,37 @@ export function CommercialPropertiesForm({ open, onOpenChange, property, onSucce
     }
   }, [property]);
 
+  const uploadMultipleImages = async (fileList: FileList) => {
+    const files = Array.from(fileList);
+    if (files.length === 0) return [] as string[];
+    const fd = new FormData();
+    files.forEach((f) => fd.append('files', f));
+    const res = await fetch('/api/admin/upload-multiple', {
+      method: 'POST',
+      body: fd,
+    });
+    if (!res.ok) throw new Error('Upload failed');
+    const data = await res.json();
+    const urls = Array.isArray(data?.files) ? data.files.map((f: any) => f?.url).filter(Boolean) : [];
+    return urls as string[];
+  };
+
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
 
     setUploadingImage(true);
     try {
-      const uploadedUrls: string[] = [];
-
-      for (const file of Array.from(files)) {
-        const reader = new FileReader();
-        const base64 = await new Promise<string>((resolve) => {
-          reader.onloadend = () => resolve(reader.result as string);
-          reader.readAsDataURL(file);
-        });
-        uploadedUrls.push(base64);
-      }
-
-      setFormData({
-        ...formData,
-        images: [...formData.images, ...uploadedUrls],
-      });
+      const uploadedUrls = await uploadMultipleImages(files);
+      setFormData((prev) => ({
+        ...prev,
+        images: [...(prev.images || []), ...uploadedUrls],
+      }));
     } catch (error) {
       console.error("Error uploading images:", error);
     } finally {
       setUploadingImage(false);
+
       e.target.value = "";
     }
   };
@@ -122,7 +128,7 @@ export function CommercialPropertiesForm({ open, onOpenChange, property, onSucce
   const removeImage = (index: number) => {
     setFormData({
       ...formData,
-      images: formData.images.filter((_, i) => i !== index),
+      images: formData.images.filter((image: string, i: number) => i !== index),
     });
   };
 
@@ -366,7 +372,7 @@ export function CommercialPropertiesForm({ open, onOpenChange, property, onSucce
                 </div>
                 {formData.images.length > 0 && (
                   <div className="grid grid-cols-3 gap-3">
-                    {formData.images.map((image, index) => (
+                    {formData.images.map((image: string, index: number) => (
                       <div key={index} className="relative group">
                         <img
                           src={image}

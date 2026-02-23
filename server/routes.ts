@@ -136,6 +136,40 @@ export function registerRoutes(app: Express) {
     next();
   });
 
+  app.use((req, res, next) => {
+    try {
+      const method = String(req.method || '').toUpperCase();
+      if (method !== 'POST' && method !== 'PUT' && method !== 'PATCH') return next();
+      if (!req.originalUrl || !req.originalUrl.includes('/api/')) return next();
+      if (!req.body || typeof req.body !== 'object') return next();
+
+      const isDataMediaUrl = (s: string) => /^data:(image|video)\//i.test(s.trim());
+
+      const scan = (v: any, depth: number): boolean => {
+        if (depth > 8) return false;
+        if (v == null) return false;
+        if (typeof v === 'string') return isDataMediaUrl(v);
+        if (Array.isArray(v)) return v.some((x) => scan(x, depth + 1));
+        if (typeof v === 'object') {
+          for (const val of Object.values(v)) {
+            if (scan(val, depth + 1)) return true;
+          }
+        }
+        return false;
+      };
+
+      if (scan(req.body, 0)) {
+        return res.status(400).json({
+          message:
+            'Base64 (data:) media is not allowed in request body. Upload the file to /api/upload (or /api/upload-multiple) and store only the returned /uploads/... URL in the database.',
+        });
+      }
+    } catch (e) {
+      console.error('Data URL guard error:', e);
+    }
+    next();
+  });
+
   // Pro-Profile: list types
   app.get('/api/pro-profile/types', async (_req, res) => {
     try {

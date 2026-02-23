@@ -274,28 +274,26 @@ export default function VehicleLicenseClassesForm() {
     if (!files || files.length === 0) return;
 
     setUploadingImages(true);
-    const newImages: string[] = [];
-
     try {
-      for (let i = 0; i < files.length; i++) {
-        const file = files[i];
-        const reader = new FileReader();
+      const fd = new FormData();
+      Array.from(files).forEach((f) => fd.append('files', f));
+      const res = await fetch('/api/admin/upload-multiple', {
+        method: 'POST',
+        body: fd,
+      });
+      if (!res.ok) throw new Error('Upload failed');
+      const data = await res.json();
+      const uploadedUrls = Array.isArray(data?.files)
+        ? data.files.map((f: any) => f?.url).filter(Boolean)
+        : [];
 
-        const result = await new Promise<string>((resolve, reject) => {
-          reader.onloadend = () => resolve(reader.result as string);
-          reader.onerror = reject;
-          reader.readAsDataURL(file);
-        });
-
-        newImages.push(result);
-      }
-
-      setImages([...images, ...newImages]);
-      setValue("images", [...images, ...newImages]);
+      const nextImages = [...images, ...uploadedUrls];
+      setImages(nextImages);
+      setValue("images", nextImages);
 
       toast({
         title: "Success",
-        description: `${newImages.length} image(s) uploaded successfully`,
+        description: `${uploadedUrls.length} image(s) uploaded successfully`,
       });
     } catch (error) {
       toast({
@@ -305,6 +303,7 @@ export default function VehicleLicenseClassesForm() {
       });
     } finally {
       setUploadingImages(false);
+      e.target.value = "";
     }
   };
 
@@ -329,7 +328,7 @@ export default function VehicleLicenseClassesForm() {
   const handleEdit = (licenseClass: any) => {
     setEditingClass(licenseClass);
     Object.entries(licenseClass).forEach(([key, value]) => {
-      setValue(key as keyof VehicleLicenseClassFormData, value);
+      setValue(key as keyof VehicleLicenseClassFormData, value as any);
     });
     setCourseIncludes(licenseClass.courseIncludes || []);
     setSyllabusCovered(licenseClass.syllabusCovered || []);
@@ -349,7 +348,7 @@ export default function VehicleLicenseClassesForm() {
     // Convert empty string dates to null
     const sanitizedData = {
       ...data,
-      nextBatchStartDate: data.nextBatchStartDate || null,
+      nextBatchStartDate: data.nextBatchStartDate || undefined,
     };
 
     // Ensure userId and role are properly set from localStorage or user context

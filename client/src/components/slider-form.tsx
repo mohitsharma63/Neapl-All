@@ -63,15 +63,19 @@ export function SliderForm({ slider, onSuccess, onCancel }: SliderFormProps) {
 
     setUploading(true);
     try {
-      const readFile = (file: File) =>
-        new Promise<string>((resolve, reject) => {
-          const reader = new FileReader();
-          reader.onloadend = () => resolve(reader.result as string);
-          reader.onerror = reject;
-          reader.readAsDataURL(file);
+      const uploadFile = async (file: File) => {
+        const fd = new FormData();
+        fd.append('file', file);
+        const res = await fetch('/api/admin/upload', {
+          method: 'POST',
+          body: fd,
         });
+        if (!res.ok) throw new Error('Upload failed');
+        const data = await res.json();
+        return data.url as string;
+      };
 
-      const results = await Promise.all(files.map(readFile));
+      const results = await Promise.all(files.map(uploadFile));
       const newImages = [...images, ...results];
       setImages(newImages);
       // Keep compatibility with existing API which expects `imageUrl`.
