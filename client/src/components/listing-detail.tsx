@@ -54,36 +54,6 @@ export default function ListingDetail({ listing, titleField = "title", subtitleF
   const numericPrice = hasPrice ? Number(listing.price) : NaN;
   const formattedPrice = !isNaN(numericPrice) ? `₹${numericPrice.toLocaleString()}` : hasPrice ? `₹${String(listing.price)}` : "";
 
-  // Default fields to display when no showFields provided.
-  const defaultFields = [
-    "listingType",
-    "subjectCategory",
-    "teachingMode",
-    "classType",
-    "tutorQualification",
-    "tutorExperienceYears",
-    "gradeLevel",
-    "minGrade",
-    "maxGrade",
-    "board",
-    "batchSize",
-    "feePerMonth",
-    "feePerHour",
-    "feePerSubject",
-    "country",
-    "stateProvince",
-    "city",
-    "areaName",
-    "fullAddress",
-    "isActive",
-    "isFeatured",
-    "viewCount",
-    "createdAt",
-    "updatedAt",
-  ];
-
-  const fields = showFields && showFields.length > 0 ? showFields : defaultFields;
-
   // Derive all keys from the listing object so we can optionally show everything
   const allKeysFromListing = useMemo(() => {
     try {
@@ -92,6 +62,56 @@ export default function ListingDetail({ listing, titleField = "title", subtitleF
       return [] as string[];
     }
   }, [listing]);
+
+  const derivedFieldsFromListing = useMemo(() => {
+    const excluded = new Set([
+      "id",
+      "images",
+      "videos",
+      "documents",
+      "attachments",
+      "description",
+      "createdAt",
+      "updatedAt",
+    ]);
+
+    const preferredOrder = [
+      titleField,
+      subtitleField,
+      "listingType",
+      "category",
+      "subcategory",
+      "productType",
+      "brand",
+      "model",
+      "price",
+      "feePerMonth",
+      "feePerHour",
+      "feePerSubject",
+      "rentalPricePerDay",
+      "rentalPricePerMonth",
+      "country",
+      "stateProvince",
+      "city",
+      "areaName",
+      "fullAddress",
+      "contactPerson",
+      "contactPhone",
+      "contactEmail",
+      "isActive",
+      "isFeatured",
+      "isVerified",
+      "viewCount",
+      "createdAt",
+      "updatedAt",
+    ].filter(Boolean);
+
+    const keys = Object.keys(listing || {}).filter((k) => k && !excluded.has(k));
+    const ordered = [...new Set([...preferredOrder, ...keys])].filter((k) => Object.prototype.hasOwnProperty.call(listing, k));
+    return ordered;
+  }, [listing, subtitleField, titleField]);
+
+  const fields = showFields && showFields.length > 0 ? showFields : derivedFieldsFromListing;
 
   const [showAllFields, setShowAllFields] = useState(false);
   const [fieldFilter, setFieldFilter] = useState("");
