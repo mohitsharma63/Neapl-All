@@ -71,8 +71,7 @@ export default function ListingDetail({ listing, titleField = "title", subtitleF
       "documents",
       "attachments",
       "description",
-      "createdAt",
-      "updatedAt",
+     
     ]);
 
     const preferredOrder = [
@@ -102,8 +101,7 @@ export default function ListingDetail({ listing, titleField = "title", subtitleF
       "isFeatured",
       "isVerified",
       "viewCount",
-      "createdAt",
-      "updatedAt",
+     
     ].filter(Boolean);
 
     const keys = Object.keys(listing || {}).filter((k) => k && !excluded.has(k));
@@ -364,8 +362,7 @@ export default function ListingDetail({ listing, titleField = "title", subtitleF
 
               <div className="mt-2 text-sm text-muted-foreground space-y-1">
                 <div>{listing.isFeatured ? <Badge className="mr-2">Featured</Badge> : null}Views: <span className="font-medium">{listing.viewCount ?? 0}</span></div>
-                <div>Created: <span className="font-medium">{listing.createdAt ? new Date(listing.createdAt).toLocaleString() : "—"}</span></div>
-                <div>Updated: <span className="font-medium">{listing.updatedAt ? new Date(listing.updatedAt).toLocaleString() : "—"}</span></div>
+             
                 <div>Location: <span className="font-medium">{[listing.areaName, listing.city, listing.stateProvince, listing.country].filter(Boolean).join(", ") || '—'}</span></div>
                 <div>Address: <span className="font-medium">{listing.fullAddress || '—'}</span></div>
               </div>

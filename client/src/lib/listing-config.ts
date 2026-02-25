@@ -35,8 +35,7 @@ export type ListingConfig = {
       "isActive",
       "isFeatured",
       "viewCount",
-      "createdAt",
-      "updatedAt",
+     
     ],
     featureKeys: [
       "demoClassAvailable",
@@ -54,7 +53,7 @@ export type ListingConfig = {
     apiBase: "/api/admin/cars-bikes",
     titleField: "title",
     subtitleField: "model",
-    defaultFields: ["listingType", "vehicleType", "brand", "model", "year", "price", "kilometersDriven", "fuelType", "transmission", "color", "city", "fullAddress", "isActive", "isFeatured", "viewCount", "createdAt"],
+    defaultFields: ["listingType", "vehicleType", "brand", "model", "year", "price", "kilometersDriven", "fuelType", "transmission", "color", "city", "fullAddress", "isActive", "isFeatured", "viewCount"],
   },
   // Second Hand Cars & Bikes
   "second-hand-cars-bikes": {
@@ -101,8 +100,7 @@ export type ListingConfig = {
       "isFeatured",
       "isVerified",
       "viewCount",
-      "createdAt",
-      "updatedAt",
+     
     ],
   },
   // Fashion & Beauty Products
@@ -227,8 +225,7 @@ export type ListingConfig = {
       "isVerified",
       "availabilityStatus",
       "viewCount",
-      "createdAt",
-      "updatedAt",
+     
     ],
   },
   // Car & Bike Rentals
@@ -236,7 +233,7 @@ export type ListingConfig = {
     apiBase: "/api/admin/car-bike-rentals",
     titleField: "title",
     subtitleField: "brand",
-    defaultFields: ["rentalType", "brand", "model", "rentalPricePerDay", "rentalPricePerHour", "minimumRentalDuration", "licenseRequired", "driverAvailable", "city", "fullAddress", "isActive", "isFeatured", "viewCount", "createdAt"],
+    defaultFields: ["rentalType", "brand", "model", "rentalPricePerDay", "rentalPricePerHour", "minimumRentalDuration", "licenseRequired", "driverAvailable", "city", "fullAddress", "isActive", "isFeatured", "viewCount"],
   },
   // Add other mapping entries as needed. Fallback: infer from type param
 };
