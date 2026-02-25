@@ -101,6 +101,11 @@ export async function initDatabase() {
     `);
 
     await db.execute(sql`
+      ALTER TABLE pro_profiles
+      ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT true
+    `);
+
+    await db.execute(sql`
       CREATE TABLE IF NOT EXISTS pro_profile_values (
         id VARCHAR PRIMARY KEY DEFAULT gen_random_uuid(),
         profile_id VARCHAR NOT NULL REFERENCES pro_profiles(id) ON DELETE CASCADE,

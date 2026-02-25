@@ -81,6 +81,7 @@ export const proProfiles = pgTable("pro_profiles", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   userId: varchar("user_id").notNull().unique().references(() => users.id, { onDelete: "cascade" }),
   profileTypeId: varchar("profile_type_id").notNull().references(() => proProfileTypes.id, { onDelete: "restrict" }),
+  isActive: boolean("is_active").default(true),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });

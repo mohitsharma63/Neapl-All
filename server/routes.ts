@@ -247,6 +247,80 @@ export function registerRoutes(app: Express) {
     }
   });
 
+  // Pro-Profile: get current user's profile (owner view)
+  app.get('/api/pro-profile/me', async (req, res) => {
+    try {
+      const sessionUser = (req as any).session?.user;
+      const userId = sessionUser?.id || (typeof (req.query as any)?.userId === 'string' ? String((req.query as any).userId) : undefined);
+      if (!userId || typeof userId !== 'string') {
+        return res.status(401).json({ message: 'Unauthorized' });
+      }
+
+      const profile = await db.query.proProfiles.findFirst({
+        where: eq(proProfiles.userId, userId),
+        with: {
+          user: true,
+          profileType: true,
+          values: {
+            with: {
+              field: true,
+            },
+          },
+        },
+      });
+
+      if (!profile) return res.json({ profile: null });
+
+      const { password: _pw, ...userWithoutPassword } = profile.user || {};
+      const valueMap: Record<string, any> = {};
+      (profile.values || []).forEach((v: any) => {
+        const k = v?.field?.key;
+        if (!k) return;
+        valueMap[String(k)] = v?.value;
+      });
+
+      res.json({
+        profile: {
+          id: profile.id,
+          userId: profile.userId,
+          profileTypeId: profile.profileTypeId,
+          isActive: profile.isActive,
+          createdAt: profile.createdAt,
+          updatedAt: profile.updatedAt,
+        },
+        user: userWithoutPassword,
+        profileType: profile.profileType,
+        values: valueMap,
+      });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Pro-Profile: toggle active (owner)
+  app.patch('/api/pro-profile/toggle-active', async (req, res) => {
+    try {
+      const sessionUser = (req as any).session?.user;
+      const userId = sessionUser?.id || req.body?.userId;
+      if (!userId || typeof userId !== 'string') {
+        return res.status(401).json({ message: 'Unauthorized' });
+      }
+
+      const profile = await db.query.proProfiles.findFirst({ where: eq(proProfiles.userId, userId) });
+      if (!profile) return res.status(404).json({ message: 'Profile not found' });
+
+      const [updated] = await db
+        .update(proProfiles)
+        .set({ isActive: !profile.isActive, updatedAt: new Date() })
+        .where(eq(proProfiles.id, profile.id))
+        .returning();
+
+      res.json(updated);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
   // Pro-Profile: directory listing (Skilled Labour)
   // Returns only users with accountType === "pro" and their selected pro profile.
   app.get('/api/pro-profiles', async (req, res) => {
@@ -273,6 +347,7 @@ export function registerRoutes(app: Express) {
 
       const filtered = profiles
         .filter((p: any) => p?.user?.accountType === 'pro')
+        .filter((p: any) => p?.isActive !== false)
         .filter((p: any) => {
           if (!typeId) return true;
           return p.profileTypeId === typeId;
@@ -355,6 +430,7 @@ export function registerRoutes(app: Express) {
 
       if (!profile) return res.status(404).json({ message: 'Profile not found' });
       if (profile.user?.accountType !== 'pro') return res.status(404).json({ message: 'Profile not found' });
+      if (profile.isActive === false) return res.status(404).json({ message: 'Profile not found' });
 
       const { password: _pw, ...userWithoutPassword } = profile.user || {};
       const valueMap: Record<string, any> = {};
