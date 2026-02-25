@@ -387,7 +387,7 @@ export default function ListingDetail({ listing, titleField = "title", subtitleF
               </div>
 
               <div className="mt-2 text-sm text-muted-foreground space-y-1">
-                <div>{listing.isFeatured ? <Badge className="mr-2">Featured</Badge> : null}Views: <span className="font-medium">{listing.viewCount ?? 0}</span></div>
+                <div>{listing.isFeatured ? <Badge className="mr-2">Featured</Badge> : null}</div>
              
                 <div>Location: <span className="font-medium">{[listing.areaName, listing.city, listing.stateProvince, listing.country].filter(Boolean).join(", ") || '—'}</span></div>
                 <div>Address: <span className="font-medium">{listing.fullAddress || '—'}</span></div>

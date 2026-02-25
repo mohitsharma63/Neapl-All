@@ -186,7 +186,7 @@ export default function TuitionPrivateClasses() {
                 </div>
 
                 <div className="mt-3 text-sm text-muted-foreground">
-                  <div className="mb-2">{singleListing.isFeatured ? <Badge className="mr-2">Featured</Badge> : null}Views: <span className="font-medium">{singleListing.viewCount ?? 0}</span></div>
+                  <div className="mb-2">{singleListing.isFeatured ? <Badge className="mr-2">Featured</Badge> : null}</div>
                   <div className="mb-1">Created: <span className="font-medium">{formatDate(singleListing.createdAt)}</span></div>
                   <div className="mb-1">Updated: <span className="font-medium">{formatDate(singleListing.updatedAt)}</span></div>
                   <div className="mb-1">Location: <span className="font-medium">{[singleListing.areaName, singleListing.city, singleListing.stateProvince, singleListing.country].filter(Boolean).join(', ') || '—'}</span></div>
