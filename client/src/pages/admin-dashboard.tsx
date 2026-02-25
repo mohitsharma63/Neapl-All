@@ -4048,14 +4048,42 @@ function ConstructionMaterialsSection() {
   const [viewingMaterial, setViewingMaterial] = useState<any>(null);
   const [showDetailsDialog, setShowDetailsDialog] = useState(false);
 
+  const getUserFromLocalStorage = () => {
+    const storedUser = localStorage.getItem("user");
+    if (storedUser) {
+      try {
+        return JSON.parse(storedUser);
+      } catch (error) {
+        console.error("Error parsing user from localStorage:", error);
+        return null;
+      }
+    }
+    return null;
+  };
+
   useEffect(() => {
     fetchMaterials();
   }, []);
 
   const fetchMaterials = async () => {
     try {
-      const response = await fetch('/api/admin/construction-materials');
+      const localUser = getUserFromLocalStorage();
+      const queryParams = new URLSearchParams();
+      if (localUser?.id) queryParams.append("userId", String(localUser.id));
+      if (localUser?.role) queryParams.append("role", String(localUser.role));
+
+      const url = queryParams.toString()
+        ? `/api/admin/construction-materials?${queryParams.toString()}`
+        : "/api/admin/construction-materials";
+
+      const response = await fetch(url);
       const data = await response.json();
+      if (!response.ok) {
+        console.error("Error fetching materials:", data);
+        setMaterials([]);
+        return;
+      }
+
       setMaterials(Array.isArray(data) ? data : []);
     } catch (error) {
       console.error('Error fetching materials:', error);

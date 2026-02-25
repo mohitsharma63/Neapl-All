@@ -3441,7 +3441,7 @@ export function registerRoutes(app: Express) {
       if (sessionUser?.role === 'admin' || sessionUser?.role === 'super_admin') {
         conditions.push(eq(constructionMaterials.role, sessionUser.role));
         const adminId = sessionUser.id as string;
-        conditions.push(or(eq(constructionMaterials.userId, adminId), eq(constructionMaterials.ownerId, adminId)));
+        conditions.push(eq(constructionMaterials.userId, adminId));
         if (queryUserId && queryUserId !== adminId) {
           return res.status(403).json({ message: "Forbidden: cannot access other users' listings" });
         }
@@ -3449,10 +3449,10 @@ export function registerRoutes(app: Express) {
         conditions.push(eq(constructionMaterials.role, 'user'));
         if (sessionUser?.id) {
           const uid = sessionUser.id as string;
-          conditions.push(or(eq(constructionMaterials.userId, uid), eq(constructionMaterials.ownerId, uid)));
+          conditions.push(eq(constructionMaterials.userId, uid));
         }
       } else if (queryUserId) {
-        conditions.push(or(eq(constructionMaterials.userId, queryUserId), eq(constructionMaterials.ownerId, queryUserId)));
+        conditions.push(eq(constructionMaterials.userId, queryUserId));
         if (queryRole) {
           conditions.push(eq(constructionMaterials.role, queryRole));
         }

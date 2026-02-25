@@ -50,6 +50,26 @@ export default function ListingDetail({ listing, titleField = "title", subtitleF
   const whatsappNumber = typeof contactPhone === "string" ? contactPhone.replace(/[^\d]/g, "") : "";
   const whatsappHref = whatsappNumber ? `https://wa.me/${whatsappNumber}` : "";
 
+  const resolvedCountry = useMemo(() => {
+    const listingCountryRaw = listing?.country;
+    const listingCountry = typeof listingCountryRaw === "string" ? listingCountryRaw.trim() : "";
+    const ownerCountryRaw = ownerUser?.country;
+    const ownerCountry = typeof ownerCountryRaw === "string" ? ownerCountryRaw.trim() : "";
+
+    if (!listingCountry && ownerCountry) return ownerCountry;
+    if (listingCountry.toLowerCase() === "india" && ownerCountry && ownerCountry.toLowerCase() !== "india") return ownerCountry;
+    return listingCountry || "—";
+  }, [listing?.country, ownerUser?.country]);
+
+  const resolvedStateProvince = useMemo(() => {
+    const listingStateRaw = listing?.stateProvince;
+    const listingState = typeof listingStateRaw === "string" ? listingStateRaw.trim() : "";
+    const ownerStateRaw = ownerUser?.state;
+    const ownerState = typeof ownerStateRaw === "string" ? ownerStateRaw.trim() : "";
+
+    return listingState || ownerState || "—";
+  }, [listing?.stateProvince, ownerUser?.state]);
+
   const hasPrice = typeof listing.price === "number" || (typeof listing.price === "string" && String(listing.price).trim().length > 0);
   const numericPrice = hasPrice ? Number(listing.price) : NaN;
   const formattedPrice = !isNaN(numericPrice) ? `₹${numericPrice.toLocaleString()}` : hasPrice ? `₹${String(listing.price)}` : "";
@@ -135,6 +155,12 @@ export default function ListingDetail({ listing, titleField = "title", subtitleF
     // Numbers representing money
     if (typeof v === "number") return v.toString();
     return String(v);
+  };
+
+  const valueForField = (field: string) => {
+    if (field === "country") return resolvedCountry;
+    if (field === "stateProvince") return resolvedStateProvince;
+    return (listing as any)?.[field];
   };
 
   // Image gallery logic
@@ -275,7 +301,7 @@ export default function ListingDetail({ listing, titleField = "title", subtitleF
                 {visibleFields.map((f) => (
                   <React.Fragment key={f}>
                     <div className="text-sm text-muted-foreground">{prettyKey(f)}</div>
-                    <div className="font-medium">{formatValue(listing[f])}</div>
+                    <div className="font-medium">{formatValue(valueForField(f))}</div>
                   </React.Fragment>
                 ))}
               </div>
