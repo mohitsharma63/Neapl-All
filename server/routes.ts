@@ -10224,6 +10224,22 @@ app.patch("/api/admin/skill-training-certification/:id/toggle-featured", async (
     }
   });
 
+  // Phones, Tablets & Accessories Detail
+  app.get("/api/phones-tablets-accessories/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const item = await db.query.phonesTabletsAccessories.findFirst({
+        where: eq(phonesTabletsAccessories.id, id),
+      });
+      if (!item) {
+        return res.status(404).json({ message: "Item not found" });
+      }
+      res.json(item);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
   // Cars & Bikes
   app.get("/api/cars-bikes", async (req, res) => {
     try {
