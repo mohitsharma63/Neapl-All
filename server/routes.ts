@@ -9359,15 +9359,57 @@ app.patch("/api/admin/skill-training-certification/:id/toggle-featured", async (
       const sessionUser = (req as any).session?.user || null;
       const queryUserId = typeof req.query.userId === 'string' ? req.query.userId : undefined;
 
+      const q = typeof (req.query as any)?.q === 'string' ? String((req.query as any).q).trim().toLowerCase() : '';
+      const country = typeof (req.query as any)?.country === 'string' ? String((req.query as any).country).trim() : '';
+      const isActiveParam = typeof (req.query as any)?.isActive === 'string' ? String((req.query as any).isActive).trim() : '';
+      const isFeaturedParam = typeof (req.query as any)?.isFeatured === 'string' ? String((req.query as any).isFeatured).trim() : '';
+
       let services;
       if (sessionUser && sessionUser.role === 'admin') {
+        const conditions: any[] = [];
+        if (queryUserId) conditions.push(eq(educationalConsultancyStudyAbroad.userId, queryUserId));
+        if (country) conditions.push(eq(educationalConsultancyStudyAbroad.country, country));
+        if (isActiveParam !== '') conditions.push(eq(educationalConsultancyStudyAbroad.isActive, parseBoolean(isActiveParam)));
+        if (isFeaturedParam !== '') conditions.push(eq(educationalConsultancyStudyAbroad.isFeatured, parseBoolean(isFeaturedParam)));
+        if (q) {
+          const like = `%${q}%`;
+          conditions.push(
+            or(
+              sql`lower(${educationalConsultancyStudyAbroad.title}) like ${like}`,
+              sql`lower(${educationalConsultancyStudyAbroad.description}) like ${like}`,
+              sql`lower(${educationalConsultancyStudyAbroad.companyName}) like ${like}`,
+              sql`lower(${educationalConsultancyStudyAbroad.contactPerson}) like ${like}`,
+              sql`lower(${educationalConsultancyStudyAbroad.contactPhone}) like ${like}`,
+              sql`lower(${educationalConsultancyStudyAbroad.contactEmail}) like ${like}`
+            )
+          );
+        }
+
         services = await db.query.educationalConsultancyStudyAbroad.findMany({
-          where: queryUserId ? eq(educationalConsultancyStudyAbroad.ownerId, queryUserId) : undefined,
+          where: conditions.length ? and(...conditions) : undefined,
           orderBy: desc(educationalConsultancyStudyAbroad.createdAt),
         });
       } else if (sessionUser && sessionUser.id) {
+        const conditions: any[] = [eq(educationalConsultancyStudyAbroad.userId, sessionUser.id as string)];
+        if (country) conditions.push(eq(educationalConsultancyStudyAbroad.country, country));
+        if (isActiveParam !== '') conditions.push(eq(educationalConsultancyStudyAbroad.isActive, parseBoolean(isActiveParam)));
+        if (isFeaturedParam !== '') conditions.push(eq(educationalConsultancyStudyAbroad.isFeatured, parseBoolean(isFeaturedParam)));
+        if (q) {
+          const like = `%${q}%`;
+          conditions.push(
+            or(
+              sql`lower(${educationalConsultancyStudyAbroad.title}) like ${like}`,
+              sql`lower(${educationalConsultancyStudyAbroad.description}) like ${like}`,
+              sql`lower(${educationalConsultancyStudyAbroad.companyName}) like ${like}`,
+              sql`lower(${educationalConsultancyStudyAbroad.contactPerson}) like ${like}`,
+              sql`lower(${educationalConsultancyStudyAbroad.contactPhone}) like ${like}`,
+              sql`lower(${educationalConsultancyStudyAbroad.contactEmail}) like ${like}`
+            )
+          );
+        }
+
         services = await db.query.educationalConsultancyStudyAbroad.findMany({
-          where: eq(educationalConsultancyStudyAbroad.ownerId, sessionUser.id as string),
+          where: and(...conditions),
           orderBy: desc(educationalConsultancyStudyAbroad.createdAt),
         });
       } else {

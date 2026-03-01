@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
-import { Plus, Edit, Trash2, Eye, MapPin, Building, GraduationCap, X } from 'lucide-react';
+import { Plus, Edit, Trash2, Eye, MapPin, Building, GraduationCap, X, Upload } from 'lucide-react';
 
 const initialFormData = {
   title: '',
@@ -123,7 +123,21 @@ export default function EducationalConsultancyStudyAbroadForm() {
   const [formData, setFormData] = useState(initialFormData);
   const [newCountry, setNewCountry] = useState('');
   const [newUniversity, setNewUniversity] = useState('');
+  const [isUploadingImages, setIsUploadingImages] = useState(false);
   const queryClient = useQueryClient();
+
+  const uploadSingleFile = async (file: File): Promise<string> => {
+    const fd = new FormData();
+    fd.append('file', file);
+    const res = await fetch('/api/upload', { method: 'POST', body: fd });
+    if (!res.ok) {
+      const msg = await res.json().catch(() => ({} as any));
+      throw new Error(msg?.message || `Upload failed (${res.status})`);
+    }
+    const data = await res.json();
+    if (!data?.url || typeof data.url !== 'string') throw new Error('Upload failed: missing url');
+    return data.url;
+  };
 
   const { data: items = [], isLoading } = useQuery({
     queryKey: ['/api/admin/educational-consultancy-study-abroad'],
@@ -206,6 +220,7 @@ export default function EducationalConsultancyStudyAbroadForm() {
     setShowForm(false);
     setNewCountry('');
     setNewUniversity('');
+    setIsUploadingImages(false);
   };
 
   const handleEdit = (item: any) => {
@@ -561,6 +576,94 @@ export default function EducationalConsultancyStudyAbroadForm() {
                     />
                   </div>
                 </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Images</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div className="flex items-center gap-2">
+                  <input
+                    id="educational-consultancy-images-upload"
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    className="hidden"
+                    onChange={async (e) => {
+                      const files = Array.from(e.target.files || []);
+                      e.currentTarget.value = '';
+                      if (files.length === 0) return;
+                      setIsUploadingImages(true);
+                      try {
+                        const uploaded: string[] = [];
+                        for (const file of files) {
+                          const url = await uploadSingleFile(file);
+                          uploaded.push(url);
+                        }
+                        setFormData((prev) => {
+                          const prevImgs = Array.isArray(prev.images) ? prev.images.map(String).filter(Boolean) : [];
+                          const merged = [...prevImgs, ...uploaded].slice(0, 10);
+                          return { ...prev, images: merged };
+                        });
+                      } catch (err: any) {
+                        console.error(err);
+                        alert(err?.message || 'Upload failed');
+                      } finally {
+                        setIsUploadingImages(false);
+                      }
+                    }}
+                  />
+
+                  <Button
+                    type="button"
+                    variant="outline"
+                    disabled={isUploadingImages}
+                    onClick={() => document.getElementById('educational-consultancy-images-upload')?.click()}
+                  >
+                    <Upload className="w-4 h-4 mr-2" />
+                    {isUploadingImages ? 'Uploading...' : 'Upload Images'}
+                  </Button>
+
+                  {Array.isArray(formData.images) && formData.images.length > 0 ? (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      disabled={isUploadingImages}
+                      onClick={() => setFormData((prev) => ({ ...prev, images: [] }))}
+                    >
+                      <X className="w-4 h-4 mr-2" />
+                      Clear
+                    </Button>
+                  ) : null}
+                </div>
+
+                {Array.isArray(formData.images) && formData.images.length > 0 ? (
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                    {formData.images.map((u: string, idx: number) => (
+                      <div key={`${u}-${idx}`} className="relative rounded-lg overflow-hidden border bg-gray-100 aspect-video">
+                        <img src={u} alt={`img-${idx}`} className="w-full h-full object-cover" />
+                        <button
+                          type="button"
+                          className="absolute top-2 right-2 bg-white/90 hover:bg-white border rounded-full p-1"
+                          onClick={() =>
+                            setFormData((prev) => {
+                              const prevImgs = Array.isArray(prev.images) ? prev.images.map(String).filter(Boolean) : [];
+                              const next = prevImgs.filter((_, i) => i !== idx);
+                              return { ...prev, images: next };
+                            })
+                          }
+                          aria-label="remove"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-sm text-muted-foreground">No images uploaded</div>
+                )}
               </CardContent>
             </Card>
 
