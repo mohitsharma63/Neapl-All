@@ -27,6 +27,9 @@ export function useUser() {
       try {
         const parsedUser = JSON.parse(storedUser);
         setUser(parsedUser);
+
+        if (parsedUser?.id) localStorage.setItem('userId', parsedUser.id);
+        if (parsedUser?.role) localStorage.setItem('userRole', parsedUser.role);
       } catch (error) {
         console.error('Error parsing user from localStorage:', error);
         localStorage.removeItem('user');
@@ -39,11 +42,15 @@ export function useUser() {
   const login = (userData: User) => {
     setUser(userData);
     localStorage.setItem('user', JSON.stringify(userData));
+    localStorage.setItem('userId', userData?.id || '');
+    localStorage.setItem('userRole', userData?.role || '');
   };
 
   const logout = () => {
     setUser(null);
     localStorage.removeItem('user');
+    localStorage.removeItem('userId');
+    localStorage.removeItem('userRole');
   };
 
   const updateUser = (userData: Partial<User>) => {
@@ -51,6 +58,9 @@ export function useUser() {
       const updatedUser = { ...user, ...userData };
       setUser(updatedUser);
       localStorage.setItem('user', JSON.stringify(updatedUser));
+
+      if (updatedUser?.id) localStorage.setItem('userId', updatedUser.id);
+      if (updatedUser?.role) localStorage.setItem('userRole', updatedUser.role);
     }
   };
 

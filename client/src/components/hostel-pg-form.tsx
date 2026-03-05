@@ -19,6 +19,7 @@ interface HostelPgFormProps {
 export function HostelPgForm({ open, onOpenChange, hostelPg, onSuccess }: HostelPgFormProps) {
   const [userId, setUserId] = useState<string | null>(null);
   const [userRole, setUserRole] = useState<string | null>(null);
+  const [imageError, setImageError] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     name: "",
     description: "",
@@ -44,6 +45,48 @@ export function HostelPgForm({ open, onOpenChange, hostelPg, onSuccess }: Hostel
 
   const [newFacility, setNewFacility] = useState("");
   const [uploadingImage, setUploadingImage] = useState(false);
+
+  const isDataMediaUrl = (s: string) => /^data:(image|video)\//i.test(String(s || '').trim());
+
+  const dataUrlToFile = (dataUrl: string, filename: string) => {
+    const [meta, content] = String(dataUrl || '').split(',');
+    const match = /data:([^;]+);base64/i.exec(meta || '');
+    const mime = match?.[1] || 'application/octet-stream';
+    const binary = atob(content || '');
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+    return new File([bytes], filename, { type: mime });
+  };
+
+  const uploadSingleFile = async (file: File): Promise<string> => {
+    const fd = new FormData();
+    fd.append('file', file);
+    const res = await fetch('/api/upload', { method: 'POST', body: fd });
+    if (!res.ok) {
+      const msg = await res.json().catch(() => ({} as any));
+      throw new Error(msg?.message || `Upload failed (${res.status})`);
+    }
+    const data = await res.json();
+    const url = data?.url;
+    if (typeof url !== 'string' || url.length === 0) throw new Error('Upload failed: missing url');
+    return url;
+  };
+
+  const ensureUploadedImageUrls = async (items: string[]): Promise<string[]> => {
+    const out: string[] = [];
+    for (let i = 0; i < items.length; i++) {
+      const v = items[i];
+      if (typeof v !== 'string' || v.length === 0) continue;
+      if (!isDataMediaUrl(v)) {
+        out.push(v);
+        continue;
+      }
+      const file = dataUrlToFile(v, `image-${Date.now()}-${i}.png`);
+      const url = await uploadSingleFile(file);
+      out.push(url);
+    }
+    return out;
+  };
 
   useEffect(() => {
     // Try to get from localStorage first
@@ -179,6 +222,11 @@ export function HostelPgForm({ open, onOpenChange, hostelPg, onSuccess }: Hostel
     }
 
     try {
+      const safeImages = await ensureUploadedImageUrls(formData.images);
+      if (safeImages.length !== formData.images.length) {
+        setFormData((prev) => ({ ...prev, images: safeImages }));
+      }
+
       const url = hostelPg
         ? `/api/admin/hostel-pg/${hostelPg.id}`
         : "/api/admin/hostel-pg";
@@ -194,7 +242,7 @@ export function HostelPgForm({ open, onOpenChange, hostelPg, onSuccess }: Hostel
         availableBeds: formData.availableBeds,
         facilities: formData.facilities,
         foodIncluded: formData.foodIncluded,
-        images: formData.images,
+        images: safeImages,
         rules: formData.rules?.trim() || "",
         country: formData.country?.trim() || "India",
         stateProvince: formData.stateProvince.trim(),
@@ -252,29 +300,46 @@ export function HostelPgForm({ open, onOpenChange, hostelPg, onSuccess }: Hostel
 
     setUploadingImage(true);
     try {
-      const uploadedUrls: string[] = [];
+      const allowed = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+      const maxSize = 10 * 1024 * 1024;
+      const accepted: File[] = [];
 
       for (let i = 0; i < files.length; i++) {
-        const file = files[i];
-        const reader = new FileReader();
-
-        await new Promise<void>((resolve) => {
-          reader.onloadend = () => {
-            if (reader.result) {
-              uploadedUrls.push(reader.result as string);
-            }
-            resolve();
-          };
-          reader.readAsDataURL(file);
-        });
+        const f = files[i];
+        if (!allowed.includes(f.type)) {
+          setImageError('Only JPG, PNG, WEBP and GIF allowed');
+          continue;
+        }
+        if (f.size > maxSize) {
+          setImageError('Each image must be <= 10MB');
+          continue;
+        }
+        accepted.push(f);
       }
 
-      setFormData({
-        ...formData,
-        images: [...formData.images, ...uploadedUrls],
-      });
+      if (accepted.length === 0) return;
+
+      const fd = new FormData();
+      accepted.forEach((f) => fd.append('files', f));
+      const res = await fetch('/api/upload-multiple', { method: 'POST', body: fd });
+      if (!res.ok) {
+        const msg = await res.json().catch(() => ({} as any));
+        throw new Error(msg?.message || `Upload failed (${res.status})`);
+      }
+      const data = await res.json();
+      const urls = Array.isArray(data?.files)
+        ? data.files.map((x: any) => x?.url).filter((u: any) => typeof u === 'string')
+        : [];
+      if (urls.length === 0) throw new Error('Upload failed: missing files');
+
+      setFormData((prev) => ({
+        ...prev,
+        images: [...prev.images, ...urls],
+      }));
+      setImageError(null);
     } catch (error) {
       console.error("Error uploading images:", error);
+      setImageError(error instanceof Error ? error.message : 'Failed to upload images');
     } finally {
       setUploadingImage(false);
       e.target.value = "";
@@ -527,6 +592,9 @@ export function HostelPgForm({ open, onOpenChange, hostelPg, onSuccess }: Hostel
                     )}
                   </label>
                 </div>
+                {imageError && (
+                  <div className="text-sm text-red-600">{imageError}</div>
+                )}
                 {formData.images.length > 0 && (
                   <div className="grid grid-cols-3 gap-3">
                     {formData.images.map((image, index) => (

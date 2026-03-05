@@ -25,7 +25,7 @@ const storage = multer.diskStorage({
 
 // File filter to accept only images
 const fileFilter = (req: any, file: Express.Multer.File, cb: multer.FileFilterCallback) => {
-  const allowedMimeTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif'];
+  const allowedMimeTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif', 'image/heic', 'image/heif', 'image/avif'];
   
   if (allowedMimeTypes.includes(file.mimetype)) {
     cb(null, true);
@@ -105,7 +105,7 @@ const mediaStorage = multer.diskStorage({
 const mediaFileFilter = (req: any, file: Express.Multer.File, cb: multer.FileFilterCallback) => {
   const allowed = [
     // images
-    'image/jpeg','image/jpg','image/png','image/webp','image/gif',
+    'image/jpeg','image/jpg','image/png','image/webp','image/gif','image/heic','image/heif','image/avif',
     // videos
     'video/mp4','video/webm','video/ogg','application/octet-stream'
   ];

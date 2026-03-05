@@ -59,6 +59,31 @@ export default function BlogForm({ post, categories, onCancel, onSuccess }: Blog
     }
   }, [post]);
 
+  const uploadSingleFile = async (file: File): Promise<string> => {
+    const fd = new FormData();
+    fd.append('file', file);
+    const res = await fetch('/api/upload', { method: 'POST', body: fd });
+    if (!res.ok) {
+      const msg = await res.json().catch(() => ({} as any));
+      throw new Error(msg?.message || `Upload failed (${res.status})`);
+    }
+    const data = await res.json();
+    if (!data?.url || typeof data.url !== 'string') throw new Error('Upload failed: missing url');
+    return data.url;
+  };
+
+  const isDataMediaUrl = (s: string) => /^data:(image|video)\//i.test(String(s || '').trim());
+
+  const dataUrlToFile = (dataUrl: string, filename: string) => {
+    const [meta, content] = String(dataUrl || '').split(',');
+    const match = /data:([^;]+);base64/i.exec(meta || '');
+    const mime = match?.[1] || 'application/octet-stream';
+    const binary = atob(content || '');
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+    return new File([bytes], filename, { type: mime });
+  };
+
   const handleSubmit = async () => {
     if (!title || !slug) {
       alert('Title and slug are required');
@@ -66,13 +91,17 @@ export default function BlogForm({ post, categories, onCancel, onSuccess }: Blog
     }
 
     setSaving(true);
+    const finalCoverImageUrl = isDataMediaUrl(coverImageUrl)
+      ? await uploadSingleFile(dataUrlToFile(coverImageUrl, `cover-${Date.now()}.png`))
+      : coverImageUrl;
+
     const payload: any = {
       title,
       slug,
       category,
       excerpt,
       content,
-      coverImageUrl,
+      coverImageUrl: finalCoverImageUrl,
       tags: tags.split(',').map(t => t.trim()).filter(Boolean),
       isPublished,
       isFeatured,
@@ -160,19 +189,15 @@ export default function BlogForm({ post, categories, onCancel, onSuccess }: Blog
             accept="image/*"
             onChange={async (e) => {
               const file = e.target.files?.[0];
+              e.currentTarget.value = '';
               if (!file) return;
               setUploadingImage(true);
               try {
-                const dataUrl = await new Promise<string>((resolve, reject) => {
-                  const reader = new FileReader();
-                  reader.onloadend = () => resolve(reader.result as string);
-                  reader.onerror = reject;
-                  reader.readAsDataURL(file);
-                });
-                setCoverImageUrl(dataUrl);
+                const url = await uploadSingleFile(file);
+                setCoverImageUrl(url);
               } catch (err) {
                 console.error('Error reading image file', err);
-                alert('Failed to read image file');
+                alert(err instanceof Error ? err.message : 'Failed to upload image');
               } finally {
                 setUploadingImage(false);
               }

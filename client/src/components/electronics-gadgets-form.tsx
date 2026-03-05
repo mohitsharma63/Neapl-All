@@ -100,6 +100,48 @@ export default function ElectronicsGadgetsForm() {
   const [dragActive, setDragActive] = useState(false);
   const [imageError, setImageError] = useState<string | null>(null);
 
+  const isDataMediaUrl = (s: string) => /^data:(image|video)\//i.test(String(s || '').trim());
+
+  const dataUrlToFile = (dataUrl: string, filename: string) => {
+    const [meta, content] = dataUrl.split(',');
+    const match = /data:([^;]+);base64/i.exec(meta || '');
+    const mime = match?.[1] || 'application/octet-stream';
+    const binary = atob(content || '');
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+    return new File([bytes], filename, { type: mime });
+  };
+
+  const uploadSingleFile = async (file: File): Promise<string> => {
+    const fd = new FormData();
+    fd.append('file', file);
+    const res = await fetch('/api/upload', { method: 'POST', body: fd });
+    if (!res.ok) {
+      const msg = await res.json().catch(() => ({} as any));
+      throw new Error(msg?.message || `Upload failed (${res.status})`);
+    }
+    const data = await res.json();
+    const url = data?.url;
+    if (typeof url !== 'string' || url.length === 0) throw new Error('Upload failed: missing url');
+    return url;
+  };
+
+  const ensureUploadedImageUrls = async (items: string[]): Promise<string[]> => {
+    const out: string[] = [];
+    for (let i = 0; i < items.length; i++) {
+      const v = items[i];
+      if (typeof v !== 'string' || v.length === 0) continue;
+      if (!isDataMediaUrl(v)) {
+        out.push(v);
+        continue;
+      }
+      const file = dataUrlToFile(v, `image-${Date.now()}-${i}.png`);
+      const url = await uploadSingleFile(file);
+      out.push(url);
+    }
+    return out;
+  };
+
   const { register, handleSubmit, reset, setValue, watch } = useForm<ElectronicsGadgetFormData>();
 
   const { data: gadgets = [], isLoading } = useQuery({
@@ -185,23 +227,38 @@ export default function ElectronicsGadgetsForm() {
     if (!files || files.length === 0) return;
     const allowed = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
     const maxSize = 5 * 1024 * 1024;
-    const incoming: Promise<string>[] = [];
+    const accepted: File[] = [];
     for (let i = 0; i < files.length; i++) {
       const f = files[i];
       if (!allowed.includes(f.type)) { setImageError('Only JPG, PNG, WEBP and GIF allowed'); continue; }
       if (f.size > maxSize) { setImageError('Each image must be <= 5MB'); continue; }
-      incoming.push(new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(String(reader.result));
-        reader.onerror = () => reject(new Error('Failed to read file'));
-        reader.readAsDataURL(f);
-      }));
+      accepted.push(f);
     }
-    if (incoming.length === 0) return;
-    Promise.all(incoming).then((dataUrls) => {
-      setImages(prev => [...prev, ...dataUrls].slice(0, 10));
-      setImageError(null);
-    }).catch(e => { console.error(e); setImageError('Failed to process images'); });
+    if (accepted.length === 0) return;
+
+    const uploadMultipleFiles = async (files: File[]): Promise<string[]> => {
+      const fd = new FormData();
+      files.forEach((f) => fd.append('files', f));
+      const res = await fetch('/api/upload-multiple', { method: 'POST', body: fd });
+      if (!res.ok) {
+        const msg = await res.json().catch(() => ({} as any));
+        throw new Error(msg?.message || `Upload failed (${res.status})`);
+      }
+      const data = await res.json();
+      const urls = Array.isArray(data?.files) ? data.files.map((x: any) => x?.url).filter((u: any) => typeof u === 'string') : [];
+      if (urls.length === 0) throw new Error('Upload failed: missing files');
+      return urls as string[];
+    };
+
+    uploadMultipleFiles(accepted)
+      .then((urls) => {
+        setImages((prev) => [...prev, ...urls].slice(0, 10));
+        setImageError(null);
+      })
+      .catch((e) => {
+        console.error(e);
+        setImageError(e instanceof Error ? e.message : 'Failed to upload images');
+      });
   };
 
   const handleDrop = (e: React.DragEvent) => { e.preventDefault(); e.stopPropagation(); setDragActive(false); processFiles(e.dataTransfer.files); };
@@ -219,8 +276,10 @@ export default function ElectronicsGadgetsForm() {
     setIsDialogOpen(true);
   };
 
-  const onSubmit = (data: ElectronicsGadgetFormData) => {
-    const payload = { ...data, images };
+  const onSubmit = async (data: ElectronicsGadgetFormData) => {
+    const safeImages = await ensureUploadedImageUrls(images);
+    if (safeImages !== images) setImages(safeImages);
+    const payload = { ...data, images: safeImages };
     if (editingGadget) {
       updateMutation.mutate({ id: editingGadget.id, data: payload });
     } else {

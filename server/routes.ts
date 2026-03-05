@@ -1344,10 +1344,14 @@ export function registerRoutes(app: Express) {
   });
 
   // Multiple media upload endpoint for admin (e.g., listing image galleries)
-  app.post('/api/admin/upload-multiple', uploadMedia.array('files', 10), (req, res) => {
+  app.post('/api/admin/upload-multiple', uploadMedia.any(), (req, res) => {
     try {
       const files = (req as any).files as Express.Multer.File[] | undefined;
       if (!files || files.length === 0) {
+        console.log('[upload-multiple][admin] No files uploaded', {
+          contentType: req.headers['content-type'],
+          bodyKeys: req.body ? Object.keys(req.body) : [],
+        });
         return res.status(400).json({ message: 'No files uploaded' });
       }
 
@@ -1365,10 +1369,14 @@ export function registerRoutes(app: Express) {
     }
   });
 
-  app.post('/api/upload-multiple', uploadMedia.array('files', 10), (req, res) => {
+  app.post('/api/upload-multiple', uploadMedia.any(), (req, res) => {
     try {
       const files = (req as any).files as Express.Multer.File[] | undefined;
       if (!files || files.length === 0) {
+        console.log('[upload-multiple] No files uploaded', {
+          contentType: req.headers['content-type'],
+          bodyKeys: req.body ? Object.keys(req.body) : [],
+        });
         return res.status(400).json({ message: 'No files uploaded' });
       }
 

@@ -202,7 +202,7 @@ export function HeavyEquipmentForm() {
   const updateMutation = useMutation({
     mutationFn: async ({ id, data }: { id: string; data: typeof formData }) => {
       const storedUser = localStorage.getItem("user");
-      const userData = storedUser ? JSON.JSON.parse(storedUser) : null;
+      const userData = storedUser ? JSON.parse(storedUser) : null;
 
       // Ensure userId and role are not null
       const finalUserId = userData?.id || userId;
@@ -355,36 +355,40 @@ export function HeavyEquipmentForm() {
     if (!files || files.length === 0) return;
 
     setUploadingImages(true);
-    const newImages: string[] = [];
+
+    const uploadMultipleFiles = async (inFiles: File[]): Promise<string[]> => {
+      const fd = new FormData();
+      inFiles.forEach((f) => fd.append('files', f));
+      const res = await fetch('/api/upload-multiple', { method: 'POST', body: fd });
+      if (!res.ok) {
+        const msg = await res.json().catch(() => ({} as any));
+        throw new Error(msg?.message || `Upload failed (${res.status})`);
+      }
+      const data = await res.json();
+      const urls = Array.isArray(data?.files)
+        ? data.files
+            .map((x: any) => x?.url)
+            .filter((u: any) => typeof u === 'string' && u.length > 0)
+        : [];
+      return urls;
+    };
 
     try {
-      for (let i = 0; i < files.length; i++) {
-        const file = files[i];
-        const reader = new FileReader();
-
-        const result = await new Promise<string>((resolve, reject) => {
-          reader.onloadend = () => resolve(reader.result as string);
-          reader.onerror = reject;
-          reader.readAsDataURL(file);
-        });
-
-        newImages.push(result);
-      }
-
-      setFormData(prev => ({
+      const fileArr = Array.from(files);
+      const newUrls = await uploadMultipleFiles(fileArr);
+      setFormData((prev) => ({
         ...prev,
-        images: [...prev.images, ...newImages]
+        images: [...prev.images, ...newUrls],
       }));
-
       toast({
-        title: "Success",
-        description: `${newImages.length} image(s) uploaded successfully`,
+        title: 'Success',
+        description: `${newUrls.length} image(s) uploaded successfully`,
       });
     } catch (error) {
       toast({
-        title: "Error",
-        description: "Failed to upload images",
-        variant: "destructive",
+        title: 'Error',
+        description: error instanceof Error ? error.message : 'Failed to upload images',
+        variant: 'destructive',
       });
     } finally {
       setUploadingImages(false);
@@ -392,9 +396,9 @@ export function HeavyEquipmentForm() {
   };
 
   const removeImage = (index: number) => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      images: prev.images.filter((_, i) => i !== index)
+      images: prev.images.filter((_, i) => i !== index),
     }));
   };
 

@@ -508,7 +508,7 @@ export default function SareeClothingShoppingForm(props?: {
   const processFiles = async (files: FileList) => {
     setUploadingImages(true);
     setImagePreviewError(null);
-    const newImages: string[] = [];
+    const accepted: File[] = [];
     const maxFileSize = 5 * 1024 * 1024; // 5MB
     const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
 
@@ -528,38 +528,46 @@ export default function SareeClothingShoppingForm(props?: {
           continue;
         }
 
-        const reader = new FileReader();
-
-        const result = await new Promise<string>((resolve, reject) => {
-          reader.onloadend = () => resolve(reader.result as string);
-          reader.onerror = reject;
-          reader.readAsDataURL(file);
-        });
-
-        newImages.push(result);
+        accepted.push(file);
       }
 
-      if (newImages.length > 0) {
+      if (accepted.length > 0) {
         const currentImages = watch("images") || [];
-        const totalImages = currentImages.length + newImages.length;
+        const totalImages = currentImages.length + accepted.length;
 
         if (totalImages > 10) {
           setImagePreviewError(`Maximum 10 images allowed. You can upload ${10 - currentImages.length} more image(s).`);
           return;
         }
 
-        setValue("images", [...currentImages, ...newImages]);
+        const uploadMultipleFiles = async (files: File[]): Promise<string[]> => {
+          const fd = new FormData();
+          files.forEach((f) => fd.append('files', f));
+          const res = await fetch('/api/upload-multiple', { method: 'POST', body: fd });
+          if (!res.ok) {
+            const msg = await res.json().catch(() => ({} as any));
+            throw new Error(msg?.message || `Upload failed (${res.status})`);
+          }
+          const data = await res.json();
+          const urls = Array.isArray(data?.files) ? data.files.map((x: any) => x?.url).filter((u: any) => typeof u === 'string') : [];
+          if (urls.length === 0) throw new Error('Upload failed: missing files');
+          return urls as string[];
+        };
+
+        const uploadedUrls = await uploadMultipleFiles(accepted);
+
+        setValue("images", [...currentImages, ...uploadedUrls]);
 
         toast({
           title: "Success",
-          description: `${newImages.length} image(s) uploaded successfully`,
+          description: `${uploadedUrls.length} image(s) uploaded successfully`,
         });
       }
     } catch (error) {
       setImagePreviewError("Failed to process images. Please try again.");
       toast({
         title: "Error",
-        description: "Failed to upload images",
+        description: error instanceof Error ? error.message : "Failed to upload images",
         variant: "destructive",
       });
     } finally {

@@ -188,24 +188,25 @@ export function ConstructionMaterialsForm({ open, onOpenChange, material, onSucc
     const files = e.target.files;
     if (!files || files.length === 0) return;
 
+    e.currentTarget.value = "";
+
     setUploadingImage(true);
     try {
-      const uploadedUrls: string[] = [];
+      const uploadMultipleFiles = async (files: File[]): Promise<string[]> => {
+        const fd = new FormData();
+        files.forEach((f) => fd.append('files', f));
+        const res = await fetch('/api/upload-multiple', { method: 'POST', body: fd });
+        if (!res.ok) {
+          const msg = await res.json().catch(() => ({} as any));
+          throw new Error(msg?.message || `Upload failed (${res.status})`);
+        }
+        const data = await res.json();
+        const urls = Array.isArray(data?.files) ? data.files.map((x: any) => x?.url).filter((u: any) => typeof u === 'string') : [];
+        if (urls.length === 0) throw new Error('Upload failed: missing files');
+        return urls as string[];
+      };
 
-      for (let i = 0; i < files.length; i++) {
-        const file = files[i];
-        const reader = new FileReader();
-
-        await new Promise<void>((resolve) => {
-          reader.onloadend = () => {
-            if (reader.result) {
-              uploadedUrls.push(reader.result as string);
-            }
-            resolve();
-          };
-          reader.readAsDataURL(file);
-        });
-      }
+      const uploadedUrls = await uploadMultipleFiles(Array.from(files));
 
       setFormData({
         ...formData,
@@ -215,7 +216,6 @@ export function ConstructionMaterialsForm({ open, onOpenChange, material, onSucc
       console.error("Error uploading images:", error);
     } finally {
       setUploadingImage(false);
-      e.target.value = "";
     }
   };
 

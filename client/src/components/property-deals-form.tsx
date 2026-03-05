@@ -50,6 +50,20 @@ export function PropertyDealsForm({ open, onOpenChange, propertyDeal, onSuccess 
 
   const [loading, setLoading] = useState(false);
 
+  const uploadMultipleFiles = async (files: File[]): Promise<string[]> => {
+    const fd = new FormData();
+    files.forEach((f) => fd.append('files', f));
+    const res = await fetch('/api/upload-multiple', { method: 'POST', body: fd });
+    if (!res.ok) {
+      const msg = await res.json().catch(() => ({} as any));
+      throw new Error(msg?.message || `Upload failed (${res.status})`);
+    }
+    const data = await res.json();
+    const urls = Array.isArray(data?.files) ? data.files.map((x: any) => x?.url).filter((u: any) => typeof u === 'string') : [];
+    if (urls.length === 0) throw new Error('Upload failed: missing files');
+    return urls as string[];
+  };
+
   useEffect(() => {
     // Try to get from localStorage first
     let storedUserId = localStorage.getItem('userId');
@@ -77,36 +91,26 @@ export function PropertyDealsForm({ open, onOpenChange, propertyDeal, onSuccess 
     const files = e.target.files;
     if (!files || files.length === 0) return;
 
+    e.currentTarget.value = '';
+
     setUploadingImages(true);
-    const newImages: string[] = [];
 
     try {
-      for (let i = 0; i < files.length; i++) {
-        const file = files[i];
-        const reader = new FileReader();
-
-        const result = await new Promise<string>((resolve, reject) => {
-          reader.onloadend = () => resolve(reader.result as string);
-          reader.onerror = reject;
-          reader.readAsDataURL(file);
-        });
-
-        newImages.push(result);
-      }
+      const uploadedUrls = await uploadMultipleFiles(Array.from(files));
 
       setFormData(prev => ({
         ...prev,
-        images: [...prev.images, ...newImages]
+        images: [...prev.images, ...uploadedUrls]
       }));
 
       toast({
         title: "Success",
-        description: `${newImages.length} image(s) uploaded successfully`,
+        description: `${uploadedUrls.length} image(s) uploaded successfully`,
       });
     } catch (error) {
       toast({
         title: "Error",
-        description: "Failed to upload images",
+        description: error instanceof Error ? error.message : "Failed to upload images",
         variant: "destructive",
       });
     } finally {

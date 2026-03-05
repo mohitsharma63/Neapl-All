@@ -198,25 +198,45 @@ export default function SecondHandPhonesTabletsAccessoriesForm() {
     return null;
   };
 
+  const uploadMultipleFiles = async (files: File[]): Promise<string[]> => {
+    const fd = new FormData();
+    files.forEach((f) => fd.append('files', f));
+    const res = await fetch('/api/upload-multiple', { method: 'POST', body: fd });
+    if (!res.ok) {
+      const msg = await res.json().catch(() => ({} as any));
+      throw new Error(msg?.message || `Upload failed (${res.status})`);
+    }
+    const data = await res.json();
+    const urls = Array.isArray(data?.files) ? data.files.map((x: any) => x?.url).filter((u: any) => typeof u === 'string') : [];
+    if (urls.length === 0) throw new Error('Upload failed: missing files');
+    return urls as string[];
+  };
+
   const processFiles = (files: FileList | null) => {
     if (!files) return;
     setImageError(null);
+    const accepted: File[] = [];
     Array.from(files).forEach((file) => {
       const err = validateImageFile(file);
       if (err) {
         setImageError(err);
         return;
       }
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const result = e.target?.result as string;
-        setImages((prev) => {
-          if (prev.length >= 10) return prev;
-          return [...prev, result];
-        });
-      };
-      reader.readAsDataURL(file);
+      accepted.push(file);
     });
+    if (accepted.length === 0) return;
+
+    uploadMultipleFiles(accepted)
+      .then((urls) => {
+        setImages((prev) => {
+          const merged = [...prev, ...urls];
+          return merged.slice(0, 10);
+        });
+      })
+      .catch((e) => {
+        console.error(e);
+        setImageError(e instanceof Error ? e.message : 'Failed to upload images');
+      });
   };
 
   const handleDrop = (e: React.DragEvent) => {
