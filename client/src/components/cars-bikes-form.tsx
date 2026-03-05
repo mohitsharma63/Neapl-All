@@ -427,15 +427,15 @@ export function CarsBikesForm() {
   };
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
+    const inputEl = e.currentTarget;
+    const files = inputEl.files;
     if (!files || files.length === 0) return;
-
-    e.currentTarget.value = '';
 
     setUploadingImages(true);
 
     try {
-      const uploadedUrls = await uploadMultipleFiles(Array.from(files));
+      const selected = Array.from(files);
+      const uploadedUrls = await uploadMultipleFiles(selected);
 
       setFormData(prev => ({
         ...prev,
@@ -454,6 +454,7 @@ export function CarsBikesForm() {
       });
     } finally {
       setUploadingImages(false);
+      if (inputEl) inputEl.value = '';
     }
   };
 

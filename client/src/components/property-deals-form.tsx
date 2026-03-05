@@ -88,15 +88,15 @@ export function PropertyDealsForm({ open, onOpenChange, propertyDeal, onSuccess 
   }, []);
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (!files || files.length === 0) return;
+    const selectedFiles = Array.from(e.target.files ?? []);
+    if (selectedFiles.length === 0) return;
 
     e.currentTarget.value = '';
 
     setUploadingImages(true);
 
     try {
-      const uploadedUrls = await uploadMultipleFiles(Array.from(files));
+      const uploadedUrls = await uploadMultipleFiles(selectedFiles);
 
       setFormData(prev => ({
         ...prev,

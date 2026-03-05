@@ -185,8 +185,8 @@ export function ConstructionMaterialsForm({ open, onOpenChange, material, onSucc
   };
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (!files || files.length === 0) return;
+    const selectedFiles = Array.from(e.target.files ?? []);
+    if (selectedFiles.length === 0) return;
 
     e.currentTarget.value = "";
 
@@ -206,12 +206,12 @@ export function ConstructionMaterialsForm({ open, onOpenChange, material, onSucc
         return urls as string[];
       };
 
-      const uploadedUrls = await uploadMultipleFiles(Array.from(files));
+      const uploadedUrls = await uploadMultipleFiles(selectedFiles);
 
-      setFormData({
-        ...formData,
-        images: [...formData.images, ...uploadedUrls],
-      });
+      setFormData((prev) => ({
+        ...prev,
+        images: [...prev.images, ...uploadedUrls],
+      }));
     } catch (error) {
       console.error("Error uploading images:", error);
     } finally {
