@@ -3143,9 +3143,22 @@ export function registerRoutes(app: Express) {
   // Rental Listings Routes - Full CRUD
 
   // GET all rental listings
-  app.get("/api/admin/rental-listings", async (_req, res) => {
+  app.get("/api/admin/rental-listings", async (req, res) => {
     try {
+      const sessionUser = (req as any).session?.user || null;
+      if (!sessionUser?.id) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+
+      const isAdmin = sessionUser.role === 'admin' || sessionUser.role === 'super_admin';
+      const isSeller = sessionUser.accountType === 'seller';
+
+      if (!isAdmin && !isSeller) {
+        return res.status(403).json({ message: "Forbidden" });
+      }
+
       const listings = await db.query.rentalListings.findMany({
+        where: isAdmin ? undefined : eq(rentalListings.userId, sessionUser.id as string),
         orderBy: desc(rentalListings.createdAt),
       });
       res.json(listings);
@@ -3293,7 +3306,21 @@ export function registerRoutes(app: Express) {
     try {
       const { active, featured, ownerId } = req.query;
 
+      const sessionUser = (req as any).session?.user || null;
+      if (!sessionUser?.id) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+
+      const isAdmin = sessionUser.role === 'admin' || sessionUser.role === 'super_admin';
+      const isSeller = sessionUser.accountType === 'seller';
+      if (!isAdmin && !isSeller) {
+        return res.status(403).json({ message: "Forbidden" });
+      }
+
       let query = db.query.hostelPgListings.findMany({
+        where: isAdmin
+          ? undefined
+          : or(eq(hostelPgListings.userId, sessionUser.id as string), eq(hostelPgListings.ownerId, sessionUser.id as string)),
         orderBy: desc(hostelPgListings.createdAt),
       });
 
@@ -4420,14 +4447,14 @@ export function registerRoutes(app: Express) {
       } else if (sessionUser && sessionUser.id) {
         // Regular users: only their own listings. If queryUserId is provided but doesn't match session user, ignore it.
         listings = await db.query.carsBikes.findMany({
-          where: eq(carsBikes.sellerId, sessionUser.id as string),
+          where: or(eq(carsBikes.sellerId, sessionUser.id as string), eq(carsBikes.userId, sessionUser.id as string)),
           orderBy: desc(carsBikes.createdAt),
         });
       } else if (queryUserId) {
         // No session present but userId provided (used by some client code): try to return listings for that userId
         // This branch is conservative and only returns rows filtering by userId to avoid exposing other data.
         listings = await db.query.carsBikes.findMany({
-          where: eq(carsBikes.userId, queryUserId),
+          where: or(eq(carsBikes.userId, queryUserId), eq(carsBikes.sellerId, queryUserId)),
           orderBy: desc(carsBikes.createdAt),
         });
       } else {
@@ -4460,6 +4487,7 @@ export function registerRoutes(app: Express) {
   // CREATE new vehicle
   app.post("/api/admin/cars-bikes", async (req, res) => {
     try {
+      const sessionUser = (req as any).session?.user || null;
       const {
         title,
         description,
@@ -4541,8 +4569,9 @@ export function registerRoutes(app: Express) {
           fullAddress: fullAddress || null,
           isActive: isActive !== undefined ? isActive : true,
           isFeatured: isFeatured || false,
-          userId: userId,
-          role: role || 'user',
+          sellerId: effectiveSellerId,
+          userId: effectiveUserId,
+          role: effectiveRole,
         })
         .returning();
 
@@ -6115,9 +6144,22 @@ export function registerRoutes(app: Express) {
   // Electronics & Gadgets Routes - Full CRUD
 
   // GET all electronics & gadgets
-  app.get("/api/admin/electronics-gadgets", async (_req, res) => {
+  app.get("/api/admin/electronics-gadgets", async (req, res) => {
     try {
+      const sessionUser = (req as any).session?.user || null;
+      if (!sessionUser?.id) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+
+      const isSeller = sessionUser.accountType === 'seller';
+      // IMPORTANT: For seller accounts, always scope to their own data even if role is incorrectly set.
+      const isAdmin = !isSeller && (sessionUser.role === 'admin' || sessionUser.role === 'super_admin');
+      if (!isAdmin && !isSeller) {
+        return res.status(403).json({ message: "Forbidden" });
+      }
+
       const gadgets = await db.query.electronicsGadgets.findMany({
+        where: isAdmin ? undefined : eq(electronicsGadgets.userId, sessionUser.id as string),
         orderBy: desc(electronicsGadgets.createdAt),
       });
       res.json(gadgets);
@@ -6146,10 +6188,24 @@ export function registerRoutes(app: Express) {
   // CREATE new electronics gadget
   app.post("/api/admin/electronics-gadgets", async (req, res) => {
     try {
+      const sessionUser = (req as any).session?.user || null;
+      if (!sessionUser?.id) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+
+      const isSeller = sessionUser.accountType === 'seller';
+      const isAdmin = !isSeller && (sessionUser.role === 'admin' || sessionUser.role === 'super_admin');
+      if (!isAdmin && !isSeller) {
+        return res.status(403).json({ message: "Forbidden" });
+      }
+
       const [newGadget] = await db
         .insert(electronicsGadgets)
         .values({
           ...req.body,
+          // Enforce ownership for seller accounts
+          userId: isSeller ? (sessionUser.id as string) : req.body?.userId,
+          role: isSeller ? 'seller' : (req.body?.role || sessionUser.role || 'user'),
           country: req.body.country || "India",
         })
         .returning();
@@ -6466,9 +6522,21 @@ export function registerRoutes(app: Express) {
   // Phones, Tablets & Accessories Routes - Full CRUD
 
   // GET all phones, tablets & accessories
-  app.get("/api/admin/phones-tablets-accessories", async (_req, res) => {
+  app.get("/api/admin/phones-tablets-accessories", async (req, res) => {
     try {
+      const sessionUser = (req as any).session?.user || null;
+      if (!sessionUser?.id) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+
+      const isAdmin = sessionUser.role === 'admin' || sessionUser.role === 'super_admin';
+      const isSeller = sessionUser.accountType === 'seller';
+      if (!isAdmin && !isSeller) {
+        return res.status(403).json({ message: "Forbidden" });
+      }
+
       const products = await db.query.phonesTabletsAccessories.findMany({
+        where: isAdmin ? undefined : eq(phonesTabletsAccessories.userId, sessionUser.id as string),
         orderBy: desc(phonesTabletsAccessories.createdAt),
       });
       res.json(products);
@@ -6497,6 +6565,28 @@ export function registerRoutes(app: Express) {
   // CREATE new product
   app.post("/api/admin/phones-tablets-accessories", async (req, res) => {
     try {
+      if (!req.body?.listingType) {
+        return res.status(400).json({ message: "listingType is required" });
+      }
+      if (!req.body?.title) {
+        return res.status(400).json({ message: "title is required" });
+      }
+      if (!req.body?.category) {
+        return res.status(400).json({ message: "category is required" });
+      }
+      if (!req.body?.brand) {
+        return res.status(400).json({ message: "brand is required" });
+      }
+      if (!req.body?.model) {
+        return res.status(400).json({ message: "model is required" });
+      }
+      if (req.body?.price == null) {
+        return res.status(400).json({ message: "price is required" });
+      }
+      if (!req.body?.contactPhone) {
+        return res.status(400).json({ message: "contactPhone is required" });
+      }
+
       const [newProduct] = await db
         .insert(phonesTabletsAccessories)
         .values({
@@ -6514,6 +6604,10 @@ export function registerRoutes(app: Express) {
   // UPDATE product
   app.put("/api/admin/phones-tablets-accessories/:id", async (req, res) => {
     try {
+      if ("listingType" in (req.body || {}) && !req.body?.listingType) {
+        return res.status(400).json({ message: "listingType cannot be empty" });
+      }
+
       const [updatedProduct] = await db
         .update(phonesTabletsAccessories)
         .set({ ...req.body, updatedAt: new Date() })
@@ -6597,9 +6691,21 @@ export function registerRoutes(app: Express) {
   // Second Hand Phones, Tablets & Accessories Routes - Full CRUD
 
   // GET all second hand phones, tablets & accessories
-  app.get("/api/admin/second-hand-phones-tablets-accessories", async (_req, res) => {
+  app.get("/api/admin/second-hand-phones-tablets-accessories", async (req, res) => {
     try {
+      const sessionUser = (req as any).session?.user || null;
+      if (!sessionUser?.id) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+
+      const isAdmin = sessionUser.role === 'admin' || sessionUser.role === 'super_admin';
+      const isSeller = sessionUser.accountType === 'seller';
+      if (!isAdmin && !isSeller) {
+        return res.status(403).json({ message: "Forbidden" });
+      }
+
       const products = await db.query.secondHandPhonesTabletsAccessories.findMany({
+        where: isAdmin ? undefined : eq(secondHandPhonesTabletsAccessories.userId, sessionUser.id as string),
         orderBy: desc(secondHandPhonesTabletsAccessories.createdAt),
       });
       res.json(products);
@@ -6942,9 +7048,21 @@ export function registerRoutes(app: Express) {
   // Computer, Mobile & Laptop Repair Services Routes - Full CRUD
 
   // GET all repair services
-  app.get("/api/admin/computer-mobile-laptop-repair-services", async (_req, res) => {
+  app.get("/api/admin/computer-mobile-laptop-repair-services", async (req, res) => {
     try {
+      const sessionUser = (req as any).session?.user || null;
+      if (!sessionUser?.id) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+
+      const isAdmin = sessionUser.role === 'admin' || sessionUser.role === 'super_admin';
+      const isSeller = sessionUser.accountType === 'seller';
+      if (!isAdmin && !isSeller) {
+        return res.status(403).json({ message: "Forbidden" });
+      }
+
       const services = await db.query.computerMobileLaptopRepairServices.findMany({
+        where: isAdmin ? undefined : eq(computerMobileLaptopRepairServices.userId, sessionUser.id as string),
         orderBy: desc(computerMobileLaptopRepairServices.createdAt),
       });
       res.json(services);
@@ -7284,9 +7402,21 @@ export function registerRoutes(app: Express) {
   // Furniture & Interior Decor Routes - Full CRUD
 
   // GET all furniture & interior decor
-  app.get("/api/admin/furniture-interior-decor", async (_req, res) => {
+  app.get("/api/admin/furniture-interior-decor", async (req, res) => {
     try {
+      const sessionUser = (req as any).session?.user || null;
+      if (!sessionUser?.id) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+
+      const isAdmin = sessionUser.role === 'admin' || sessionUser.role === 'super_admin';
+      const isSeller = sessionUser.accountType === 'seller';
+      if (!isAdmin && !isSeller) {
+        return res.status(403).json({ message: "Forbidden" });
+      }
+
       const items = await db.query.furnitureInteriorDecor.findMany({
+        where: isAdmin ? undefined : eq(furnitureInteriorDecor.userId, sessionUser.id as string),
         orderBy: desc(furnitureInteriorDecor.createdAt),
       });
       res.json(items);
@@ -7636,9 +7766,21 @@ export function registerRoutes(app: Express) {
   // Cricket Sports Training Routes - Full CRUD
 
   // GET all cricket training programs
-  app.get("/api/admin/cricket-sports-training", async (_req, res) => {
+  app.get("/api/admin/cricket-sports-training", async (req, res) => {
     try {
+      const sessionUser = (req as any).session?.user || null;
+      if (!sessionUser?.id) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+
+      const isAdmin = sessionUser.role === 'admin' || sessionUser.role === 'super_admin';
+      const isSeller = sessionUser.accountType === 'seller';
+      if (!isAdmin && !isSeller) {
+        return res.status(403).json({ message: "Forbidden" });
+      }
+
       const programs = await db.query.cricketSportsTraining.findMany({
+        where: isAdmin ? undefined : eq(cricketSportsTraining.userId, sessionUser.id as string),
         orderBy: desc(cricketSportsTraining.createdAt),
       });
       res.json(programs);
@@ -7767,9 +7909,22 @@ export function registerRoutes(app: Express) {
   // E-Books & Online Courses Routes - Full CRUD
 
   // GET all ebooks & online courses
-  app.get("/api/admin/ebooks-online-courses", async (_req, res) => {
+  app.get("/api/admin/ebooks-online-courses", async (req, res) => {
     try {
+      const sessionUser = (req as any).session?.user || null;
+      if (!sessionUser?.id) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+
+      const isAdmin = sessionUser.role === 'admin' || sessionUser.role === 'super_admin';
+      const isSeller = sessionUser.accountType === 'seller';
+
+      if (!isAdmin && !isSeller) {
+        return res.status(403).json({ message: "Forbidden" });
+      }
+
       const items = await db.query.ebooksOnlineCourses.findMany({
+        where: isAdmin ? undefined : eq(ebooksOnlineCourses.userId, sessionUser.id as string),
         orderBy: desc(ebooksOnlineCourses.createdAt),
       });
       res.json(items);
@@ -9741,9 +9896,21 @@ app.patch("/api/admin/skill-training-certification/:id/toggle-featured", async (
   });
 
   // Telecommunication Services Routes - Full CRUD
-  app.get("/api/admin/telecommunication-services", async (_req, res) => {
+  app.get("/api/admin/telecommunication-services", async (req, res) => {
     try {
+      const sessionUser = (req as any).session?.user || null;
+      if (!sessionUser?.id) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+
+      const isAdmin = sessionUser.role === 'admin' || sessionUser.role === 'super_admin';
+      const isSeller = sessionUser.accountType === 'seller';
+      if (!isAdmin && !isSeller) {
+        return res.status(403).json({ message: "Forbidden" });
+      }
+
       const services = await db.query.telecommunicationServices.findMany({
+        where: isAdmin ? undefined : eq(telecommunicationServices.userId, sessionUser.id as string),
         orderBy: desc(telecommunicationServices.createdAt),
       });
       res.json(services);

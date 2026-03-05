@@ -1505,7 +1505,7 @@ function EbooksOnlineCoursesSection() {
 function CricketSportsTrainingSection() {
   const [training, setTraining] = useState<any[]>([]);
   const [showForm, setShowForm] = useState(false);
-  const [editingTraining, setEditingTraining] = useState(null);
+  const [editingTraining, setEditingTraining] = useState<any>(null);
 
   useEffect(() => {
     fetchTraining();
@@ -1522,10 +1522,9 @@ function CricketSportsTrainingSection() {
     }
   };
 
-  const handleSuccess = () => {
-    setShowForm(false);
-    setEditingTraining(null);
-    fetchTraining();
+  const handleEdit = (item: any) => {
+    setEditingTraining(item);
+    setShowForm(true);
   };
 
   const handleDelete = async (id: string) => {
@@ -1570,17 +1569,124 @@ function CricketSportsTrainingSection() {
 
   return (
     <div className="space-y-6">
-      {/* Add button removed per request */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-2xl font-bold">Cricket & Sports Training</h2>
+          <p className="text-muted-foreground">Manage cricket coaching and training programs</p>
+        </div>
+        <Button onClick={() => setShowForm(true)}>
+          <Plus className="w-4 h-4 mr-2" />
+          Add Training Program
+        </Button>
+      </div>
 
-      {showForm && (
-        <Card className="mb-6">
-          <CardContent className="max-w-4xl">
-            <CricketSportsTrainingForm />
+      <Dialog
+        open={showForm}
+        onOpenChange={(open) => {
+          setShowForm(open);
+          if (!open) setEditingTraining(null);
+        }}
+      >
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-visible">
+          <DialogHeader>
+            <DialogTitle>{editingTraining ? 'Edit Training Program' : 'Add Training Program'}</DialogTitle>
+            <DialogDescription>
+              {editingTraining ? 'Update the details of this training program' : 'Fill in the details to create a new training program'}
+            </DialogDescription>
+          </DialogHeader>
+          <CricketSportsTrainingForm />
+        </DialogContent>
+      </Dialog>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+        {Array.isArray(training) && training.map((item) => (
+          <Card key={item.id} className="group hover:shadow-lg transition-shadow">
+            <CardHeader>
+              <div className="flex items-start justify-between">
+                <div className="flex-1">
+                  <CardTitle className="text-lg mb-2">{item.title}</CardTitle>
+                  <div className="flex gap-2 flex-wrap">
+                    {item.trainingCategory && (
+                      <Badge variant="secondary">{String(item.trainingCategory).replace('_', ' ')}</Badge>
+                    )}
+                    {item.trainingLevel && (
+                      <Badge variant="outline">{String(item.trainingLevel).replace('_', ' ')}</Badge>
+                    )}
+                    {item.isFeatured && <Badge className="bg-yellow-500">Featured</Badge>}
+                  </div>
+                </div>
+                <div className="flex gap-1">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8"
+                    onClick={() => handleEdit(item)}
+                    title="Edit"
+                  >
+                    <Edit className="w-4 h-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 text-destructive"
+                    onClick={() => handleDelete(item.id)}
+                    title="Delete"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                {item.description && (
+                  <p className="text-sm text-muted-foreground line-clamp-2">{item.description}</p>
+                )}
+                <div className="flex items-center justify-between">
+                  <Badge variant={item.isActive ? 'default' : 'secondary'}>
+                    {item.isActive ? 'Active' : 'Inactive'}
+                  </Badge>
+                  {item.pricePerSession != null && (
+                    <span className="font-semibold text-primary">₹{Number(item.pricePerSession).toLocaleString()}</span>
+                  )}
+                </div>
+              </div>
+            </CardContent>
+            <CardFooter className="pt-0 flex gap-2">
+              <Button
+                variant={item.isActive ? "outline" : "default"}
+                size="sm"
+                className="flex-1"
+                onClick={() => toggleActive(item.id)}
+              >
+                {item.isActive ? "Deactivate" : "Activate"}
+              </Button>
+              <Button
+                variant={item.isFeatured ? "secondary" : "outline"}
+                size="sm"
+                className="flex-1"
+                onClick={() => toggleFeatured(item.id)}
+              >
+                {item.isFeatured ? "Unfeature" : "Feature"}
+              </Button>
+            </CardFooter>
+          </Card>
+        ))}
+      </div>
+
+      {(!training || training.length === 0) && (
+        <Card>
+          <CardContent className="py-12 text-center">
+            <Building className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
+            <h3 className="text-lg font-semibold mb-2">No Training Programs Found</h3>
+            <p className="text-muted-foreground mb-4">Start by adding your first training program</p>
+            <Button onClick={() => setShowForm(true)}>
+              <Plus className="w-4 h-4 mr-2" />
+              Add Training Program
+            </Button>
           </CardContent>
         </Card>
       )}
-
-      {/* Listings removed per request - individual training cards and empty-state are hidden */}
     </div>
   );
 }

@@ -390,6 +390,9 @@ export default function PhonesTabletsAccessoriesForm() {
           </DialogHeader>
 
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+            <input type="hidden" {...register("listingType", { required: true })} />
+            <input type="hidden" {...register("category", { required: true })} />
+
             {/* Basic Information */}
             <Card>
               <CardHeader>
@@ -404,7 +407,10 @@ export default function PhonesTabletsAccessoriesForm() {
 
                   <div className="space-y-2">
                     <Label htmlFor="listingType">Listing Type *</Label>
-                    <Select onValueChange={(value) => setValue("listingType", value)} defaultValue={editingProduct?.listingType}>
+                    <Select
+                      onValueChange={(value) => setValue("listingType", value, { shouldDirty: true, shouldValidate: true })}
+                      defaultValue={editingProduct?.listingType}
+                    >
                       <SelectTrigger>
                         <SelectValue placeholder="Select listing type" />
                       </SelectTrigger>
@@ -432,7 +438,10 @@ export default function PhonesTabletsAccessoriesForm() {
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="category">Category *</Label>
-                    <Select onValueChange={(value) => setValue("category", value)} defaultValue={editingProduct?.category}>
+                    <Select
+                      onValueChange={(value) => setValue("category", value, { shouldDirty: true, shouldValidate: true })}
+                      defaultValue={editingProduct?.category}
+                    >
                       <SelectTrigger>
                         <SelectValue placeholder="Select category" />
                       </SelectTrigger>
