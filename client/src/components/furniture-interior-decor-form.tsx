@@ -73,6 +73,9 @@ export default function FurnitureInteriorDecorForm({ editingItem, onSuccess }: F
   const { toast } = useToast();
 
   const uploadMultipleFiles = async (files: File[]): Promise<string[]> => {
+    if (!files || files.length === 0) {
+      throw new Error('Please select at least 1 image');
+    }
     const fd = new FormData();
     files.forEach((f) => fd.append('files', f));
     const res = await fetch('/api/upload-multiple', { method: 'POST', body: fd });
@@ -80,6 +83,7 @@ export default function FurnitureInteriorDecorForm({ editingItem, onSuccess }: F
       const msg = await res.json().catch(() => ({} as any));
       throw new Error(msg?.message || `Upload failed (${res.status})`);
     }
+
     const data = await res.json();
     const urls = Array.isArray(data?.files) ? data.files.map((x: any) => x?.url).filter((u: any) => typeof u === 'string') : [];
     if (urls.length === 0) throw new Error('Upload failed: missing files');
@@ -197,16 +201,16 @@ export default function FurnitureInteriorDecorForm({ editingItem, onSuccess }: F
   });
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
+    const inputEl = e.currentTarget;
+    const files = inputEl.files;
     if (!files || files.length === 0) return;
-
-    e.currentTarget.value = '';
 
     setUploadingImages(true);
 
     try {
       const currentImages = form.getValues("images") || [];
-      const uploadedUrls = await uploadMultipleFiles(Array.from(files));
+      const selected = Array.from(files);
+      const uploadedUrls = await uploadMultipleFiles(selected);
       form.setValue("images", [...currentImages, ...uploadedUrls]);
 
       toast({
@@ -221,6 +225,7 @@ export default function FurnitureInteriorDecorForm({ editingItem, onSuccess }: F
       });
     } finally {
       setUploadingImages(false);
+      if (inputEl) inputEl.value = '';
     }
   };
 

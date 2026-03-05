@@ -279,7 +279,8 @@ export default function ElectronicsGadgetsForm() {
   const onSubmit = async (data: ElectronicsGadgetFormData) => {
     const safeImages = await ensureUploadedImageUrls(images);
     if (safeImages !== images) setImages(safeImages);
-    const payload = { ...data, images: safeImages };
+    const safeCondition = (data as any)?.condition || editingGadget?.condition || 'good';
+    const payload = { ...data, condition: safeCondition, images: safeImages };
     if (editingGadget) {
       updateMutation.mutate({ id: editingGadget.id, data: payload });
     } else {
