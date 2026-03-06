@@ -198,36 +198,15 @@ function EventDecorationServicesSection() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h2 className="text-2xl font-bold">Event & Decoration Services</h2>
-          <p className="text-muted-foreground">Manage marriage halls, party venues, café setups, and decoration materials</p>
-        </div>
-        <Button onClick={() => setShowForm(true)}>
-          <Plus className="w-4 h-4 mr-2" />
-          Add Service
-        </Button>
-      </div>
+      
 
-      <div className="mb-4">
-        <DynamicFilter
-          fields={[
-            { type: 'search', name: 'search', placeholder: 'Search services...' },
-            { type: 'select', name: 'venueType', label: 'Venue Type', options: [] },
-            { type: 'toggle', name: 'isActive', label: 'Active' },
-            { type: 'toggle', name: 'isFeatured', label: 'Featured' },
-          ]}
-          filters={filters}
-          onChange={(next) => setFilters(next)}
-          onReset={() => setFilters({ search: '', venueType: '', isActive: '', isFeatured: '' })}
-        />
-      </div>
+      
 
       <EventDecorationServicesForm />
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+      <div className="flex flex-wrap gap-6">
         {Array.isArray(services) && services.map((service) => (
-          <Card key={service.id} className="group hover:shadow-lg transition-shadow">
+          <Card key={service.id} className="group hover:shadow-lg transition-shadow basis-full lg:basis-[calc(50%-12px)] xl:basis-[calc(33.333%-16px)]">
             <CardHeader>
               <div className="flex items-start justify-between">
                 <div className="flex-1">
@@ -5961,9 +5940,28 @@ export default function SellerDashboard() {
   if (user.accountType !== 'seller') return null;
 
   const renderSection = () => {
+    const slugifySection = (value: unknown) => {
+      const s = String(value ?? '').trim();
+      if (!s) return '';
+      // Remove accents (e.g. Café -> Cafe)
+      const noAccents = s.normalize('NFKD').replace(/[\u0300-\u036f]/g, '');
+      return noAccents
+        .toLowerCase()
+        .replace(/&/g, 'and')
+        .replace(/\//g, '-')
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/(^-|-$)/g, '')
+        .replace(/-+/g, '-');
+    };
+
     // Normalize the active section to handle different slug formats
-    const normalizedSection = activeSection.toLowerCase().replace(/\s+/g, '-');
-    console.log('LanguageClassesForm loaded', normalizedSection);
+    const normalizedSection = slugifySection(activeSection);
+
+    console.log('SellerDashboard section', { activeSection, normalizedSection });
+
+    if (normalizedSection.startsWith('showrooms')) {
+      return <ShowroomsSection />;
+    }
 
     switch (normalizedSection) {
       case "dashboard":
@@ -5974,15 +5972,18 @@ export default function SellerDashboard() {
         return <PlatformSection />;
       case "settings":
         return <SettingsSection />;
+      case "hostels-and-pg":
       case "hostels-&-pg":
       case "hostels-pg":
       case "hostel-pg":
         return <HostelsPgSection />;
+      case "construction-and-building-materials":
       case "construction-&-building-materials":
       case "construction-materials":
         return <ConstructionMaterialsSection />;
       case "property-deals":
         return <PropertyDealsSection />;
+
       case "local-market-commercial-property":
       case "commercial-properties":
         return <CommercialPropertiesSection />;
@@ -5992,55 +5993,72 @@ export default function SellerDashboard() {
       case "company-office-space":
       case "office-spaces":
         return <OfficeSpacesSection />;
+      case "rental-rooms-flats-apartments":
       case "rental-–-rooms,-flats,-apartments":
       case "rental-listings":
         return <RentalListingsSection />;
       case "saree-shopping-clothing":
         return <SareeClothingShoppingSection />;
+      case "fashion-and-beauty-products":
       case "fashion-&-beauty-products":
       case "fashion-beauty-products":
         return <FashionBeautyProductsSection />;
+      case "cars-and-bikes":
       case "cars-&-bikes":
       case "cars-bikes":
         return <CarsBikesSection />;
+
       case "heavy-equipment-for-sale":
         return <HeavyEquipmentSection />;
+      case "showrooms-authorized-second-hand":
       case "showrooms-(authorized-second-hand)":
       case "showrooms":
         return <ShowroomsSection />;
+      case "second-hand-cars-and-bikes":
       case "second-hand-cars-&-bikes":
       case "second-hand-cars-bikes":
         return <SecondHandCarsBikesSection />;
+      case "car-and-bike-rentals":
       case "car-&-bike-rentals":
       case "car-bike-rentals":
         return <CarBikeRentalsSection />;
+
       case "transportation-moving-services":
         return <TransportationMovingServicesSection />;
       case "vehicle-license-classes":
         return <VehicleLicenseClassesSection />;
+      case "electronics-and-gadgets":
       case "electronics-&-gadgets":
       case "electronics-gadgets":
         return <ElectronicsGadgetsSection />;
+      case "new-phones-and-tablets-and-accessories":
       case "new-phones-&-tablets-&-accessories":
       case "phones-tablets-accessories":
         return <PhonesTabletsAccessoriesSection />;
+      case "second-hand-phones-and-tablets-and-accessories":
       case "second-hand-phones-&-tablets-&-accessories":
       case "second-hand-phones-tablets-accessories":
         return <SecondHandPhonesTabletsAccessoriesSection />;
+      case "computer-mobile-and-laptop-repair-services":
       case "computer,-mobile-&-laptop-repair-services":
         return <ComputerMobileLaptopRepairServicesSection />;
+      case "furniture-and-interior-decor":
       case "furniture-&-interior-decor":
       case "furniture-interior-decor":
         return <FurnitureInteriorDecorSection />;
       case "household-services":
         return <HouseholdServicesSection />;
+      case "event-and-decoration-services-marriage-halls-parties-cafe-setup-decoration-materials":
       case "event-&-decoration-services-(marriage-halls,-parties,-café-setup,-decoration-materials)":
         return <EventDecorationServicesSection />;
+      case "pharmacy-and-medical-stores":
       case "pharmacy-&-medical-stores":
         return <PharmacyMedicalStoresSection />;
+      case "e-books-and-online-courses":
       case "e-books-&-online-courses":
       case "ebooks-online-courses":
         return <EbooksOnlineCoursesSection />;
+
       case "cricket-sports-training":
         return <CricketSportsTrainingSection />;
       case "cyber-cafe-internet-services":
@@ -6054,23 +6072,30 @@ export default function SellerDashboard() {
         return <ServiceCentreWarrantyForm />;
       case "educational-consultancy-study-abroad":
         return <EducationalConsultancyStudyAbroadSection />;
+      case "jewelry-and-accessories":
       case "jewelry-&-accessories":
       case "jewelry-accessories":
         return <JewelryAccessoriesSection />;
+      case "health-and-wellness-services":
       case "health-&-wellness-services":
       case "health-wellness-services":
         return <HealthWellnessServicesSection />;
+
       case "tuitionprivatclasses":
         return <TuitionPrivateClassesSection />;
       case "dancekarategymyoga-classes":
         return <DanceKarateGymYogaSection />;
-      case "schools,-colleges,-coaching-institutes":
+      case "schools-colleges-coaching-institutes":
         return <SchoolsCollegesCoachingSection />;
       case "languageclasses":
         return <LanguageClassesSection />;
+
       case "academies-music-arts-sports":
       case "academies":
         return <AcademiesMusicArtsSportsSection />;
+      case "skill-training-certification":
+      case "skill-training-and-certification":
+      case "skilltrainingcertification":
       case "skill-training--certification":
         return <SkillTrainingCertificationSection />;
       default:

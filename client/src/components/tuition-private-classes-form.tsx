@@ -63,6 +63,26 @@ export default function TuitionPrivateClassesForm({ onSuccess, editingClass }: T
 
   const onSubmit = async (data: any) => {
     try {
+      const feePerHourRaw = data?.feePerHour;
+      const feePerMonthRaw = data?.feePerMonth;
+      const feePerSubjectRaw = data?.feePerSubject;
+      const hasAnyFee =
+        (typeof feePerHourRaw === 'number' && !isNaN(feePerHourRaw)) ||
+        (typeof feePerMonthRaw === 'number' && !isNaN(feePerMonthRaw)) ||
+        (typeof feePerSubjectRaw === 'number' && !isNaN(feePerSubjectRaw)) ||
+        (typeof feePerHourRaw === 'string' && feePerHourRaw.trim() !== '') ||
+        (typeof feePerMonthRaw === 'string' && feePerMonthRaw.trim() !== '') ||
+        (typeof feePerSubjectRaw === 'string' && feePerSubjectRaw.trim() !== '');
+
+      if (!hasAnyFee) {
+        toast({
+          title: "Error",
+          description: "Please fill at least one fee in Fee Structure (per hour/month/subject).",
+          variant: "destructive",
+        });
+        return;
+      }
+
       // Clean up the data
       const cleanedData = {
         ...data,
