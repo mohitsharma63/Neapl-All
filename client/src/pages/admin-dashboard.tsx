@@ -3006,14 +3006,14 @@ function CategoriesSection() {
                         <Eye className="w-4 h-4 opacity-50" />
                       )}
                     </Button>
-                    <Button
+                    {/* <Button
                       variant="ghost"
                       size="icon"
                       className="h-8 w-8 text-destructive"
                       onClick={() => handleDeleteCategory(category.id)}
                     >
                       <Trash2 className="w-4 h-4" />
-                    </Button>
+                    </Button> */}
                   </div>
                 </div>
 
