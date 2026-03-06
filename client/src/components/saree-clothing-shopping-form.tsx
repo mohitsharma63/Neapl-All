@@ -206,6 +206,7 @@ export default function SareeClothingShoppingForm(props?: {
   });
   const [editingItem, setEditingItem] = useState<SareeProductApi | null>(null);
   const [viewingItem, setViewingItem] = useState<SareeProductApi | null>(null);
+  const [activeTab, setActiveTab] = useState("basic");
   const [uploadingImages, setUploadingImages] = useState(false);
   const [dragActive, setDragActive] = useState(false);
   const [imagePreviewError, setImagePreviewError] = useState<string | null>(null);
@@ -628,7 +629,7 @@ export default function SareeClothingShoppingForm(props?: {
         {showForm ? (
           <CardContent>
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-              <Tabs defaultValue="basic" className="w-full">
+              <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
                 <TabsList className="grid w-full grid-cols-6 bg-gradient-to-r from-pink-50 to-purple-50">
                   <TabsTrigger value="basic">Basic</TabsTrigger>
                   <TabsTrigger value="details">Details</TabsTrigger>
@@ -1165,9 +1166,36 @@ export default function SareeClothingShoppingForm(props?: {
                 <Button type="button" variant="outline" onClick={handleCloseForm}>
                   Cancel
                 </Button>
-                <Button type="submit" className="bg-gradient-to-r from-pink-600 to-purple-600 hover:from-pink-700 hover:to-purple-700" disabled={createMutation.isPending || updateMutation.isPending}>
-                  {createMutation.isPending || updateMutation.isPending ? "Saving..." : editingItem ? "Update Product" : "Create Product"}
+                <Button
+                  type="button"
+                  variant="outline"
+                  disabled={activeTab === 'basic'}
+                  onClick={() => {
+                    const steps = ['basic', 'details', 'pricing', 'features', 'seller', 'delivery'];
+                    const idx = steps.indexOf(activeTab);
+                    setActiveTab(steps[Math.max(0, idx - 1)]);
+                  }}
+                >
+                  Previous
                 </Button>
+
+                {activeTab !== 'delivery' ? (
+                  <Button
+                    type="button"
+                    className="bg-gradient-to-r from-pink-600 to-purple-600 hover:from-pink-700 hover:to-purple-700"
+                    onClick={() => {
+                      const steps = ['basic', 'details', 'pricing', 'features', 'seller', 'delivery'];
+                      const idx = steps.indexOf(activeTab);
+                      setActiveTab(steps[Math.min(steps.length - 1, idx + 1)]);
+                    }}
+                  >
+                    Next
+                  </Button>
+                ) : (
+                  <Button type="submit" className="bg-gradient-to-r from-pink-600 to-purple-600 hover:from-pink-700 hover:to-purple-700" disabled={createMutation.isPending || updateMutation.isPending}>
+                    {createMutation.isPending || updateMutation.isPending ? "Saving..." : editingItem ? "Update Product" : "Create Product"}
+                  </Button>
+                )}
               </div>
             </form>
           </CardContent>

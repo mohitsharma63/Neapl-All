@@ -22,6 +22,7 @@ export default function FashionBeautyProductsForm({ onSuccess, editingProduct }:
   const [imageError, setImageError] = useState<string | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
   const [userRole, setUserRole] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState("basic");
   const listingType = watch("listingType");
 
   useEffect(() => {
@@ -179,7 +180,7 @@ export default function FashionBeautyProductsForm({ onSuccess, editingProduct }:
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-      <Tabs defaultValue="basic" className="w-full">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="grid w-full grid-cols-6">
           <TabsTrigger value="basic">Basic Info</TabsTrigger>
           <TabsTrigger value="details">Details</TabsTrigger>
@@ -654,9 +655,38 @@ export default function FashionBeautyProductsForm({ onSuccess, editingProduct }:
         </TabsContent>
       </Tabs>
 
-      <Button type="submit" className="w-full" size="lg">
-        {editingProduct ? 'Update Product' : 'Submit Listing'}
-      </Button>
+      <div className="flex items-center justify-between gap-3 pt-2">
+        <Button
+          type="button"
+          variant="outline"
+          disabled={activeTab === 'basic'}
+          onClick={() => {
+            const steps = ['basic', 'details', 'pricing', 'features', 'seller', 'delivery'];
+            const idx = steps.indexOf(activeTab);
+            setActiveTab(steps[Math.max(0, idx - 1)]);
+          }}
+        >
+          Previous
+        </Button>
+
+        {activeTab !== 'delivery' ? (
+          <Button
+            type="button"
+            className="ml-auto"
+            onClick={() => {
+              const steps = ['basic', 'details', 'pricing', 'features', 'seller', 'delivery'];
+              const idx = steps.indexOf(activeTab);
+              setActiveTab(steps[Math.min(steps.length - 1, idx + 1)]);
+            }}
+          >
+            Next
+          </Button>
+        ) : (
+          <Button type="submit" className="ml-auto" size="lg">
+            {editingProduct ? 'Update Product' : 'Submit Listing'}
+          </Button>
+        )}
+      </div>
     </form>
   );
 }
